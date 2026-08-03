@@ -18,6 +18,17 @@ import { createZip } from './zip.mjs';
 
 const RELEASE_FILES = PLUGIN_RUNTIME_FILES;
 const EXPORT_ROOT = resolve('export');
+const supportedArguments = new Set(['--require-test-vault']);
+const argumentsProvided = process.argv.slice(2);
+const unsupportedArguments = argumentsProvided.filter(
+  (argument) => !supportedArguments.has(argument),
+);
+if (unsupportedArguments.length > 0) {
+  throw new Error(
+    'Unsupported export arguments: ' + unsupportedArguments.join(', ') + '.',
+  );
+}
+const requireTestVault = argumentsProvided.includes('--require-test-vault');
 const state = await readProjectState();
 const version = assertProjectVersion(state);
 const pluginId = state.manifest.id;
@@ -70,6 +81,7 @@ console.log(
 
 const testVaultPluginDirectory = await installConfiguredTestVault({
   pluginId,
+  required: requireTestVault,
   sourceDirectory: pluginDirectory,
 });
 if (testVaultPluginDirectory !== null) {

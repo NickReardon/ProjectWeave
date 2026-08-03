@@ -22,6 +22,7 @@
     "version:set": "node scripts/project-version.mjs",
     "verify:release": "node scripts/verify-release.mjs",
     "export": "npm run version:check && npm run build && npm run verify:release && node scripts/export-plugin.mjs",
+    "test-vault:update": "npm run export -- --require-test-vault",
     "release": "npm run check && node scripts/export-plugin.mjs",
     "check": "npm run version:check && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run verify:release"
   },
