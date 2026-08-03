@@ -17,7 +17,7 @@ what changed.
 
 ## Current status
 
-The first two read-only walking slices are implemented:
+The current read-only workbench slices are implemented:
 
 - strict TypeScript Obsidian plugin and production bundle;
 - asynchronous, non-writing Markdown indexing behind read-only ports;
@@ -26,7 +26,8 @@ The first two read-only walking slices are implemented:
 - dependency readiness, reverse edges, provenance, and deterministic ordering;
 - bounded project context, task context, and Ready Now application queries;
 - a persistent Obsidian Project Workbench with a project picker, project
-  summary, live index state, and bounded Ready Now list;
+  summary, live index state, bounded Ready Now list, and a project-scoped All
+  Tasks list with status filters and title/path search;
 - visible project and unassigned diagnostic sections grouped by affected note,
   with severity, error code, field, recovery guidance, related-note links, and
   exact-note navigation;
@@ -123,17 +124,22 @@ Open the dashboard from the left ribbon, **Project Weave: Open project
 workbench** in the command palette, or **Open dashboard** on the settings page.
 After the view has been opened once, Obsidian restores it as part of the
 workspace. With multiple indexed projects, use the project selector in the
-view; with one project, the dashboard selects it automatically. Ready task
-buttons open exact existing task notes in another tab, leaving the dashboard
-open.
+view; with one project, the dashboard selects it automatically. Ready Now and
+All Tasks buttons open exact existing task notes in another tab, leaving the
+dashboard open. All Tasks initially includes `backlog`, `todo`, `in-progress`,
+`waiting`, and `review`; select `done` or `cancelled` when searching terminal
+history. Search matches task titles and vault paths without case sensitivity.
 
 For the dashboard and Ready Now walking-slice test, copy the contents of
 `tests/fixtures/vault/` into a disposable vault. Its project is nested under
 `Projects/Game/`, with the canonical project note at
-`Projects/Game/Project.md`. Open the workbench, confirm **Implement request**
-is the one Ready task, then edit a task dependency or status and confirm the
-view refreshes after index publication. The older **Open Ready Now** command
-remains available as a compact modal.
+`Projects/Game/Project.md`. Open the workbench and confirm **Implement request**
+is the one Ready task. In All Tasks, confirm both todo tasks and **External
+prerequisite** (`in-progress`) are visible, search for `external`, and then
+select `done` to retrieve **Define request**. Open a result and confirm it uses
+another tab without replacing the workbench. Edit a task dependency or status
+and confirm both task sections refresh after index publication. The older
+**Open Ready Now** command remains available as a compact modal.
 
 To test diagnostics, temporarily set a task to an invalid value such as
 `status: complete`. The workbench lists the affected note and

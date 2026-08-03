@@ -303,10 +303,63 @@
   text-decoration: underline;
 }
 
-.project-weave-workbench__ready {
+.project-weave-workbench__ready,
+.project-weave-workbench__all-tasks {
   display: flex;
   flex-direction: column;
   gap: var(--size-4-3);
+}
+
+.project-weave-workbench__task-filters {
+  align-items: end;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  display: grid;
+  gap: var(--size-4-3);
+  grid-template-columns: minmax(160px, 1fr) minmax(260px, 2fr) auto;
+  padding: var(--size-4-3);
+}
+
+.project-weave-workbench__task-search {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-1);
+}
+
+.project-weave-workbench__task-search input {
+  width: 100%;
+}
+
+.project-weave-workbench__status-filters {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.project-weave-workbench__status-filters legend {
+  font-size: var(--font-ui-smaller);
+  margin-bottom: var(--size-4-1);
+  padding: 0;
+}
+
+.project-weave-workbench__status-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-1) var(--size-4-3);
+}
+
+.project-weave-workbench__status-options label {
+  align-items: center;
+  display: inline-flex;
+  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-1);
+}
+
+.project-weave-workbench__reset-filters {
+  white-space: nowrap;
 }
 
 .project-weave-workbench__section-heading {
@@ -320,7 +373,8 @@
   margin: 0;
 }
 
-.project-weave-workbench__ready-list {
+.project-weave-workbench__ready-list,
+.project-weave-workbench__task-list {
   display: flex;
   flex-direction: column;
   gap: var(--size-4-2);
@@ -329,15 +383,47 @@
   padding: 0;
 }
 
-.project-weave-workbench__ready-item {
+.project-weave-workbench__ready-item,
+.project-weave-workbench__task-item {
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-m);
   padding: var(--size-4-3);
 }
 
-.project-weave-workbench__ready-item:hover {
+.project-weave-workbench__ready-item:hover,
+.project-weave-workbench__task-item:hover {
   border-color: var(--background-modifier-border-hover);
+}
+
+.project-weave-workbench__task-title-row {
+  align-items: center;
+  display: flex;
+  gap: var(--size-4-2);
+  justify-content: space-between;
+}
+
+.project-weave-workbench__task-title-row .project-weave-workbench__task-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.project-weave-workbench__task-status {
+  background: var(--background-secondary-alt);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  padding: 2px var(--size-4-2);
+}
+
+.project-weave-workbench__task-path {
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  margin-top: var(--size-4-1);
+  overflow-wrap: anywhere;
 }
 
 .project-weave-workbench__task-link {
@@ -502,5 +588,14 @@
   .project-weave-workbench__diagnostic-group-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .project-weave-workbench__task-filters {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .project-weave-workbench__reset-filters {
+    justify-self: start;
   }
 }

@@ -210,6 +210,174 @@ describe('Project Workbench model', () => {
     ]);
   });
 
+  it('lists every non-terminal status by default in deterministic status and rank order', () => {
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication([
+          sourceNote('Projects/Tasks/Project.md', 'type: project'),
+          task(
+            'Projects/Tasks/Tasks/Todo later.md',
+            'Projects/Tasks/Project',
+            'todo',
+            [
+              'rank: 200',
+              'priority: critical',
+              'depends_on: "[[Projects/Tasks/Tasks/In progress]]"',
+            ],
+          ),
+          task(
+            'Projects/Tasks/Tasks/Backlog.md',
+            'Projects/Tasks/Project',
+            'backlog',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Todo first.md',
+            'Projects/Tasks/Project',
+            'todo',
+            ['rank: 100', 'priority: low'],
+          ),
+          task(
+            'Projects/Tasks/Tasks/In progress.md',
+            'Projects/Tasks/Project',
+            'in-progress',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Waiting.md',
+            'Projects/Tasks/Project',
+            'waiting',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Review.md',
+            'Projects/Tasks/Project',
+            'review',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Done.md',
+            'Projects/Tasks/Project',
+            'done',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Cancelled.md',
+            'Projects/Tasks/Project',
+            'cancelled',
+          ),
+          sourceNote('Projects/Other/Project.md', 'type: project'),
+          task(
+            'Projects/Other/Tasks/Do not mix.md',
+            'Projects/Other/Project',
+            'todo',
+          ),
+        ]),
+        selectedProjectPath: 'Projects/Tasks/Project.md',
+        readyDisplayLimit: 5,
+        taskDisplayLimit: 20,
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 6,
+      displayed: 6,
+      truncated: false,
+      statuses: ['backlog', 'todo', 'in-progress', 'waiting', 'review'],
+      search: '',
+    });
+    expect(model.allTasks.items.map((item) => item.path)).toEqual([
+      'Projects/Tasks/Tasks/Backlog.md',
+      'Projects/Tasks/Tasks/Todo first.md',
+      'Projects/Tasks/Tasks/Todo later.md',
+      'Projects/Tasks/Tasks/In progress.md',
+      'Projects/Tasks/Tasks/Waiting.md',
+      'Projects/Tasks/Tasks/Review.md',
+    ]);
+    expect(model.allTasks.items[1]).toMatchObject({
+      status: 'todo',
+      rank: 100,
+      priority: 'low',
+      ready: true,
+      blockerCount: 0,
+    });
+    expect(model.allTasks.items[2]).toMatchObject({
+      status: 'todo',
+      ready: false,
+      blockerCount: 1,
+    });
+  });
+
+  it('makes terminal tasks explicitly filterable and searches title or path case-insensitively', () => {
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication([
+          sourceNote('Projects/History/Project.md', 'type: project'),
+          task(
+            'Projects/History/Tasks/Released.md',
+            'Projects/History/Project',
+            'done',
+          ),
+          task(
+            'Projects/History/Tasks/Abandoned HISTORY.md',
+            'Projects/History/Project',
+            'cancelled',
+          ),
+          task(
+            'Projects/History/Tasks/History active.md',
+            'Projects/History/Project',
+            'todo',
+          ),
+        ]),
+        selectedProjectPath: 'Projects/History/Project.md',
+        readyDisplayLimit: 5,
+        taskStatuses: ['done', 'cancelled'],
+        taskSearch: '  abandoned history  ',
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 1,
+      displayed: 1,
+      truncated: false,
+      statuses: ['done', 'cancelled'],
+      search: 'abandoned history',
+    });
+    expect(model.allTasks.items[0]).toMatchObject({
+      path: 'Projects/History/Tasks/Abandoned HISTORY.md',
+      status: 'cancelled',
+    });
+  });
+
+  it('caps All Tasks rendering at 200 results after filtering', () => {
+    const generatedTasks = Array.from({ length: 205 }, (_, index) =>
+      task(
+        'Projects/Large/Tasks/Task ' + String(index).padStart(3, '0') + '.md',
+        'Projects/Large/Project',
+        'backlog',
+      ),
+    );
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication([
+          sourceNote('Projects/Large/Project.md', 'type: project'),
+          ...generatedTasks,
+        ]),
+        selectedProjectPath: 'Projects/Large/Project.md',
+        readyDisplayLimit: 5,
+        taskDisplayLimit: 500,
+        taskStatuses: ['backlog'],
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 205,
+      displayed: 200,
+      truncated: true,
+    });
+    expect(model.allTasks.items[0]?.path).toBe(
+      'Projects/Large/Tasks/Task 000.md',
+    );
+    expect(model.allTasks.items.at(-1)?.path).toBe(
+      'Projects/Large/Tasks/Task 199.md',
+    );
+  });
+
   it('exposes bounded, severity-ordered diagnostic details for only the selected project', () => {
     const model = project(
       buildProjectWorkbenchModel({
