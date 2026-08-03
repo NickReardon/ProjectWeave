@@ -378,6 +378,134 @@ describe('Project Workbench model', () => {
     );
   });
 
+  it('filters by priority, epic, milestone, owner, and due state while exposing deterministic options', () => {
+    const notes = [
+      sourceNote('Projects/Filters/Project.md', 'type: project'),
+      sourceNote(
+        'Projects/Filters/Epics/Engine.md',
+        [
+          'type: epic',
+          'project: "[[Projects/Filters/Project]]"',
+          'status: active',
+        ].join('\n'),
+      ),
+      sourceNote(
+        'Projects/Filters/Milestones/Alpha.md',
+        [
+          'type: milestone',
+          'project: "[[Projects/Filters/Project]]"',
+          'status: planned',
+        ].join('\n'),
+      ),
+      task(
+        'Projects/Filters/Tasks/Matching.md',
+        'Projects/Filters/Project',
+        'todo',
+        [
+          'priority: high',
+          'owner: Robin',
+          'due_date: 2026-08-03',
+          'epic: "[[Projects/Filters/Epics/Engine]]"',
+          'milestone: "[[Projects/Filters/Milestones/Alpha]]"',
+        ],
+      ),
+      task(
+        'Projects/Filters/Tasks/Other.md',
+        'Projects/Filters/Project',
+        'todo',
+        ['priority: low', 'owner: Casey', 'due_date: 2026-08-04'],
+      ),
+    ];
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication(notes),
+        selectedProjectPath: 'Projects/Filters/Project.md',
+        readyDisplayLimit: 5,
+        taskPriority: 'high',
+        taskEpicPath: 'Projects/Filters/Epics/Engine.md',
+        taskMilestonePath: 'Projects/Filters/Milestones/Alpha.md',
+        taskOwner: 'Robin',
+        taskDueState: 'today',
+        taskToday: '2026-08-03',
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 1,
+      priority: 'high',
+      epicPath: 'Projects/Filters/Epics/Engine.md',
+      milestonePath: 'Projects/Filters/Milestones/Alpha.md',
+      owner: 'Robin',
+      dueState: 'today',
+      filterOptions: {
+        epics: [
+          {
+            value: 'Projects/Filters/Epics/Engine.md',
+            label: 'Engine',
+          },
+        ],
+        milestones: [
+          {
+            value: 'Projects/Filters/Milestones/Alpha.md',
+            label: 'Alpha',
+          },
+        ],
+        owners: [
+          { value: 'Casey', label: 'Casey' },
+          { value: 'Robin', label: 'Robin' },
+        ],
+      },
+    });
+    expect(model.allTasks.items[0]).toMatchObject({
+      path: 'Projects/Filters/Tasks/Matching.md',
+      priority: 'high',
+      owner: 'Robin',
+      dueDate: '2026-08-03',
+      epic: {
+        path: 'Projects/Filters/Epics/Engine.md',
+        title: 'Engine',
+      },
+      milestone: {
+        path: 'Projects/Filters/Milestones/Alpha.md',
+        title: 'Alpha',
+      },
+    });
+  });
+
+  it('distinguishes past, today, future, and missing due dates from an injected local date', () => {
+    const notes = [
+      sourceNote('Projects/Due/Project.md', 'type: project'),
+      task('Projects/Due/Tasks/Past.md', 'Projects/Due/Project', 'todo', [
+        'due_date: 2026-08-02',
+      ]),
+      task('Projects/Due/Tasks/Today.md', 'Projects/Due/Project', 'todo', [
+        'due_date: 2026-08-03',
+      ]),
+      task('Projects/Due/Tasks/Future.md', 'Projects/Due/Project', 'todo', [
+        'due_date: 2026-08-04',
+      ]),
+      task('Projects/Due/Tasks/None.md', 'Projects/Due/Project', 'todo'),
+    ];
+    const expected = {
+      past: 'Past',
+      today: 'Today',
+      future: 'Future',
+      none: 'None',
+    } as const;
+
+    for (const [dueState, title] of Object.entries(expected)) {
+      const model = project(
+        buildProjectWorkbenchModel({
+          publication: publication(notes),
+          selectedProjectPath: 'Projects/Due/Project.md',
+          readyDisplayLimit: 5,
+          taskDueState: dueState as keyof typeof expected,
+          taskToday: '2026-08-03',
+        }),
+      );
+      expect(model.allTasks.items.map((item) => item.title)).toEqual([title]);
+    }
+  });
   it('exposes bounded, severity-ordered diagnostic details for only the selected project', () => {
     const model = project(
       buildProjectWorkbenchModel({

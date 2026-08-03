@@ -4,16 +4,24 @@ import type { ViewStateResult, WorkspaceLeaf } from 'obsidian';
 import {
   buildProjectWorkbenchModel,
   DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
+  PROJECT_WORKBENCH_DUE_STATES,
   type ProjectWorkbenchDiagnosticItem,
   type ProjectWorkbenchDiagnosticsModel,
+  type ProjectWorkbenchDueState,
   type ProjectWorkbenchModel,
   type ProjectWorkbenchProjectOption,
+  type ProjectWorkbenchTaskFilterOption,
 } from '../application/project-workbench-model';
 import type {
   ProjectWeaveReadPublication,
   ProjectWeaveReadSource,
 } from '../application/project-weave-read-source';
-import { TASK_STATUSES, type TaskStatus } from '../domain/model';
+import {
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+  type TaskPriority,
+  type TaskStatus,
+} from '../domain/model';
 
 export const PROJECT_WORKBENCH_VIEW_TYPE = 'project-weave-workbench';
 
@@ -54,6 +62,11 @@ export class ProjectWorkbenchView extends ItemView {
   #taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
   #taskStatuses = new Set<TaskStatus>(DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES);
   #taskSearch = '';
+  #taskPriority: TaskPriority | null = null;
+  #taskEpicPath: string | null = null;
+  #taskMilestonePath: string | null = null;
+  #taskOwner: string | null = null;
+  #taskDueState: ProjectWorkbenchDueState | null = null;
   #diagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
   #unassignedDiagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
   #unsubscribe: (() => void) | null = null;
@@ -106,6 +119,11 @@ export class ProjectWorkbenchView extends ItemView {
       DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
     );
     this.#taskSearch = '';
+    this.#taskPriority = null;
+    this.#taskEpicPath = null;
+    this.#taskMilestonePath = null;
+    this.#taskOwner = null;
+    this.#taskDueState = null;
     this.#diagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
     this.#unassignedDiagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
     if (this.#opened) {
@@ -126,6 +144,11 @@ export class ProjectWorkbenchView extends ItemView {
       DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
     );
     this.#taskSearch = '';
+    this.#taskPriority = null;
+    this.#taskEpicPath = null;
+    this.#taskMilestonePath = null;
+    this.#taskOwner = null;
+    this.#taskDueState = null;
     this.#diagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
     this.#unassignedDiagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
     await super.setState(state, result);
@@ -177,6 +200,12 @@ export class ProjectWorkbenchView extends ItemView {
       taskDisplayLimit: this.#taskDisplayLimit,
       taskStatuses: [...this.#taskStatuses],
       taskSearch: this.#taskSearch,
+      taskPriority: this.#taskPriority,
+      taskEpicPath: this.#taskEpicPath,
+      taskMilestonePath: this.#taskMilestonePath,
+      taskOwner: this.#taskOwner,
+      taskDueState: this.#taskDueState,
+      taskToday: localDateKey(new Date()),
       diagnosticDisplayLimit: this.#diagnosticDisplayLimit,
       unassignedDiagnosticDisplayLimit: this.#unassignedDiagnosticDisplayLimit,
     });
@@ -588,9 +617,74 @@ export class ProjectWorkbenchView extends ItemView {
         DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
       );
       this.#taskSearch = '';
+      this.#taskPriority = null;
+      this.#taskEpicPath = null;
+      this.#taskMilestonePath = null;
+      this.#taskOwner = null;
+      this.#taskDueState = null;
       this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
       this.#render();
     });
+
+    const details = filters.createDiv({
+      cls: 'project-weave-workbench__task-filter-details',
+    });
+    this.#renderTaskFilterSelect(
+      details,
+      'Priority',
+      'task-filter-priority',
+      TASK_PRIORITIES.map((priority) => ({
+        value: priority,
+        label: taskStatusLabel(priority),
+      })),
+      this.#taskPriority,
+      (value) => {
+        this.#taskPriority = value as TaskPriority | null;
+      },
+    );
+    this.#renderTaskFilterSelect(
+      details,
+      'Epic',
+      'task-filter-epic',
+      model.allTasks.filterOptions.epics,
+      this.#taskEpicPath,
+      (value) => {
+        this.#taskEpicPath = value;
+      },
+    );
+    this.#renderTaskFilterSelect(
+      details,
+      'Milestone',
+      'task-filter-milestone',
+      model.allTasks.filterOptions.milestones,
+      this.#taskMilestonePath,
+      (value) => {
+        this.#taskMilestonePath = value;
+      },
+    );
+    this.#renderTaskFilterSelect(
+      details,
+      'Owner',
+      'task-filter-owner',
+      model.allTasks.filterOptions.owners,
+      this.#taskOwner,
+      (value) => {
+        this.#taskOwner = value;
+      },
+    );
+    this.#renderTaskFilterSelect(
+      details,
+      'Due',
+      'task-filter-due',
+      PROJECT_WORKBENCH_DUE_STATES.map((dueState) => ({
+        value: dueState,
+        label: dueStateLabel(dueState),
+      })),
+      this.#taskDueState,
+      (value) => {
+        this.#taskDueState = value as ProjectWorkbenchDueState | null;
+      },
+    );
 
     if (model.counts.tasks === 0) {
       this.#renderMessage(
@@ -649,6 +743,10 @@ export class ProjectWorkbenchView extends ItemView {
       const metadata = [
         item.rank === null ? null : 'rank ' + String(item.rank),
         item.priority === 'normal' ? null : item.priority,
+        item.epic === null ? null : 'epic ' + item.epic.title,
+        item.milestone === null ? null : 'milestone ' + item.milestone.title,
+        item.owner === null ? null : 'owner ' + item.owner,
+        item.dueDate === null ? null : 'due ' + item.dueDate,
         readiness,
       ].filter((value): value is string => value !== null);
       if (metadata.length > 0) {
@@ -687,6 +785,46 @@ export class ProjectWorkbenchView extends ItemView {
       }
     }
   }
+  #renderTaskFilterSelect(
+    container: HTMLElement,
+    labelText: string,
+    focusKey: string,
+    options: readonly ProjectWorkbenchTaskFilterOption[],
+    selectedValue: string | null,
+    onChange: (value: string | null) => void,
+  ): void {
+    const label = container.createEl('label');
+    label.createSpan({ text: labelText });
+    const select = label.createEl('select', {
+      attr: {
+        'aria-label': labelText + ' task filter',
+        'data-workbench-focus-key': focusKey,
+      },
+    });
+    select.createEl('option', { text: 'Any', value: '' });
+    for (const option of options) {
+      select.createEl('option', {
+        text: option.label,
+        value: option.value,
+      });
+    }
+    if (
+      selectedValue !== null &&
+      !options.some((option) => option.value === selectedValue)
+    ) {
+      select.createEl('option', {
+        text: 'Unavailable: ' + selectedValue,
+        value: selectedValue,
+      });
+    }
+    select.value = selectedValue ?? '';
+    select.addEventListener('change', () => {
+      onChange(select.value.length === 0 ? null : select.value);
+      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+      this.#render();
+    });
+  }
+
   #renderDiagnostics(
     root: HTMLElement,
     model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
@@ -1077,9 +1215,32 @@ function groupDiagnosticsByPath(
   }));
 }
 
-function taskStatusLabel(status: TaskStatus): string {
+function taskStatusLabel(status: string): string {
   const label = status.replace('-', ' ');
   return label.charAt(0).toLocaleUpperCase() + label.slice(1);
+}
+
+function dueStateLabel(dueState: ProjectWorkbenchDueState): string {
+  switch (dueState) {
+    case 'past':
+      return 'Past due date';
+    case 'today':
+      return 'Due today';
+    case 'future':
+      return 'Future due date';
+    case 'none':
+      return 'No due date';
+  }
+}
+
+function localDateKey(date: Date): string {
+  return (
+    String(date.getFullYear()).padStart(4, '0') +
+    '-' +
+    String(date.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(date.getDate()).padStart(2, '0')
+  );
 }
 
 function selectedProjectPathFromState(state: unknown): string | null {

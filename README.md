@@ -27,7 +27,8 @@ The current read-only workbench slices are implemented:
 - bounded project context, task context, and Ready Now application queries;
 - a persistent Obsidian Project Workbench with a project picker, project
   summary, live index state, bounded Ready Now list, and a project-scoped All
-  Tasks list with status filters and title/path search;
+  Tasks list with status, priority, epic, milestone, owner, due-state, and
+  title/path filters;
 - visible project and unassigned diagnostic sections grouped by affected note,
   with severity, error code, field, recovery guidance, related-note links, and
   exact-note navigation;
@@ -129,6 +130,9 @@ All Tasks buttons open exact existing task notes in another tab, leaving the
 dashboard open. All Tasks initially includes `backlog`, `todo`, `in-progress`,
 `waiting`, and `review`; select `done` or `cancelled` when searching terminal
 history. Search matches task titles and vault paths without case sensitivity.
+Priority, epic, milestone, owner, and due-state selectors can be combined with
+the status and text filters. Due state compares canonical `due_date` values to
+the user's current local calendar date.
 
 For the dashboard and Ready Now walking-slice test, copy the contents of
 `tests/fixtures/vault/` into a disposable vault. Its project is nested under
@@ -140,6 +144,12 @@ select `done` to retrieve **Define request**. Open a result and confirm it uses
 another tab without replacing the workbench. Edit a task dependency or status
 and confirm both task sections refresh after index publication. The older
 **Open Ready Now** command remains available as a compact modal.
+
+For an advanced-filter check, temporarily add `priority: high`, `owner: Robin`,
+`epic: "[[Engine]]"`, `milestone: "[[Alpha]]"`, and a valid `due_date` to one
+fixture task. Confirm each value appears in its selector, combine all five
+filters to isolate that task, then use **Reset filters**. Set `due_date` to
+today's local date to verify **Due today**.
 
 To test diagnostics, temporarily set a task to an invalid value such as
 `status: complete`. The workbench lists the affected note and
