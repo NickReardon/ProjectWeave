@@ -5,8 +5,9 @@
 The first read-only slices implement the shared core and persistent project
 workbench described by Designs 01, 02, 09, 16, and 17. ADRs 0006 and 0007
 record the platform baseline and workspace-view decisions. The deterministic
-task-template rendering foundation from Plan Addendum 005, Design 18, and ADR
-0005 is implemented in the domain but has no caller yet.
+task-template renderer, project template resolver, and exact task-creation
+proposal builder implement the first non-writing creation path from Plan
+Addendum 005, Design 18, Design 10, and ADR 0005.
 
 ## Dependency direction
 
@@ -22,10 +23,13 @@ Obsidian Vault and MetadataCache
       -> read-only VaultReader and LinkResolver ports
       -> index coordinator and builder
 
-future creation callers (UI or agent)
-  -> creation context, template source, and invariants
-      -> task template renderer
-          -> template parser and Markdown parser
+future creation callers (UI or agent adapter)
+  -> task creation proposal service
+      -> project task-template resolver
+          -> read-only VaultReader and LinkResolver ports
+      -> creation context, template source, and invariants
+          -> task template renderer
+              -> template parser and Markdown parser
 ```
 
 Dependencies point inward. Domain, indexing, and application modules do not
@@ -45,7 +49,8 @@ import Obsidian, Node, Electron, views, or future MCP code.
   packaged minimal task template is embedded as a plugin asset, and every
   rendered note is re-parsed with the ordinary entity parser before it is
   returned. The renderer produces content only; it has no write capability and
-  no proposal, path-allocation, or template-map resolution behavior.
+  no proposal, path-allocation, or template-map resolution behavior; those
+  concerns stay in application services.
 - **Indexing:** IndexBuilder deterministically publishes a complete immutable
   snapshot. IndexCoordinator owns asynchronous rebuilds, coalesced targeted
   reads, revisions, stale-last-good state, and unload cancellation.
@@ -58,6 +63,12 @@ import Obsidian, Node, Electron, views, or future MCP code.
   code, field, recovery guidance, and related-note paths for exact read-only
   navigation. Unassigned diagnostics cover malformed entities and unresolved
   ownership without guessing from folder layout.
+- **Creation proposals:** TaskTemplateResolver reads project-owned task
+  mappings through the existing read-only ports, resolves default/named
+  variants, and fails closed on explicit reference errors.
+  TaskCreationProposalService renders one exact create proposal with
+  fingerprints, target-absence and index-freshness preconditions, exact
+  frontmatter/content, and expected postconditions. Neither service can write.
 - **UI:** the Project Workbench and note-diagnostic banner consume the stable
   read publication. The banner mounts through public Markdown view containers,
   refreshes on workspace and index publications, and never edits Markdown.
@@ -89,10 +100,11 @@ None of these paths has access to a write-capable vault port.
 
 Content-changing work will enter through separate typed Template, Proposal, and
 Write Coordinator services. Views and future agent adapters must call those
-services rather than acquire generic file mutation access. The task template
-renderer is the first of those services. It returns a target path and note
-content to its caller and has no access to a write-capable port, so nothing in
-the current runtime can commit what it renders.
+services rather than acquire generic file mutation access. Template rendering,
+project task-template resolution, and one-file task proposal construction are
+implemented. The proposal carries the read set and exact output a future
+coordinator must recheck after confirmation. No write coordinator or runtime
+caller exists, so nothing in the current plugin can commit a proposed note.
 
 ## Release boundary
 
