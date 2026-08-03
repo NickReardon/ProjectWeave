@@ -186,5 +186,14 @@ Run `npm run export` to build and verify the plugin, then generate:
 - `export/project-weave/` — the directly installable Obsidian plugin folder;
 - `export/project-weave-<version>.zip` — a ZIP containing that plugin folder.
 
+To update a local Obsidian test vault on every export, put its absolute path in
+the Git-ignored `.project-weave-test-vault` file or set
+`PROJECT_WEAVE_TEST_VAULT`. The configured folder must already contain an
+`.obsidian` directory. Export copies only `main.js`, `manifest.json`, and
+`styles.css` into `.obsidian/plugins/project-weave`, preserving `data.json`
+and other local plugin state. With no local setting, export only creates the
+ordinary artifacts.
+
 The entire `export/` directory is Git-ignored. `npm run release` runs the
-complete validation gate and then produces the same export artifacts.
+complete validation gate and then produces the same export artifacts and
+configured test-vault update.
