@@ -309,6 +309,27 @@ describe('renderTaskTemplate precedence and invariants', () => {
     );
   });
 
+  it('keeps a template property the author explicitly left empty', () => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(
+          [
+            'weave_template: true',
+            'template_for: task',
+            'type: task',
+            'title: "{{title}}"',
+            'project: "{{project_link}}"',
+            'status: "{{status}}"',
+            'epic:',
+          ].join('\n'),
+        ),
+      }),
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(content(result)).toContain('epic: null');
+  });
+
   it('rejects a template that contradicts the selected project', () => {
     const result = renderTaskTemplate(
       request({
