@@ -3,10 +3,24 @@ import { describe, expect, it } from 'vitest';
 import { parseTemplateDocument } from '../../src/domain/templates/template-parser';
 import type { TemplateSource } from '../../src/domain/templates/model';
 
-function template(frontmatter: string, body = '# {{title}}\n'): TemplateSource {
+function template(
+  frontmatter: string,
+  body = '# {{title}}\n',
+  options: { readonly includeSchema?: boolean } = {},
+): TemplateSource {
+  const normalized = frontmatter.trim();
+  const includeSchema =
+    options.includeSchema !== false &&
+    !/(?:^|\n)template_schema:/u.test(normalized);
   return {
     path: 'Templates/Task.md',
-    content: ['---', frontmatter.trim(), '---', body].join('\n'),
+    content: [
+      '---',
+      ...(includeSchema ? ['template_schema: 1'] : []),
+      normalized,
+      '---',
+      body,
+    ].join('\n'),
   };
 }
 
@@ -72,6 +86,18 @@ describe('parseTemplateDocument', () => {
       'template.marker.missing',
       'template.for.missing',
     ]);
+  });
+
+  it('rejects a template that omits its schema version', () => {
+    const document = parseTemplateDocument(
+      template(
+        ['weave_template: true', 'template_for: task'].join('\n'),
+        '# {{title}}\n',
+        { includeSchema: false },
+      ),
+    );
+
+    expect(codes(document)).toEqual(['template.schema.missing']);
   });
 
   it('reports invalid template metadata types instead of ignoring them', () => {
@@ -151,6 +177,53 @@ describe('parseTemplateDocument', () => {
     ]);
   });
 
+  it.each([
+    ['date', '2025-02-29'],
+    ['date', '2026-04-31'],
+    ['datetime', '2026-08-03T24:00'],
+    ['datetime', '2026-08-03T09:60:00'],
+  ])('rejects an impossible %s input default', (type, value) => {
+    const document = parseTemplateDocument(
+      template(
+        [
+          'weave_template: true',
+          'template_for: task',
+          'template_inputs:',
+          '  scheduled:',
+          '    type: ' + type,
+          '    default: ' + value,
+        ].join('\n'),
+      ),
+    );
+
+    expect(codes(document)).toEqual(['template.input.default_invalid']);
+  });
+
+  it.each([
+    ['date', '2024-02-29'],
+    ['date', '2000-02-29'],
+    ['datetime', '2026-08-03T23:59'],
+    ['datetime', '2026-08-03T23:59:59'],
+  ])('accepts a valid boundary %s input default', (type, value) => {
+    const document = parseTemplateDocument(
+      template(
+        [
+          'weave_template: true',
+          'template_for: task',
+          'template_inputs:',
+          '  scheduled:',
+          '    type: ' + type,
+          '    default: ' + value,
+        ].join('\n'),
+      ),
+    );
+
+    expect(document.diagnostics).toEqual([]);
+    expect(document.metadata.inputs[0]?.defaultValue).toEqual({
+      kind: 'string',
+      value,
+    });
+  });
   it('rejects frontmatter that mixes static text with a placeholder', () => {
     const document = parseTemplateDocument(
       template(

@@ -197,6 +197,7 @@ function validateTargetPath(
 ): string | null {
   const normalized = normalizeVaultPath(raw);
   const unsafe =
+    raw !== normalized ||
     normalized.length === 0 ||
     !normalized.toLowerCase().endsWith('.md') ||
     hasControlCharacter(normalized) ||
@@ -305,7 +306,7 @@ function resolveInputs(
 
     if (raw === undefined || raw === null) {
       const fallback = declaration.defaultValue ?? null;
-      if (declaration.required && fallback === null) {
+      if (declaration.required && !satisfiesRequiredInput(fallback)) {
         diagnostics.push(
           templateDiagnostic(
             path,
@@ -334,10 +335,36 @@ function resolveInputs(
       resolved.set(declaration.name, { value: null });
       continue;
     }
+    if (declaration.required && !satisfiesRequiredInput(value)) {
+      diagnostics.push(
+        templateDiagnostic(
+          path,
+          'template.input.required',
+          'error',
+          `Input ${declaration.name} is required by this template and cannot be empty.`,
+          declaration.name,
+        ),
+      );
+    }
     resolved.set(declaration.name, { value });
   }
 
   return resolved;
+}
+
+function satisfiesRequiredInput(value: TemplateValue | null): boolean {
+  if (value === null) {
+    return false;
+  }
+  switch (value.kind) {
+    case 'string':
+      return value.value.trim().length > 0;
+    case 'list':
+      return value.value.length > 0;
+    case 'boolean':
+    case 'integer':
+      return true;
+  }
 }
 
 function taskResolver(

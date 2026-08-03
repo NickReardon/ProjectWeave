@@ -49,9 +49,17 @@ function request(
 }
 
 function template(frontmatter: string, body = ''): TemplateSource {
+  const normalized = frontmatter.trim();
+  const includeSchema = !/(?:^|\n)template_schema:/u.test(normalized);
   return {
     path: 'Projects/Game/Templates/Task.md',
-    content: ['---', frontmatter.trim(), '---', body].join('\n'),
+    content: [
+      '---',
+      ...(includeSchema ? ['template_schema: 1'] : []),
+      normalized,
+      '---',
+      body,
+    ].join('\n'),
   };
 }
 
@@ -213,6 +221,121 @@ describe('renderTaskTemplate with the packaged minimal template', () => {
 
   it('rejects an input value that does not match its declared type', () => {
     const result = renderTaskTemplate(request({ inputs: { summary: 12 } }));
+
+    expect(codes(result)).toEqual(['template.input.value_invalid']);
+    expect(result.note).toBeNull();
+  });
+
+  it.each([
+    ['markdown', ''],
+    ['links', []],
+  ])('rejects an empty required %s input', (type, value) => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(
+          [
+            'weave_template: true',
+            'template_for: task',
+            'template_inputs:',
+            '  required_value:',
+            '    type: ' + type,
+            '    required: true',
+            'type: task',
+            'title: "{{title}}"',
+            'project: "{{project_link}}"',
+            'status: "{{status}}"',
+          ].join('\n'),
+          '{{required_value}}\n',
+        ),
+        inputs: { required_value: value },
+      }),
+    );
+
+    expect(codes(result)).toEqual(['template.input.required']);
+    expect(result.note).toBeNull();
+  });
+
+  it.each([
+    ['markdown', '""'],
+    ['links', '[]'],
+  ])('rejects an empty required %s default', (type, defaultValue) => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(
+          [
+            'weave_template: true',
+            'template_for: task',
+            'template_inputs:',
+            '  required_value:',
+            '    type: ' + type,
+            '    required: true',
+            '    default: ' + defaultValue,
+            'type: task',
+            'title: "{{title}}"',
+            'project: "{{project_link}}"',
+            'status: "{{status}}"',
+          ].join('\n'),
+          '{{required_value}}\n',
+        ),
+      }),
+    );
+
+    expect(codes(result)).toEqual(['template.input.required']);
+    expect(result.note).toBeNull();
+  });
+
+  it('accepts false and zero as supplied required values', () => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(
+          [
+            'weave_template: true',
+            'template_for: task',
+            'template_inputs:',
+            '  enabled:',
+            '    type: boolean',
+            '    required: true',
+            '  count:',
+            '    type: integer',
+            '    required: true',
+            'type: task',
+            'title: "{{title}}"',
+            'project: "{{project_link}}"',
+            'status: "{{status}}"',
+          ].join('\n'),
+          '{{enabled}} {{count}}\n',
+        ),
+        inputs: { enabled: false, count: 0 },
+      }),
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(content(result)).toContain('false 0');
+  });
+
+  it.each([
+    ['date', '2025-02-29'],
+    ['datetime', '2026-08-03T09:60'],
+  ])('rejects an impossible supplied %s input', (type, value) => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(
+          [
+            'weave_template: true',
+            'template_for: task',
+            'template_inputs:',
+            '  scheduled:',
+            '    type: ' + type,
+            'type: task',
+            'title: "{{title}}"',
+            'project: "{{project_link}}"',
+            'status: "{{status}}"',
+          ].join('\n'),
+          '{{scheduled}}\n',
+        ),
+        inputs: { scheduled: value },
+      }),
+    );
 
     expect(codes(result)).toEqual(['template.input.value_invalid']);
     expect(result.note).toBeNull();
@@ -423,6 +546,39 @@ describe('renderTaskTemplate precedence and invariants', () => {
 
     expect(codes(result)).toEqual(['template.invariant.target_path']);
     expect(result.note).toBeNull();
+  });
+
+  it.each(['/Projects/Game/Tasks/Task.md', 'Projects\\Game\\Tasks\\Task.md'])(
+    'rejects a target path that is not already normalized: %s',
+    (targetPath) => {
+      const result = renderTaskTemplate(
+        request({ invariants: { projectLink: PROJECT_LINK, targetPath } }),
+      );
+
+      expect(codes(result)).toEqual(['template.invariant.target_path']);
+      expect(result.note).toBeNull();
+    },
+  );
+
+  it('renders the exact validated target path through its built-in variable', () => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(
+          [
+            'weave_template: true',
+            'template_for: task',
+            'type: task',
+            'title: "{{title}}"',
+            'project: "{{project_link}}"',
+            'status: "{{status}}"',
+          ].join('\n'),
+          'Target: {{target_path}}\n',
+        ),
+      }),
+    );
+
+    expect(result.note?.targetPath).toBe(TARGET_PATH);
+    expect(content(result)).toContain('Target: ' + TARGET_PATH);
   });
 
   it('reports a rendered note that would not parse as a valid task', () => {

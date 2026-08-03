@@ -23,8 +23,9 @@ const WHOLE_PLACEHOLDER_PATTERN = /^\{\{\s*([^{}]+?)\s*\}\}$/u;
 const TEMPLATE_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]*$/u;
 /** Declared input names double as body/frontmatter variable names. */
 const INPUT_NAME_PATTERN = /^[a-z][a-z0-9_]*$/u;
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
-const DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/u;
+const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/u;
+const DATETIME_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/u;
 
 export interface TemplateMetadata {
   readonly isTemplate: boolean;
@@ -223,6 +224,16 @@ function readSchema(
   diagnostics: Diagnostic[],
 ): number | null {
   if (raw === undefined || raw === null) {
+    diagnostics.push(
+      templateDiagnostic(
+        path,
+        'template.schema.missing',
+        'error',
+        `A template must declare \`template_schema: ${String(SUPPORTED_TEMPLATE_SCHEMA)}\`.`,
+        'template_schema',
+        'Add the supported template schema version.',
+      ),
+    );
     return null;
   }
   if (raw === SUPPORTED_TEMPLATE_SCHEMA) {
@@ -438,11 +449,11 @@ export function coerceInputValue(
     case 'markdown':
       return typeof raw === 'string' ? { kind: 'string', value: raw } : null;
     case 'date':
-      return typeof raw === 'string' && DATE_PATTERN.test(raw)
+      return typeof raw === 'string' && isValidDate(raw)
         ? { kind: 'string', value: raw }
         : null;
     case 'datetime':
-      return typeof raw === 'string' && DATETIME_PATTERN.test(raw)
+      return typeof raw === 'string' && isValidDateTime(raw)
         ? { kind: 'string', value: raw }
         : null;
     case 'link':
@@ -469,6 +480,57 @@ export function coerceInputValue(
       return { kind: 'list', value: links };
     }
   }
+}
+
+function isValidDate(raw: string): boolean {
+  const match = DATE_PATTERN.exec(raw);
+  if (match === null) {
+    return false;
+  }
+  return isValidCalendarDate(
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3]),
+  );
+}
+
+function isValidDateTime(raw: string): boolean {
+  const match = DATETIME_PATTERN.exec(raw);
+  if (match === null) {
+    return false;
+  }
+  return (
+    isValidCalendarDate(Number(match[1]), Number(match[2]), Number(match[3])) &&
+    Number(match[4]) <= 23 &&
+    Number(match[5]) <= 59 &&
+    Number(match[6] ?? 0) <= 59
+  );
+}
+
+function isValidCalendarDate(
+  year: number,
+  month: number,
+  day: number,
+): boolean {
+  if (year < 1 || month < 1 || month > 12 || day < 1) {
+    return false;
+  }
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  return day <= (daysInMonth[month - 1] ?? 0);
 }
 
 function parseProperties(
