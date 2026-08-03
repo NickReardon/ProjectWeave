@@ -37,11 +37,74 @@ export function normalizeVaultPath(path: string): string {
   return path.replaceAll('\\', '/').replace(/^\/+|\/+$/gu, '');
 }
 
+/** A note's leading YAML frontmatter and the Markdown body that follows it. */
+export interface FrontmatterSplit {
+  readonly yaml: string;
+  readonly body: string;
+}
+
+/**
+ * Split leading YAML frontmatter from the Markdown body, or return null when a
+ * note has none. Every Project Weave reader — entity parsing and template
+ * parsing alike — recognizes frontmatter through this one function.
+ */
+export function splitFrontmatter(content: string): FrontmatterSplit | null {
+  const match = FRONTMATTER_PATTERN.exec(content);
+  if (match === null) {
+    return null;
+  }
+  return { yaml: match[1] ?? '', body: content.slice(match[0].length) };
+}
+
+export type FrontmatterMapping =
+  | { readonly ok: true; readonly value: Readonly<Record<string, unknown>> }
+  | {
+      readonly ok: false;
+      readonly reason: 'invalid' | 'invalid_value' | 'invalid_shape';
+      readonly detail: string;
+    };
+
+/**
+ * Parse frontmatter YAML into a plain mapping without resolving aliases.
+ * Callers own the diagnostic codes so entity and template parsing keep their
+ * own stable code namespaces.
+ */
+export function readFrontmatterMapping(yamlSource: string): FrontmatterMapping {
+  const document = parseDocument(yamlSource, {
+    prettyErrors: false,
+    uniqueKeys: true,
+  });
+
+  if (document.errors.length > 0) {
+    return {
+      ok: false,
+      reason: 'invalid',
+      detail: document.errors[0]?.message ?? 'unknown YAML error',
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = document.toJS({ maxAliasCount: 0 }) as unknown;
+  } catch (error) {
+    return {
+      ok: false,
+      reason: 'invalid_value',
+      detail: errorMessage(error),
+    };
+  }
+
+  if (!isRecord(parsed)) {
+    return { ok: false, reason: 'invalid_shape', detail: 'not a mapping' };
+  }
+  return { ok: true, value: parsed };
+}
+
 export function parseMarkdownEntity(source: SourceNote): ParsedMarkdownNote {
   const path = normalizeVaultPath(source.path);
-  const match = FRONTMATTER_PATTERN.exec(source.content);
+  const split = splitFrontmatter(source.content);
 
-  if (match === null) {
+  if (split === null) {
     return {
       entity: null,
       diagnostics: [],
@@ -49,61 +112,14 @@ export function parseMarkdownEntity(source: SourceNote): ParsedMarkdownNote {
     };
   }
 
-  const yamlSource = match[1] ?? '';
-  const yamlDocument = parseDocument(yamlSource, {
-    prettyErrors: false,
-    uniqueKeys: true,
-  });
-
-  if (yamlDocument.errors.length > 0) {
+  const mapping = readFrontmatterMapping(split.yaml);
+  if (!mapping.ok) {
     return {
       entity: null,
-      diagnostics: [
-        diagnostic(
-          path,
-          'note.frontmatter.invalid',
-          'error',
-          `Frontmatter could not be parsed: ${yamlDocument.errors[0]?.message ?? 'unknown YAML error'}`,
-          undefined,
-          'Correct the YAML frontmatter, then rebuild the Project Weave index.',
-        ),
-      ],
+      diagnostics: [frontmatterDiagnostic(path, mapping)],
     };
   }
-
-  let parsed: unknown;
-  try {
-    parsed = yamlDocument.toJS({ maxAliasCount: 0 }) as unknown;
-  } catch (error) {
-    return {
-      entity: null,
-      diagnostics: [
-        diagnostic(
-          path,
-          'note.frontmatter.invalid_value',
-          'error',
-          `Frontmatter could not be converted safely: ${errorMessage(error)}`,
-          undefined,
-          'Remove YAML aliases or unsupported values, then rebuild the index.',
-        ),
-      ],
-    };
-  }
-  if (!isRecord(parsed)) {
-    return {
-      entity: null,
-      diagnostics: [
-        diagnostic(
-          path,
-          'note.frontmatter.invalid_shape',
-          'error',
-          'Frontmatter must be a YAML mapping.',
-          undefined,
-          'Replace the frontmatter value with key-value properties.',
-        ),
-      ],
-    };
-  }
+  const parsed = mapping.value;
 
   if (parsed.weave_template === true) {
     return {
@@ -1027,6 +1043,41 @@ function diagnostic(
     ...(field === undefined ? {} : { field }),
     ...(recovery === undefined ? {} : { recovery }),
   };
+}
+
+function frontmatterDiagnostic(
+  path: string,
+  mapping: Extract<FrontmatterMapping, { ok: false }>,
+): Diagnostic {
+  switch (mapping.reason) {
+    case 'invalid':
+      return diagnostic(
+        path,
+        'note.frontmatter.invalid',
+        'error',
+        `Frontmatter could not be parsed: ${mapping.detail}`,
+        undefined,
+        'Correct the YAML frontmatter, then rebuild the Project Weave index.',
+      );
+    case 'invalid_value':
+      return diagnostic(
+        path,
+        'note.frontmatter.invalid_value',
+        'error',
+        `Frontmatter could not be converted safely: ${mapping.detail}`,
+        undefined,
+        'Remove YAML aliases or unsupported values, then rebuild the index.',
+      );
+    case 'invalid_shape':
+      return diagnostic(
+        path,
+        'note.frontmatter.invalid_shape',
+        'error',
+        'Frontmatter must be a YAML mapping.',
+        undefined,
+        'Replace the frontmatter value with key-value properties.',
+      );
+  }
 }
 
 function isRecord(value: unknown): value is Frontmatter {
