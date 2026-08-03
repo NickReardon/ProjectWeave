@@ -23,18 +23,19 @@ priority: "{{priority}}"
 points: "{{points}}"
 rank: "{{rank}}"
 due_date: "{{due_date}}"
+depends_on: "{{dependency_links}}"
 origin: "{{origin_link}}"
 created: "{{date}}"
 ---
 # {{title}}
-
 {{#if summary}}
+
 ## Summary
 
 {{summary}}
 {{/if}}
-
 {{#if acceptance_criteria}}
+
 ## Acceptance criteria
 
 {{acceptance_criteria}}
