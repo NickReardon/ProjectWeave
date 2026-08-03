@@ -9,6 +9,11 @@ const TEST_VAULT_ENVIRONMENT_KEY = 'PROJECT_WEAVE_TEST_VAULT';
 export async function installConfiguredTestVault(options) {
   const vaultPath = await resolveConfiguredTestVaultPath(options);
   if (vaultPath === null) {
+    if (options.required === true) {
+      throw new Error(
+        'No test vault configured. Set PROJECT_WEAVE_TEST_VAULT or create .project-weave-test-vault with an absolute vault path.',
+      );
+    }
     return null;
   }
   return await installPluginInTestVault({

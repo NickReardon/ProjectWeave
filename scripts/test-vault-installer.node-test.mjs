@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import {
+  installConfiguredTestVault,
   installPluginInTestVault,
   PLUGIN_RUNTIME_FILES,
   resolveConfiguredTestVaultPath,
@@ -26,6 +27,19 @@ test('returns null when no test vault is configured', async () => {
   });
 
   assert.equal(configured, null);
+});
+
+test('fails when an explicitly required test vault is not configured', async () => {
+  await assert.rejects(
+    installConfiguredTestVault({
+      environment: {},
+      configPath: join('missing', 'config'),
+      pluginId: 'project-weave',
+      required: true,
+      sourceDirectory: join('missing', 'export'),
+    }),
+    /No test vault configured/u,
+  );
 });
 
 test('updates only runtime plugin files and preserves local settings', async () => {

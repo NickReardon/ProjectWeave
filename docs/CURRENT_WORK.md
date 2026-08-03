@@ -79,6 +79,17 @@ three runtime files into D:\Obsidian Weave\.obsidian\plugins\project-weave;
 SHA-256 comparison confirmed every copy matched the export, the installed
 manifest reports 0.3.0, and the vault's existing data.json remained present.
 
+On 2026-08-03, `npm run test-vault:update` was exercised on
+`chore/plugin-release-testing`. It rebuilt and verified 0.3.0, required the
+configured disposable vault, installed all three runtime files, and byte
+comparison confirmed every installed file matched the fresh export while
+`data.json` remained present. The added installer failure-path test passed.
+The aggregate `npm run check` reached the format gate but was stopped by the
+unrelated untracked `CLAUDE.md`; the task files passed a focused Prettier
+check, and ESLint, `tsc --noEmit`, all 135 Vitest tests, all 10 Node script
+tests, the production build, and release-inventory verification passed when
+run independently.
+
 The prior proposal-foundation gate on dad45f0 passed with 15 Vitest files and
 130 tests. CI runs the same complete gate on Node.js 22.x and 24.x.
 

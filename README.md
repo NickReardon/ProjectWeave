@@ -181,6 +181,9 @@ npm run version:major
 npm run version:set -- 1.2.3
 ```
 
+The operational channel, BRAT preview, stable release, and Community directory
+steps are in [Plugin Release and Testing](docs/PLUGIN_RELEASE_AND_TESTING.md).
+
 Run `npm run export` to build and verify the plugin, then generate:
 
 - `export/project-weave/` — the directly installable Obsidian plugin folder;
@@ -192,7 +195,12 @@ the Git-ignored `.project-weave-test-vault` file or set
 `.obsidian` directory. Export copies only `main.js`, `manifest.json`, and
 `styles.css` into `.obsidian/plugins/project-weave`, preserving `data.json`
 and other local plugin state. With no local setting, export only creates the
-ordinary artifacts.
+ordinary artifacts. To require a configured vault and receive a failure when
+installation does not occur, run:
+
+```shell
+npm run test-vault:update
+```
 
 The entire `export/` directory is Git-ignored. `npm run release` runs the
 complete validation gate and then produces the same export artifacts and
