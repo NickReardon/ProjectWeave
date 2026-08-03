@@ -15,13 +15,14 @@ point changes — not for every change to the code.
 
 - **Date:** 2026-08-03
 - **Branch:** codex/all-tasks-dashboard
-- **Commit:** f8a04b2 — "feat(ui): filter tasks by planning metadata"
-- **Version:** 0.2.0
+- **Commit:** 45f3efd — "build: export 0.3.0 to the test vault"
+- **Version:** 0.3.0
 - **State:** the task-proposal foundation is merged into main. The filterable,
   read-only, project-scoped All Tasks dashboard is committed on the feature
-  branch and passes the complete automated gate. The workbench still awaits
-  the manual Obsidian checks below; the running plugin remains read-only and
-  has no creation caller. Nothing has been released.
+  branch and passes the complete automated gate. Version 0.3.0 was exported and
+  installed into the configured disposable test vault. The workbench still
+  awaits the manual Obsidian checks below; the running plugin remains read-only
+  and has no creation caller. Nothing has been released.
 - **Branch hygiene:** codex/all-tasks-dashboard is based on current main. Its
   implementation and behavior documentation are committed, with no
   uncommitted code changes.
@@ -61,16 +62,22 @@ resulting behavior. Neither is restated here.
 
 ## Verification evidence
 
-npm run check was rerun on 2026-08-03 against f8a04b2 on
+npm run check was rerun on 2026-08-03 against 45f3efd on
 codex/all-tasks-dashboard using Node.js 24.11.1, and passed:
 
-- version records synchronized at 0.2.0;
+- version records synchronized at 0.3.0;
 - Prettier, ESLint, and tsc --noEmit passed;
 - 15 Vitest files passed with 135 tests;
-- 5 Node script tests passed;
+- 9 Node script tests passed;
 - the production bundle built successfully;
 - the release inventory contained exactly main.js, manifest.json, and
   styles.css, with only the expected obsidian runtime import.
+
+npm run export then produced export/project-weave and the 52,574-byte
+export/project-weave-0.3.0.zip. The locally configured export hook copied the
+three runtime files into D:\Obsidian Weave\.obsidian\plugins\project-weave;
+SHA-256 comparison confirmed every copy matched the export, the installed
+manifest reports 0.3.0, and the vault's existing data.json remained present.
 
 The prior proposal-foundation gate on dad45f0 passed with 15 Vitest files and
 130 tests. CI runs the same complete gate on Node.js 22.x and 24.x.
