@@ -14,15 +14,15 @@ point changes — not for every change to the code.
 ## Snapshot
 
 - **Date:** 2026-08-03
-- **Branch:** `main`
-- **Commit:** `79c274b` — "fix(domain): enforce template creation contracts"
+- **Branch:** `feat/project-template-map`
+- **Commit:** `dad45f0` — "feat(application): propose rendered task creation"
 - **Version:** `0.2.0`
-- **State:** the persistent Project Workbench and deterministic task-template
-  rendering foundation are merged on `main`. The workbench still awaits the
-  manual Obsidian checks below; the renderer is automatically verified and has
-  no caller. Nothing has been released, and the working tree is clean.
-- **Branch hygiene:** `feat/task-template-renderer` is fully merged into
-  `main` and carries no unmerged work.
+- **State:** project task-template resolution and exact non-writing task
+  proposals are committed on the feature branch. The workbench still awaits
+  the manual Obsidian checks below; the running plugin remains read-only and
+  has no creation caller. Nothing has been released.
+- **Branch hygiene:** `feat/project-template-map` is based on current `main`;
+  the committed implementation has no uncommitted code changes.
 
 ## Active slices
 
@@ -33,30 +33,36 @@ live non-writing diagnostic banners. ADR 0007 records the persistent `ItemView`
 decision. Automatically verified, not yet manually accepted.
 
 **Task-template rendering foundation** (`main`, `79c274b`): Plan
-Addendum 005, Design 18, and ADR 0005 reduced to the smallest useful piece —
+Addendum 005, Design 18, and ADR 0005 reduced to the smallest useful piece -
 parsing, validating, and rendering one task note from a template plus an
-injected creation context. Fully covered by automated tests; it has no caller,
-so it changes no observable plugin behavior and needs no manual Obsidian check
-of its own.
+injected creation context. Fully covered by automated tests and now consumed
+by the application proposal service; it still changes no observable plugin
+behavior and needs no manual Obsidian check of its own.
+
+**Task creation proposal foundation** (`feat/project-template-map`,
+`dad45f0`): resolves packaged or project-owned task templates, fingerprints
+the project and template read set, renders exact frontmatter/content, rejects
+target collisions, and returns typed preconditions and expected postconditions.
+It exposes no write-capable port and has no runtime UI or agent caller.
 
 Read the branch history for what each slice contains and `README.md` for the
 resulting behavior. Neither is restated here.
 
 ## Verification evidence
 
-`npm run check` was rerun on 2026-08-03 against the merged `main` tree
-containing `79c274b` on Node.js 24.11.1, and passed:
+`npm run check` was rerun on 2026-08-03 against `dad45f0` on
+`feat/project-template-map` using Node.js 24.11.1, and passed:
 
 - version records synchronized at `0.2.0`;
 - Prettier, ESLint, and `tsc --noEmit` passed;
-- 13 Vitest files passed with 113 tests;
+- 15 Vitest files passed with 130 tests;
 - 5 Node script tests passed;
 - the production bundle built successfully;
 - the release inventory contained exactly `main.js`, `manifest.json`, and
   `styles.css`, with only the expected `obsidian` runtime import.
 
-The previous gate on `240da87` passed with 9 Vitest files and 49 tests. CI runs
-the same gate on Node.js 22.x and 24.x.
+The prior merged-main gate on `79c274b` passed with 13 Vitest files and 113
+tests. CI runs the same complete gate on Node.js 22.x and 24.x.
 
 Automated validation does not replace the manual Obsidian checks below. The
 Obsidian-facing modules — `src/ui/project-workbench-view.ts`, `src/main.ts`,
@@ -96,9 +102,10 @@ verify:
 performed or recorded. Record results here before treating the slice as
 manually accepted.
 
-The task-template renderer adds no manual check. It has no UI, no vault
-access, and no caller, and its output is asserted byte-for-byte in tests. It
-becomes manually checkable only once a creation flow calls it.
+The renderer, resolver, and proposal service add no manual check. They have no
+runtime UI or write access, and their exact outputs and failure modes are
+covered by automated tests. They become manually checkable once a creation UI
+calls the proposal service.
 
 ## Known loose ends
 
@@ -106,9 +113,10 @@ Verified against the committed tree; none blocks the manual checks:
 
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
-- `src/domain/templates/` has no caller. It is tested but tree-shaken out of
-  the production bundle; `dist/main.js` contains none of its strings, so the
-  released plugin is unchanged by it.
+- The template resolver and proposal service have no runtime caller. They and
+  the renderer are tree-shaken out of `dist/main.js`, so the running plugin
+  remains unchanged and read-only even though the application services are
+  directly exercised by tests.
 - `templateClockFromLocalDate` exists so a future caller has one tested place
   to convert an instant into the renderer's civil clock. Nothing calls it yet.
 - Only `templates/default/task.md` has a consumer. The other packaged starter
@@ -124,13 +132,13 @@ Verified against the committed tree; none blocks the manual checks:
 
 ## Current product boundary
 
-The plugin remains read-only. Template rendering exists as a pure core
-service, but task creation, project template-map resolution, template
-fingerprinting, proposal commits, Plan/Board/My Work perspectives, portfolio
-views, and agent/MCP transport are not implemented. Rendering covers the task
-kind only; epics, milestones, planning periods, and documents are not
-supported. Their contracts remain design inputs, not claims about current
-code. Note-diagnostic jump-to-field behavior and inline field highlighting are
+The plugin remains read-only. Project task-template resolution, template
+fingerprinting, and exact one-file task proposals are implemented, but no
+runtime caller, path/rank allocator, preview/confirmation UI, or write
+coordinator exists. Rendering and proposal construction cover the task kind
+only; epics, milestones, planning periods, and documents are not supported.
+Their contracts remain design inputs, not claims about current code.
+Note-diagnostic jump-to-field behavior and inline field highlighting are
 deferred beyond the first banner pass.
 
 ## Next decision point
@@ -140,12 +148,11 @@ Two open choices, in order.
 1. Complete and record the manual Obsidian checks above. The workbench slice
    is committed but not manually accepted, so the choice is whether to revise
    it, release it, or move on with acceptance outstanding.
-2. Decide what consumes the renderer. It is deliberately callerless, and the
-   candidates differ in what they force next: resolving a project's template
-   map (Design 18), allocating a safe target path and rank, or building the
-   proposal and write-coordination contract (Design 10). Pick one before
-   extending the renderer to further note kinds — more kinds add breadth to an
-   interface nothing has exercised yet.
+2. Choose the next task-creation vertical slice. The proposal still relies on
+   caller-supplied clock, safe target path, and optional rank, and nothing can
+   confirm or commit it. The candidates are typed path/rank allocation plus a
+   single-task preview UI, or the write coordinator and commit-time stale-read
+   checks from Design 10. Keep further note kinds behind a complete task flow.
 
-The repository does not designate one of the later slices as next; do not
-infer that choice from document numbering.
+The repository does not designate one of those creation slices as next; make
+that product decision explicitly rather than inferring it from document order.
