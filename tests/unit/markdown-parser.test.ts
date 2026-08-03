@@ -157,6 +157,49 @@ describe('parseMarkdownEntity', () => {
       expect.arrayContaining(['task.status.invalid', 'task.due_date.invalid']),
     );
   });
+
+  it('does not cascade completed-at errors from a missing or invalid task status', () => {
+    const task = (statusLine: string | null) =>
+      parseMarkdownEntity(
+        sourceNote(
+          'Tasks/Completion.md',
+          [
+            'type: task',
+            'project: "[[Projects/Game]]"',
+            ...(statusLine === null ? [] : [statusLine]),
+            'completed_at: "2026-08-02T10:00:00-07:00"',
+          ].join('\n'),
+        ),
+      ).diagnostics.map((issue) => issue.code);
+
+    expect(task(null)).toEqual(['task.status.missing']);
+    expect(task('status: complete')).toEqual(['task.status.invalid']);
+    expect(task('status: todo')).toEqual(['task.completed_at.status_mismatch']);
+    expect(task('status: done')).toEqual([]);
+  });
+
+  it('does not cascade achieved-at errors from a missing or invalid milestone status', () => {
+    const milestone = (statusLine: string | null) =>
+      parseMarkdownEntity(
+        sourceNote(
+          'Milestones/Release.md',
+          [
+            'type: milestone',
+            'project: "[[Projects/Game]]"',
+            ...(statusLine === null ? [] : [statusLine]),
+            'due_date: 2026-08-01',
+            'achieved_at: "2026-08-02T10:00:00-07:00"',
+          ].join('\n'),
+        ),
+      ).diagnostics.map((issue) => issue.code);
+
+    expect(milestone(null)).toEqual(['milestone.status.missing']);
+    expect(milestone('status: complete')).toEqual(['milestone.status.invalid']);
+    expect(milestone('status: planned')).toEqual([
+      'milestone.achieved_at.status_mismatch',
+    ]);
+    expect(milestone('status: achieved')).toEqual([]);
+  });
 });
 
 describe('parseWikiLink', () => {

@@ -9,9 +9,13 @@ other process features a project does not use.
 The current product direction and normative reading order are in
 [CURRENT-DESIGN.md](CURRENT-DESIGN.md).
 
+Contributors and coding agents should begin with [AGENTS.md](AGENTS.md). The
+active working-tree handoff, validation evidence, and remaining manual checks
+are in [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md).
+
 ## Current status
 
-The first read-only walking slice is implemented:
+The first two read-only walking slices are implemented:
 
 - strict TypeScript Obsidian plugin and production bundle;
 - asynchronous, non-writing Markdown indexing behind read-only ports;
@@ -19,15 +23,28 @@ The first read-only walking slice is implemented:
   parsing;
 - dependency readiness, reverse edges, provenance, and deterministic ordering;
 - bounded project context, task context, and Ready Now application queries;
-- an Obsidian **Open Ready Now** command and modal;
+- a persistent Obsidian Project Workbench with a project picker, project
+  summary, live index state, and bounded Ready Now list;
+- visible project and unassigned diagnostic sections grouped by affected note,
+  with severity, error code, field, recovery guidance, related-note links, and
+  exact-note navigation;
+- compact, live diagnostic banners above affected Markdown notes in editing
+  and reading modes without modifying note content;
+- ribbon, command-palette, and settings entry points for the workbench;
+- workspace-restored project selection and task navigation that preserves the
+  dashboard tab;
+- an Obsidian **Open Ready Now** command and modal for the compact flow;
 - a persisted Obsidian settings tab for project-folder discovery and template
   scaffold location;
-- fixture-backed parser, index, query, incremental-update, lifecycle, and
-  release-inventory tests.
+- a plugin-lifetime read publication layer that keeps open views current when
+  indexed project folders replace the indexing runtime;
+- fixture-backed parser, index, query, dashboard projection,
+  incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
 Task creation, template rendering, proposal commits, full Plan/Board/My Work
-views, and agent/MCP transport remain later slices.
+perspectives, portfolio views, and agent/MCP transport remain later slices.
+The repository does not currently designate which later slice comes next.
 
 ## Development
 
@@ -56,10 +73,38 @@ future template-initialization flow. Canonical template mappings remain in the
 project note so they travel with the project; saving this preference never
 creates or edits vault content.
 
-For the Ready Now walking-slice test, copy the contents of
+Open the dashboard from the left ribbon, **Project Weave: Open project
+workbench** in the command palette, or **Open dashboard** on the settings page.
+After the view has been opened once, Obsidian restores it as part of the
+workspace. With multiple indexed projects, use the project selector in the
+view; with one project, the dashboard selects it automatically. Ready task
+buttons open exact existing task notes in another tab, leaving the dashboard
+open.
+
+For the dashboard and Ready Now walking-slice test, copy the contents of
 `tests/fixtures/vault/` into a disposable vault. Its project is nested under
 `Projects/Game/`, with the canonical project note at
-`Projects/Game/Project.md`.
+`Projects/Game/Project.md`. Open the workbench, confirm **Implement request**
+is the one Ready task, then edit a task dependency or status and confirm the
+view refreshes after index publication. The older **Open Ready Now** command
+remains available as a compact modal.
+
+To test diagnostics, temporarily set a task to an invalid value such as
+`status: complete`. The workbench lists the affected note and
+`task.status.invalid`, including the allowed values. Change it to
+`status: done` and confirm the issue disappears after the live index refresh.
+Status-dependent validation suppresses redundant follow-on errors when the
+status itself could not be parsed.
+
+Open the affected task note and confirm the same severity, error code, field,
+message, and available recovery guidance appear in a banner above the note.
+Switch between editing and reading modes, then correct the status and confirm
+the banner disappears. Jump-to-field behavior and inline field highlighting
+are intentionally deferred.
+
+Malformed notes and notes whose project link cannot resolve appear in the
+prominent **Unassigned diagnostics** section, so every indexed error remains
+findable even when Project Weave cannot safely infer project ownership.
 
 ## Versioning and exports
 

@@ -315,7 +315,7 @@ function parseTask(
     diagnostics,
   );
 
-  if (completedAt !== null && status !== 'done') {
+  if (completedAt !== null && status !== null && status !== 'done') {
     diagnostics.push(
       diagnostic(
         base.path,
@@ -434,7 +434,7 @@ function parseMilestone(
     diagnostics,
   );
 
-  if (achievedAt !== null && status !== 'achieved') {
+  if (achievedAt !== null && status !== null && status !== 'achieved') {
     diagnostics.push(
       diagnostic(
         base.path,

@@ -1,5 +1,10 @@
 # Project Weave Current Design
 
+This file governs product-contract precedence. For implementation status and
+the active working-tree handoff, use [README.md](README.md) and
+[docs/CURRENT_WORK.md](docs/CURRENT_WORK.md). Historical plans may explain how
+the project arrived here but do not override this reading order.
+
 ## Product direction
 
 The current v1 direction is [Project Weave v1 Product Brief](docs/PRODUCT_BRIEF-V1.md): a streamlined, single-project-first Obsidian workbench for a solo developer or small team building a long-lived project such as a game.

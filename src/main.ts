@@ -1,11 +1,12 @@
 import { Notice, Plugin, TFile } from 'obsidian';
+import type { WorkspaceLeaf } from 'obsidian';
 
 import {
   ObsidianLinkResolver,
   ObsidianVaultReader,
 } from './adapters/obsidian/obsidian-vault-reader';
-import { ProjectWeaveQueryApi } from './application/query-api';
-import type { EntityRecord, ProjectEntity } from './domain/model';
+import { buildProjectWorkbenchModel } from './application/project-workbench-model';
+import { ProjectWeaveReadSource } from './application/project-weave-read-source';
 import { IndexCoordinator } from './indexing/index-coordinator';
 import {
   classifyScopeTransition,
@@ -15,27 +16,72 @@ import {
   normalizeProjectRoots,
 } from './settings/project-weave-settings';
 import type { ProjectWeaveSettings } from './settings/project-weave-settings';
+import {
+  PROJECT_WORKBENCH_VIEW_TYPE,
+  ProjectWorkbenchView,
+} from './ui/project-workbench-view';
+import { NoteDiagnosticBannerController } from './ui/note-diagnostic-banner';
 import { ReadyNowModal } from './ui/ready-now-modal';
 import { ProjectWeaveSettingTab } from './ui/settings-tab';
 
 interface ProjectWeaveRuntime {
   readonly reader: ObsidianVaultReader;
   readonly coordinator: IndexCoordinator;
-  readonly queryApi: ProjectWeaveQueryApi;
 }
 
 export default class ProjectWeavePlugin extends Plugin {
   public override settings: ProjectWeaveSettings =
     createDefaultProjectWeaveSettings();
 
+  readonly #readSource = new ProjectWeaveReadSource();
   #runtime: ProjectWeaveRuntime | null = null;
+  #noteDiagnosticBanners: NoteDiagnosticBannerController | null = null;
+  #openingWorkbench: Promise<void> | null = null;
   #unloaded = false;
 
   public override async onload(): Promise<void> {
     this.settings = loadProjectWeaveSettings(await this.loadData());
-    this.#runtime = this.#createRuntime(this.settings.projectRoots);
+    this.#installRuntime(this.#createRuntime(this.settings.projectRoots));
+
+    this.registerView(
+      PROJECT_WORKBENCH_VIEW_TYPE,
+      (leaf: WorkspaceLeaf) =>
+        new ProjectWorkbenchView(leaf, this.#readSource, {
+          rebuildIndex: () => this.rebuildIndex(false),
+        }),
+    );
     this.addSettingTab(new ProjectWeaveSettingTab(this.app, this));
 
+    const noteDiagnosticBanners = new NoteDiagnosticBannerController(
+      this.app,
+      this.#readSource,
+    );
+    this.#noteDiagnosticBanners = noteDiagnosticBanners;
+    noteDiagnosticBanners.start();
+    this.registerEvent(
+      this.app.workspace.on('file-open', () => {
+        noteDiagnosticBanners.scheduleRefresh();
+      }),
+    );
+    this.registerEvent(
+      this.app.workspace.on('layout-change', () => {
+        noteDiagnosticBanners.scheduleRefresh();
+      }),
+    );
+
+    const openWorkbench = (): void => {
+      void this.openProjectWorkbench().catch((error: unknown) => {
+        console.error('Project Weave could not open its workbench', error);
+        new Notice('Project Weave could not open its dashboard.');
+      });
+    };
+    this.addRibbonIcon('layout-dashboard', 'Open Project Weave', openWorkbench);
+    this.addCommand({
+      id: 'open-project-workbench',
+      name: 'Open project workbench',
+      icon: 'layout-dashboard',
+      callback: openWorkbench,
+    });
     this.addCommand({
       id: 'open-ready-now',
       name: 'Open Ready Now',
@@ -61,29 +107,32 @@ export default class ProjectWeavePlugin extends Plugin {
         return;
       }
       this.#registerVaultEvents();
+      noteDiagnosticBanners.scheduleRefresh();
       void this.rebuildIndex(false);
     });
   }
 
   public override onunload(): void {
     this.#unloaded = true;
+    this.#noteDiagnosticBanners?.dispose();
+    this.#noteDiagnosticBanners = null;
+    this.#readSource.dispose();
     this.#runtime?.coordinator.dispose();
     this.#runtime = null;
+    this.#openingWorkbench = null;
   }
 
   public async updateProjectRoots(
     projectRoots: readonly string[],
-  ): Promise<void> {
+  ): Promise<boolean> {
     const normalized = normalizeProjectRoots(projectRoots);
     const nextSettings = { ...this.settings, projectRoots: normalized };
     await this.saveData(nextSettings);
     this.settings = nextSettings;
 
-    const previous = this.#runtime;
     const next = this.#createRuntime(normalized);
-    this.#runtime = next;
-    previous?.coordinator.dispose();
-    await this.#rebuildRuntime(next, false);
+    this.#installRuntime(next);
+    return await this.#rebuildRuntime(next, false);
   }
 
   public async updateTemplateScaffoldFolder(
@@ -106,6 +155,22 @@ export default class ProjectWeavePlugin extends Plugin {
     await this.#rebuildRuntime(runtime, showSuccess);
   }
 
+  public openProjectWorkbench(): Promise<void> {
+    if (this.#openingWorkbench !== null) {
+      return this.#openingWorkbench;
+    }
+    const operation = this.#activateProjectWorkbench();
+    this.#openingWorkbench = operation;
+    void operation
+      .finally(() => {
+        if (this.#openingWorkbench === operation) {
+          this.#openingWorkbench = null;
+        }
+      })
+      .catch(() => undefined);
+    return operation;
+  }
+
   #createRuntime(projectRoots: readonly string[]): ProjectWeaveRuntime {
     const reader = new ObsidianVaultReader(this.app.vault, projectRoots);
     const coordinator = new IndexCoordinator(reader, {
@@ -114,8 +179,14 @@ export default class ProjectWeavePlugin extends Plugin {
     return {
       reader,
       coordinator,
-      queryApi: new ProjectWeaveQueryApi(() => coordinator.snapshot),
     };
+  }
+
+  #installRuntime(next: ProjectWeaveRuntime): void {
+    const previous = this.#runtime;
+    this.#runtime = next;
+    this.#readSource.bind(next.coordinator);
+    previous?.coordinator.dispose();
   }
 
   #registerVaultEvents(): void {
@@ -186,46 +257,46 @@ export default class ProjectWeavePlugin extends Plugin {
   async #rebuildRuntime(
     runtime: ProjectWeaveRuntime,
     showSuccess: boolean,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       await runtime.coordinator.rebuild();
       if (showSuccess && this.#runtime === runtime) {
         this.#showIndexStatus();
       }
+      return true;
     } catch (error) {
       console.error('Project Weave index rebuild failed', error);
       new Notice(
         'Project Weave could not rebuild its index. The vault was not changed.',
       );
+      return false;
     }
   }
 
   async #openReadyNow(): Promise<void> {
-    const runtime = this.#runtime;
-    if (runtime === null) {
+    const publication = this.#readSource.current;
+    if (this.#runtime === null) {
       new Notice('Project Weave is not loaded.');
       return;
     }
-    if (runtime.coordinator.snapshot.revision === 0) {
+    if (publication.snapshot.revision === 0) {
       new Notice('Project Weave is still indexing the vault.');
       return;
     }
 
-    const project = inferProject(
-      runtime.coordinator.snapshot.getEntity(
-        this.app.workspace.getActiveFile()?.path ?? '',
-      ),
-      runtime.coordinator.snapshot
-        .getEntities('project')
-        .filter((entity): entity is ProjectEntity => entity.kind === 'project'),
-    );
-    if (project === null) {
+    const projectModel = buildProjectWorkbenchModel({
+      publication,
+      selectedProjectPath: null,
+      activePath: this.app.workspace.getActiveFile()?.path ?? null,
+      readyDisplayLimit: 1,
+    });
+    if (projectModel.state !== 'project') {
       new Notice('Open a project or task note before running Ready Now.');
       return;
     }
 
-    const result = await runtime.queryApi.getReadyNow({
-      projectPath: project.path,
+    const result = await publication.queryApi.getReadyNow({
+      projectPath: projectModel.project.path,
     });
     if (!result.ok) {
       new Notice(result.diagnostics[0]?.message ?? 'Ready Now is unavailable.');
@@ -235,11 +306,11 @@ export default class ProjectWeavePlugin extends Plugin {
   }
 
   #showIndexStatus(): void {
-    const snapshot = this.#runtime?.coordinator.snapshot;
-    if (snapshot === undefined) {
+    if (this.#runtime === null) {
       new Notice('Project Weave is not loaded.');
       return;
     }
+    const { snapshot } = this.#readSource.current;
     const entityCount = snapshot.getEntities().length;
     const errorCount = snapshot.diagnostics.filter(
       (issue) => issue.severity === 'error',
@@ -248,27 +319,53 @@ export default class ProjectWeavePlugin extends Plugin {
       `Project Weave index ${snapshot.freshness}: ${String(entityCount)} entities, ${String(errorCount)} errors (revision ${String(snapshot.revision)}).`,
     );
   }
+
+  async #activateProjectWorkbench(): Promise<void> {
+    if (this.#unloaded) {
+      return;
+    }
+
+    const invokedFromWorkbench =
+      this.app.workspace.getActiveViewOfType(ProjectWorkbenchView) !== null;
+    const invokedProjectPath = invokedFromWorkbench
+      ? null
+      : this.#inferActiveProjectPath();
+    let leaf = this.app.workspace.getLeavesOfType(
+      PROJECT_WORKBENCH_VIEW_TYPE,
+    )[0];
+    if (leaf === undefined) {
+      leaf = this.app.workspace.getLeaf('tab');
+      await leaf.setViewState({
+        type: PROJECT_WORKBENCH_VIEW_TYPE,
+        active: true,
+        state: {
+          stateVersion: 1,
+          selectedProjectPath: invokedProjectPath,
+        },
+      });
+    }
+    if (!this.#unloaded) {
+      await this.app.workspace.revealLeaf(leaf);
+      if (
+        invokedProjectPath !== null &&
+        leaf.view instanceof ProjectWorkbenchView
+      ) {
+        leaf.view.selectProject(invokedProjectPath);
+      }
+    }
+  }
+
+  #inferActiveProjectPath(): string | null {
+    const model = buildProjectWorkbenchModel({
+      publication: this.#readSource.current,
+      selectedProjectPath: null,
+      activePath: this.app.workspace.getActiveFile()?.path ?? null,
+      readyDisplayLimit: 1,
+    });
+    return model.state === 'project' ? model.project.path : null;
+  }
 }
 
 function isMarkdownFile(file: unknown): file is TFile {
   return file instanceof TFile && file.extension === 'md';
-}
-
-function inferProject(
-  activeEntity: EntityRecord | undefined,
-  projects: readonly ProjectEntity[],
-): ProjectEntity | null {
-  if (activeEntity?.kind === 'project') {
-    return activeEntity;
-  }
-  if (activeEntity !== undefined) {
-    const projectPath = activeEntity.project?.resolvedPath;
-    const project = projects.find(
-      (candidate) => candidate.path === projectPath,
-    );
-    if (project !== undefined) {
-      return project;
-    }
-  }
-  return projects.length === 1 ? (projects[0] ?? null) : null;
 }

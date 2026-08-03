@@ -1,4 +1,11 @@
-# Project Weave: Initial Project Plan
+# Project Weave: Historical Initial Project Plan
+
+> **Archived planning context:** This was the repository's bootstrap plan
+> before the product surface, stack, and first slices were selected. Its open
+> questions, checkboxes, backlog, and next checkpoint are not current project
+> status. Start with [`../CURRENT-DESIGN.md`](../CURRENT-DESIGN.md),
+> [`../README.md`](../README.md), and [`CURRENT_WORK.md`](CURRENT_WORK.md).
+> This document is retained to preserve decision history.
 
 ## Purpose
 
@@ -77,26 +84,26 @@ Exit criteria:
 
 ## Initial backlog
 
-| Priority | Work item | Deliverable |
-| --- | --- | --- |
-| P0 | Product brief | `docs/PRODUCT_BRIEF.md` with user, problem, journey, scope, and success metric |
-| P0 | Stack decision | First ADR under `docs/decisions/` |
-| P0 | Walking skeleton | Runnable entry point plus smoke test |
-| P0 | Developer workflow | Setup, format, check, test, and run commands |
-| P1 | CI baseline | Automated checks on each change |
-| P1 | First vertical slice | One end-to-end user outcome |
-| P1 | Operational baseline | Errors and core health visible |
-| P2 | Release automation | Repeatable build and deployment |
+| Priority | Work item            | Deliverable                                                                    |
+| -------- | -------------------- | ------------------------------------------------------------------------------ |
+| P0       | Product brief        | `docs/PRODUCT_BRIEF.md` with user, problem, journey, scope, and success metric |
+| P0       | Stack decision       | First ADR under `docs/decisions/`                                              |
+| P0       | Walking skeleton     | Runnable entry point plus smoke test                                           |
+| P0       | Developer workflow   | Setup, format, check, test, and run commands                                   |
+| P1       | CI baseline          | Automated checks on each change                                                |
+| P1       | First vertical slice | One end-to-end user outcome                                                    |
+| P1       | Operational baseline | Errors and core health visible                                                 |
+| P2       | Release automation   | Repeatable build and deployment                                                |
 
 ## Risks and open decisions
 
-| Question | Why it matters | Owner/status |
-| --- | --- | --- |
-| Who is the primary user? | Determines workflow and product language | Open |
-| What is the first measurable outcome? | Prevents the MVP from becoming a feature list | Open |
-| What surface will deliver the product? | Determines the project scaffold and toolchain | Open |
-| What data is stored or transmitted? | Drives persistence, privacy, and security decisions | Open |
-| Where will it run? | Drives packaging, deployment, and observability | Open |
+| Question                               | Why it matters                                      | Owner/status |
+| -------------------------------------- | --------------------------------------------------- | ------------ |
+| Who is the primary user?               | Determines workflow and product language            | Open         |
+| What is the first measurable outcome?  | Prevents the MVP from becoming a feature list       | Open         |
+| What surface will deliver the product? | Determines the project scaffold and toolchain       | Open         |
+| What data is stored or transmitted?    | Drives persistence, privacy, and security decisions | Open         |
+| Where will it run?                     | Drives packaging, deployment, and observability     | Open         |
 
 ## Next checkpoint
 

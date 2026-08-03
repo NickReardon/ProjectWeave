@@ -31,6 +31,20 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       text: 'Choose which vault folders belong to Project Weave. Notes outside these folders are never read or diagnosed.',
     });
 
+    new Setting(containerEl)
+      .setName('Project workbench')
+      .setDesc(
+        'Open the persistent dashboard. Obsidian restores it with your workspace after it has been opened once.',
+      )
+      .addButton((button) =>
+        button
+          .setButtonText('Open dashboard')
+          .setCta()
+          .onClick(() => {
+            void this.#openProjectWorkbench();
+          }),
+      );
+
     new Setting(containerEl).setName('Indexed project folders').setHeading();
     if (this.#plugin.settings.projectRoots.length === 0) {
       containerEl.createEl('p', {
@@ -139,8 +153,12 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
         new Notice('Project Weave already indexes that folder.');
         return;
       }
-      await this.#plugin.updateProjectRoots(projectRoots);
-      new Notice('Project Weave project folder added and index rebuilt.');
+      const rebuilt = await this.#plugin.updateProjectRoots(projectRoots);
+      new Notice(
+        rebuilt
+          ? 'Project Weave project folder added and index rebuilt.'
+          : 'Project Weave project folder added, but the index rebuild failed.',
+      );
       this.display();
     } catch (error) {
       new Notice('Project Weave: ' + errorMessage(error));
@@ -149,12 +167,16 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
 
   async #removeProjectRoot(root: string): Promise<void> {
     try {
-      await this.#plugin.updateProjectRoots(
+      const rebuilt = await this.#plugin.updateProjectRoots(
         this.#plugin.settings.projectRoots.filter(
           (candidate) => candidate !== root,
         ),
       );
-      new Notice('Project Weave project folder removed and index rebuilt.');
+      new Notice(
+        rebuilt
+          ? 'Project Weave project folder removed and index rebuilt.'
+          : 'Project Weave project folder removed, but the index rebuild failed.',
+      );
       this.display();
     } catch (error) {
       new Notice('Project Weave: ' + errorMessage(error));
@@ -178,6 +200,14 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       await this.#plugin.rebuildIndex(true);
     } catch {
       // The plugin reports a non-destructive rebuild failure.
+    }
+  }
+
+  async #openProjectWorkbench(): Promise<void> {
+    try {
+      await this.#plugin.openProjectWorkbench();
+    } catch {
+      new Notice('Project Weave could not open its dashboard.');
     }
   }
 }
