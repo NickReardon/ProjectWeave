@@ -1,0 +1,52 @@
+{
+  "name": "project-weave",
+  "version": "0.1.1",
+  "private": true,
+  "description": "A Markdown-first, dependency-aware project workbench for Obsidian.",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run && node --test scripts/*.node-test.mjs",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "version:check": "node scripts/project-version.mjs check",
+    "version:show": "node scripts/project-version.mjs show",
+    "version:patch": "node scripts/project-version.mjs patch",
+    "version:minor": "node scripts/project-version.mjs minor",
+    "version:major": "node scripts/project-version.mjs major",
+    "version:set": "node scripts/project-version.mjs",
+    "verify:release": "node scripts/verify-release.mjs",
+    "export": "npm run version:check && npm run build && npm run verify:release && node scripts/export-plugin.mjs",
+    "release": "npm run check && node scripts/export-plugin.mjs",
+    "check": "npm run version:check && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run verify:release"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "obsidian",
+    "project-management",
+    "markdown"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.2",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.8.0",
+    "globals": "^17.8.0",
+    "obsidian": "^1.13.1",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
+  }
+}

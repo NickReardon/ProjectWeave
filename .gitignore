@@ -1,7 +1,7 @@
 node_modules/
 dist/
+export/
 coverage/
 *.log
 .DS_Store
 Thumbs.db
-

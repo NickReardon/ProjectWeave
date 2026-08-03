@@ -1,0 +1,9 @@
+coverage/
+dist/
+export/
+node_modules/
+CURRENT-DESIGN.md
+PLAN*.md
+docs/**/*.md
+templates/**/*.md
+package-lock.json

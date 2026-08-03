@@ -1,0 +1,30 @@
+.project-weave-ready-now {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-3);
+}
+
+.project-weave-ready-now__summary {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.project-weave-ready-now__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.project-weave-ready-now__item {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: var(--size-4-3);
+}
+
+.project-weave-ready-now__metadata {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
