@@ -2,49 +2,42 @@
 
 ## Purpose
 
-This is the handoff for the active working tree. It records implementation
-state, validation evidence, remaining checks, and the next decision point. It
-is operational context, not a product contract; `CURRENT-DESIGN.md` owns
-product precedence.
+This file records only what commit history cannot: validation evidence,
+outstanding manual checks, known loose ends, and the next decision point. For
+what changed and why, read the branch history — `AGENTS.md` defines the
+small-commit workflow that keeps it readable. This is operational context, not
+a product contract; `CURRENT-DESIGN.md` owns product precedence.
 
-Update this file whenever the active slice or its verification state changes.
+Update it when verification state, outstanding checks, or the next decision
+point changes — not for every change to the code.
 
 ## Snapshot
 
 - **Date:** 2026-08-02
-- **Branch:** `codex/project-workbench`
+- **Branch:** `main`
+- **Commit:** `240da87` — "feat: add project workbench and note diagnostics"
 - **Version:** `0.2.0`
-- **State:** the second read-only walking slice is implemented in an
-  uncommitted working tree. Preserve these changes and do not assume they are
-  approved for commit or release.
+- **State:** the second read-only walking slice is committed on `main` with a
+  clean working tree. It is automatically verified but not yet manually
+  accepted; the Obsidian checks below have not been performed or recorded.
+  Nothing has been released.
+- **Branch hygiene:** `codex/project-workbench` resolves to the same commit as
+  `main` and carries no unmerged work.
 
 ## Active slice: persistent Project Workbench
 
-The working tree extends the original Ready Now modal with a persistent,
-read-only Obsidian workbench:
+The second read-only walking slice: a persistent Obsidian workbench layered
+over the original Ready Now modal, carried by a plugin-lifetime read
+publication, a pure snapshot-consistent projection, and live non-writing
+diagnostic banners. ADR 0007 records the persistent `ItemView` decision.
 
-- a plugin-lifetime read-publication layer that survives indexing-runtime
-  replacement;
-- a pure, snapshot-consistent workbench projection;
-- a persistent project workbench view with explicit project selection;
-- project summary counts, bounded Ready Now results, and bounded project and
-  unassigned diagnostics;
-- live, non-writing diagnostic banners above affected Markdown notes;
-- exact-note navigation that leaves the dashboard open;
-- ribbon, command-palette, and settings entry points;
-- workspace-restored selected-project state;
-- updated styling, documentation, version metadata, parser validation, and
-  focused application/unit tests;
-- ADR 0007 documenting the persistent `ItemView` decision.
-
-The main active files are `src/application/project-weave-read-source.ts`,
-`src/application/project-workbench-model.ts`,
-`src/ui/project-workbench-view.ts`, `src/main.ts`, `styles.css`, their focused
-tests, and the associated documentation and version files.
+Read `git show 240da87` for the contents of the slice and `README.md` for the
+resulting user-visible behavior. Neither is restated here.
 
 ## Verification evidence
 
-The latest `npm run check` passed on 2026-08-02:
+`npm run check` was last run on 2026-08-02 against the committed `240da87`
+tree on Node.js 24.11.1, and passed:
 
 - version records synchronized at `0.2.0`;
 - Prettier, ESLint, and `tsc --noEmit` passed;
@@ -54,7 +47,14 @@ The latest `npm run check` passed on 2026-08-02:
 - the release inventory contained exactly `main.js`, `manifest.json`, and
   `styles.css`, with only the expected `obsidian` runtime import.
 
-Automated validation does not replace the manual Obsidian checks below.
+CI runs the same gate on Node.js 22.x and 24.x.
+
+Automated validation does not replace the manual Obsidian checks below. The
+Obsidian-facing modules — `src/ui/project-workbench-view.ts`, `src/main.ts`,
+`src/ui/settings-tab.ts`, and `src/ui/note-diagnostic-banner.ts` — have no
+automated coverage; only the pure projections behind them are tested. Until
+the checks below are recorded, no part of this slice has been verified in a
+running Obsidian instance.
 
 ## Manual checks still required
 
@@ -83,7 +83,18 @@ verify:
    stale-last-good state, narrow layouts, and a mobile-compatible Obsidian
    environment remain usable.
 
-Record results here before treating the slice as manually accepted.
+**Status as of 2026-08-02: not started.** None of the checks above has been
+performed or recorded. Record results here before treating the slice as
+manually accepted.
+
+## Known loose ends
+
+Verified against the committed tree; neither blocks the manual checks:
+
+- `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
+  replacement runtime in `src/main.ts` instead of mutating the reader.
+- `templates/default/` has no consumer in `src/`. The files are inputs for the
+  future template slice, not current behavior.
 
 ## Current product boundary
 
@@ -95,7 +106,10 @@ field highlighting are deferred beyond the first banner pass.
 
 ## Next decision point
 
-First review and complete the manual checks for the Project Workbench slice.
-Then decide whether to revise it, commit/release it, or select the next
-implementation slice. The repository does not currently designate one of the
-later slices as next; do not infer that choice from document numbering.
+Complete and record the manual checks above. The slice is committed but not
+manually accepted, so the open choice is whether to revise it, release it, or
+move on with acceptance still outstanding.
+
+Only after that, select the next implementation slice. The repository does not
+designate one of the later slices as next; do not infer that choice from
+document numbering.
