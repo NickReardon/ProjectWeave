@@ -20,9 +20,11 @@ point changes — not for every change to the code.
 - **State:** project task-template resolution and exact non-writing task
   proposals are committed on the feature branch. The workbench still awaits
   the manual Obsidian checks below; the running plugin remains read-only and
-  has no creation caller. Nothing has been released.
+  has no creation caller. A read-only, project-scoped All Tasks perspective is
+  selected as the next implementation slice. Nothing has been released.
 - **Branch hygiene:** `feat/project-template-map` is based on current `main`;
-  the committed implementation has no uncommitted code changes.
+  the committed implementation has no uncommitted code changes. This
+  current-work update is the only planned working-tree change.
 
 ## Active slices
 
@@ -143,16 +145,23 @@ deferred beyond the first banner pass.
 
 ## Next decision point
 
-Two open choices, in order.
+The next implementation sequence was selected on 2026-08-03:
 
 1. Complete and record the manual Obsidian checks above. The workbench slice
-   is committed but not manually accepted, so the choice is whether to revise
-   it, release it, or move on with acceptance outstanding.
-2. Choose the next task-creation vertical slice. The proposal still relies on
-   caller-supplied clock, safe target path, and optional rank, and nothing can
-   confirm or commit it. The candidates are typed path/rank allocation plus a
-   single-task preview UI, or the write coordinator and commit-time stale-read
-   checks from Design 10. Keep further note kinds behind a complete task flow.
-
-The repository does not designate one of those creation slices as next; make
-that product decision explicitly rather than inferring it from document order.
+   is committed but not manually accepted. Record any defects before extending
+   the view.
+2. Add a read-only, project-scoped **All Tasks** perspective to the persistent
+   workbench before adding creation UI or write support. Every valid task must
+   be discoverable regardless of status or readiness. The default view shows
+   non-terminal work (`backlog`, `todo`, `in-progress`, `waiting`, and
+   `review`); `done` and `cancelled` remain available through explicit status
+   filtering in keeping with Design 16's hidden-by-default terminal history.
+3. The first usable slice provides status filtering and text search,
+   deterministic bounded results, exact-note navigation that preserves the
+   workbench, and live refresh from one immutable publication. Follow-on
+   filters add priority, epic, milestone, owner, and due state without mixing
+   projects or storing derived task-list state.
+4. Resume the task-creation vertical after basic task discoverability exists.
+   The current proposal still needs typed path/rank allocation, a preview and
+   confirmation caller, and a write coordinator with commit-time stale-read
+   checks. Keep further note kinds behind a complete task flow.
