@@ -1,5 +1,5 @@
 import { normalizeVaultPath } from '../domain/markdown-parser';
-import { isTerminalTaskStatus } from '../domain/model';
+import { isTerminalTaskStatus, TASK_STATUSES } from '../domain/model';
 import type {
   Diagnostic,
   DiagnosticSeverity,
@@ -8,14 +8,35 @@ import type {
   ProjectEntity,
   TaskEntity,
   TaskPriority,
+  TaskStatus,
 } from '../domain/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { ProjectWeaveReadPublication } from './project-weave-read-source';
 
 const DEFAULT_READY_DISPLAY_LIMIT = 10;
 const MAX_READY_DISPLAY_LIMIT = 200;
+const DEFAULT_TASK_DISPLAY_LIMIT = 25;
+const MAX_TASK_DISPLAY_LIMIT = 200;
 const DEFAULT_DIAGNOSTIC_DISPLAY_LIMIT = 10;
 const MAX_DIAGNOSTIC_DISPLAY_LIMIT = 200;
+
+export const DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES = [
+  'backlog',
+  'todo',
+  'in-progress',
+  'waiting',
+  'review',
+] as const satisfies readonly TaskStatus[];
+
+export const PROJECT_WORKBENCH_DUE_STATES = [
+  'past',
+  'today',
+  'future',
+  'none',
+] as const;
+
+export type ProjectWorkbenchDueState =
+  (typeof PROJECT_WORKBENCH_DUE_STATES)[number];
 
 /**
  * The subset of a Project Weave read revision needed by this pure projection.
@@ -32,6 +53,15 @@ export interface ProjectWorkbenchProjectionInput {
   readonly selectedProjectPath: string | null;
   readonly activePath?: string | null;
   readonly readyDisplayLimit: number;
+  readonly taskDisplayLimit?: number;
+  readonly taskStatuses?: readonly TaskStatus[];
+  readonly taskSearch?: string;
+  readonly taskPriority?: TaskPriority | null;
+  readonly taskEpicPath?: string | null;
+  readonly taskMilestonePath?: string | null;
+  readonly taskOwner?: string | null;
+  readonly taskDueState?: ProjectWorkbenchDueState | null;
+  readonly taskToday?: string;
   readonly diagnosticDisplayLimit?: number;
   readonly unassignedDiagnosticDisplayLimit?: number;
 }
@@ -60,6 +90,51 @@ export interface ProjectWorkbenchReadyModel {
   readonly total: number;
   readonly displayed: number;
   readonly truncated: boolean;
+}
+
+export interface ProjectWorkbenchTaskRelation {
+  readonly path: string;
+  readonly title: string;
+}
+
+export interface ProjectWorkbenchTaskItem {
+  readonly path: string;
+  readonly title: string;
+  readonly status: TaskStatus;
+  readonly rank: number | null;
+  readonly priority: TaskPriority;
+  readonly owner: string | null;
+  readonly dueDate: string | null;
+  readonly epic: ProjectWorkbenchTaskRelation | null;
+  readonly milestone: ProjectWorkbenchTaskRelation | null;
+  readonly ready: boolean;
+  readonly blockerCount: number;
+}
+
+export interface ProjectWorkbenchTaskFilterOption {
+  readonly value: string;
+  readonly label: string;
+}
+
+export interface ProjectWorkbenchTaskFilterOptions {
+  readonly epics: readonly ProjectWorkbenchTaskFilterOption[];
+  readonly milestones: readonly ProjectWorkbenchTaskFilterOption[];
+  readonly owners: readonly ProjectWorkbenchTaskFilterOption[];
+}
+
+export interface ProjectWorkbenchTasksModel {
+  readonly items: readonly ProjectWorkbenchTaskItem[];
+  readonly total: number;
+  readonly displayed: number;
+  readonly truncated: boolean;
+  readonly statuses: readonly TaskStatus[];
+  readonly search: string;
+  readonly priority: TaskPriority | null;
+  readonly epicPath: string | null;
+  readonly milestonePath: string | null;
+  readonly owner: string | null;
+  readonly dueState: ProjectWorkbenchDueState | null;
+  readonly filterOptions: ProjectWorkbenchTaskFilterOptions;
 }
 
 export interface ProjectWorkbenchDiagnosticItem {
@@ -124,6 +199,7 @@ export interface ProjectWorkbenchProjectModel extends ProjectWorkbenchBaseModel 
   readonly diagnostics: ProjectWorkbenchDiagnosticsModel;
   readonly taskState: 'no_tasks' | 'no_ready' | 'has_ready';
   readonly ready: ProjectWorkbenchReadyModel;
+  readonly allTasks: ProjectWorkbenchTasksModel;
 }
 
 export type ProjectWorkbenchModel =
@@ -174,6 +250,15 @@ export function buildProjectWorkbenchModel(
       selected,
       snapshot,
       input.readyDisplayLimit,
+      input.taskDisplayLimit,
+      input.taskStatuses,
+      input.taskSearch,
+      input.taskPriority,
+      input.taskEpicPath,
+      input.taskMilestonePath,
+      input.taskOwner,
+      input.taskDueState,
+      input.taskToday,
       input.diagnosticDisplayLimit,
     );
   }
@@ -191,6 +276,15 @@ export function buildProjectWorkbenchModel(
     inferred,
     snapshot,
     input.readyDisplayLimit,
+    input.taskDisplayLimit,
+    input.taskStatuses,
+    input.taskSearch,
+    input.taskPriority,
+    input.taskEpicPath,
+    input.taskMilestonePath,
+    input.taskOwner,
+    input.taskDueState,
+    input.taskToday,
     input.diagnosticDisplayLimit,
   );
 }
@@ -200,6 +294,15 @@ function projectModel(
   project: ProjectEntity,
   snapshot: IndexSnapshot,
   requestedReadyDisplayLimit: number,
+  requestedTaskDisplayLimit: number | undefined,
+  requestedTaskStatuses: readonly TaskStatus[] | undefined,
+  requestedTaskSearch: string | undefined,
+  requestedTaskPriority: TaskPriority | null | undefined,
+  requestedTaskEpicPath: string | null | undefined,
+  requestedTaskMilestonePath: string | null | undefined,
+  requestedTaskOwner: string | null | undefined,
+  requestedTaskDueState: ProjectWorkbenchDueState | null | undefined,
+  requestedTaskToday: string | undefined,
   requestedDiagnosticDisplayLimit: number | undefined,
 ): ProjectWorkbenchProjectModel {
   const tasks = snapshot.getTasksForProject(project.path);
@@ -220,6 +323,46 @@ function projectModel(
     unlockCount: countProjectTaskDependents(snapshot, task.path, project.path),
   }));
   const totalReady = readyTasks.length;
+  const taskStatuses = normalizeTaskStatuses(requestedTaskStatuses);
+  const normalizedTaskSearch = normalizeTaskSearch(requestedTaskSearch);
+  const taskEpicPath = normalizeOptionalPath(requestedTaskEpicPath);
+  const taskMilestonePath = normalizeOptionalPath(requestedTaskMilestonePath);
+  const taskOwner = normalizeOptionalText(requestedTaskOwner);
+  const taskDueState = requestedTaskDueState ?? null;
+  const taskFilterOptions = buildTaskFilterOptions(snapshot, tasks);
+  const filteredTasks = tasks
+    .filter(
+      (task): task is TaskEntity & { readonly status: TaskStatus } =>
+        task.status !== null &&
+        taskStatuses.includes(task.status) &&
+        taskMatchesSearch(task, normalizedTaskSearch) &&
+        (requestedTaskPriority == null ||
+          (task.priority ?? 'normal') === requestedTaskPriority) &&
+        (taskEpicPath === null ||
+          taskRelationPath(task.epic) === taskEpicPath) &&
+        (taskMilestonePath === null ||
+          taskRelationPath(task.milestone) === taskMilestonePath) &&
+        (taskOwner === null || task.owner === taskOwner) &&
+        taskMatchesDueState(task, taskDueState, requestedTaskToday),
+    )
+    .sort(compareProjectTask);
+  const taskLimit = normalizeTaskDisplayLimit(requestedTaskDisplayLimit);
+  const taskItems = filteredTasks.slice(0, taskLimit).map((task) => {
+    const readiness = snapshot.getReadiness(task.path);
+    return {
+      path: task.path,
+      title: task.title,
+      status: task.status,
+      rank: task.rank,
+      priority: task.priority ?? 'normal',
+      owner: task.owner,
+      dueDate: task.dueDate,
+      epic: taskRelation(snapshot, task.epic),
+      milestone: taskRelation(snapshot, task.milestone),
+      ready: readiness?.ready === true,
+      blockerCount: readiness?.blockers.length ?? 0,
+    };
+  });
   const diagnosticLimit = normalizeDiagnosticDisplayLimit(
     requestedDiagnosticDisplayLimit,
   );
@@ -252,6 +395,20 @@ function projectModel(
       total: totalReady,
       displayed: items.length,
       truncated: items.length < totalReady,
+    },
+    allTasks: {
+      items: taskItems,
+      total: filteredTasks.length,
+      displayed: taskItems.length,
+      truncated: taskItems.length < filteredTasks.length,
+      statuses: taskStatuses,
+      search: requestedTaskSearch?.trim() ?? '',
+      priority: requestedTaskPriority ?? null,
+      epicPath: taskEpicPath,
+      milestonePath: taskMilestonePath,
+      owner: taskOwner,
+      dueState: taskDueState,
+      filterOptions: taskFilterOptions,
     },
   };
 }
@@ -441,6 +598,120 @@ function compareReadyTask(left: TaskEntity, right: TaskEntity): number {
   );
 }
 
+function buildTaskFilterOptions(
+  snapshot: IndexSnapshot,
+  tasks: readonly TaskEntity[],
+): ProjectWorkbenchTaskFilterOptions {
+  return {
+    epics: relationFilterOptions(
+      snapshot,
+      tasks.map((task) => task.epic),
+    ),
+    milestones: relationFilterOptions(
+      snapshot,
+      tasks.map((task) => task.milestone),
+    ),
+    owners: [...new Set(tasks.flatMap((task) => task.owner ?? []))]
+      .sort(compareText)
+      .map((owner) => ({ value: owner, label: owner })),
+  };
+}
+
+function relationFilterOptions(
+  snapshot: IndexSnapshot,
+  relations: readonly TaskEntity['epic'][],
+): readonly ProjectWorkbenchTaskFilterOption[] {
+  const options = new Map<string, string>();
+  for (const relation of relations) {
+    const item = taskRelation(snapshot, relation);
+    if (item !== null && !options.has(item.path)) {
+      options.set(item.path, item.title);
+    }
+  }
+  return [...options]
+    .map(([value, label]) => ({ value, label }))
+    .sort(
+      (left, right) =>
+        compareText(left.label, right.label) ||
+        comparePath(left.value, right.value),
+    );
+}
+
+function taskRelation(
+  snapshot: IndexSnapshot,
+  relation: TaskEntity['epic'],
+): ProjectWorkbenchTaskRelation | null {
+  const path = taskRelationPath(relation);
+  if (path === null) {
+    return null;
+  }
+  const entity =
+    relation?.resolvedPath === undefined
+      ? undefined
+      : snapshot.getEntity(relation.resolvedPath);
+  return {
+    path,
+    title: entity?.title ?? relation?.alias ?? relation?.linkpath ?? path,
+  };
+}
+
+function taskRelationPath(relation: TaskEntity['epic']): string | null {
+  if (relation === null) {
+    return null;
+  }
+  return normalizeOptionalPath(relation.resolvedPath ?? relation.linkpath);
+}
+
+function compareProjectTask(left: TaskEntity, right: TaskEntity): number {
+  const leftStatus =
+    left.status === null
+      ? TASK_STATUSES.length
+      : TASK_STATUSES.indexOf(left.status);
+  const rightStatus =
+    right.status === null
+      ? TASK_STATUSES.length
+      : TASK_STATUSES.indexOf(right.status);
+  return leftStatus - rightStatus || compareReadyTask(left, right);
+}
+
+function taskMatchesDueState(
+  task: TaskEntity,
+  dueState: ProjectWorkbenchDueState | null,
+  today: string | undefined,
+): boolean {
+  if (dueState === null) {
+    return true;
+  }
+  if (dueState === 'none') {
+    return task.dueDate === null;
+  }
+  if (task.dueDate === null || !isIsoDate(today)) {
+    return false;
+  }
+  switch (dueState) {
+    case 'past':
+      return task.dueDate < today;
+    case 'today':
+      return task.dueDate === today;
+    case 'future':
+      return task.dueDate > today;
+  }
+}
+
+function isIsoDate(value: string | undefined): value is string {
+  return value !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function taskMatchesSearch(task: TaskEntity, search: string): boolean {
+  if (search.length === 0) {
+    return true;
+  }
+  return (
+    task.title.toLocaleLowerCase().includes(search) ||
+    task.path.toLocaleLowerCase().includes(search)
+  );
+}
+
 function priorityOrder(priority: TaskPriority | null): number {
   switch (priority ?? 'normal') {
     case 'critical':
@@ -459,6 +730,34 @@ function normalizeReadyDisplayLimit(value: number): number {
     return DEFAULT_READY_DISPLAY_LIMIT;
   }
   return Math.min(MAX_READY_DISPLAY_LIMIT, Math.max(1, Math.trunc(value)));
+}
+
+function normalizeTaskDisplayLimit(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value)) {
+    return DEFAULT_TASK_DISPLAY_LIMIT;
+  }
+  return Math.min(MAX_TASK_DISPLAY_LIMIT, Math.max(1, Math.trunc(value)));
+}
+
+function normalizeTaskStatuses(
+  values: readonly TaskStatus[] | undefined,
+): readonly TaskStatus[] {
+  if (values === undefined) {
+    return DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES;
+  }
+  const requested = new Set(values);
+  return TASK_STATUSES.filter((status) => requested.has(status));
+}
+
+function normalizeTaskSearch(value: string | undefined): string {
+  return value?.trim().toLocaleLowerCase() ?? '';
+}
+
+function normalizeOptionalText(
+  value: string | null | undefined,
+): string | null {
+  const normalized = value?.trim() ?? '';
+  return normalized.length === 0 ? null : normalized;
 }
 
 function normalizeDiagnosticDisplayLimit(value: number | undefined): number {
@@ -497,6 +796,10 @@ function freshnessBanner(
   }
 }
 
-function comparePath(left: string, right: string): number {
+function compareText(left: string, right: string): number {
   return left.localeCompare(right, undefined, { sensitivity: 'accent' });
+}
+
+function comparePath(left: string, right: string): number {
+  return compareText(left, right);
 }

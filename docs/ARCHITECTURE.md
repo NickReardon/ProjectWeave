@@ -58,9 +58,14 @@ import Obsidian, Node, Electron, views, or future MCP code.
   project-scoped, bounded DTOs for project context, task context, and Ready Now.
   ProjectWeaveReadSource publishes snapshot-bound query APIs across replaceable
   indexing runtimes. The pure Project Workbench projection derives all visible
-  counts, selection states, bounded project and unassigned diagnostics, and
-  Ready ordering from one publication. Diagnostic details preserve severity,
-  code, field, recovery guidance, and related-note paths for exact read-only
+  counts, selection states, bounded project and unassigned diagnostics, Ready
+  ordering, and bounded task results filtered by status, text, priority, epic,
+  milestone, owner, and due state from one publication. The UI injects its
+  current local calendar date; application filtering does not read a clock.
+  Task results remain project-scoped and deterministically order canonical
+  status, explicit rank, priority, then normalized path. Diagnostic details
+  preserve severity, code, field, recovery guidance, and related-note paths for
+  exact read-only
   navigation. Unassigned diagnostics cover malformed entities and unresolved
   ownership without guessing from folder layout.
 - **Creation proposals:** TaskTemplateResolver reads project-owned task
@@ -82,7 +87,8 @@ import Obsidian, Node, Electron, views, or future MCP code.
   scope-aware vault events, owns runtime replacement after a scope change, and
   exposes ribbon, command, settings, workbench, and compact Ready Now entry
   points. The workbench stores only its selected project path in Obsidian
-  workspace state.
+  workspace state; All Tasks filters are transient UI inputs to the pure
+  publication projection and do not persist derived task-list state.
 
 ## Lifecycle and safety
 

@@ -10,9 +10,13 @@ import {
 import { join, resolve, sep } from 'node:path';
 
 import { assertProjectVersion, readProjectState } from './project-version.mjs';
+import {
+  installConfiguredTestVault,
+  PLUGIN_RUNTIME_FILES,
+} from './test-vault-installer.mjs';
 import { createZip } from './zip.mjs';
 
-const RELEASE_FILES = ['main.js', 'manifest.json', 'styles.css'];
+const RELEASE_FILES = PLUGIN_RUNTIME_FILES;
 const EXPORT_ROOT = resolve('export');
 const state = await readProjectState();
 const version = assertProjectVersion(state);
@@ -63,6 +67,14 @@ console.log(
     String(zipSize) +
     ' bytes)',
 );
+
+const testVaultPluginDirectory = await installConfiguredTestVault({
+  pluginId,
+  sourceDirectory: pluginDirectory,
+});
+if (testVaultPluginDirectory !== null) {
+  console.log('Test vault updated: ' + testVaultPluginDirectory);
+}
 
 function assertWithinExport(path) {
   if (!path.startsWith(EXPORT_ROOT + sep)) {

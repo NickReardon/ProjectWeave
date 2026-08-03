@@ -210,6 +210,302 @@ describe('Project Workbench model', () => {
     ]);
   });
 
+  it('lists every non-terminal status by default in deterministic status and rank order', () => {
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication([
+          sourceNote('Projects/Tasks/Project.md', 'type: project'),
+          task(
+            'Projects/Tasks/Tasks/Todo later.md',
+            'Projects/Tasks/Project',
+            'todo',
+            [
+              'rank: 200',
+              'priority: critical',
+              'depends_on: "[[Projects/Tasks/Tasks/In progress]]"',
+            ],
+          ),
+          task(
+            'Projects/Tasks/Tasks/Backlog.md',
+            'Projects/Tasks/Project',
+            'backlog',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Todo first.md',
+            'Projects/Tasks/Project',
+            'todo',
+            ['rank: 100', 'priority: low'],
+          ),
+          task(
+            'Projects/Tasks/Tasks/In progress.md',
+            'Projects/Tasks/Project',
+            'in-progress',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Waiting.md',
+            'Projects/Tasks/Project',
+            'waiting',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Review.md',
+            'Projects/Tasks/Project',
+            'review',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Done.md',
+            'Projects/Tasks/Project',
+            'done',
+          ),
+          task(
+            'Projects/Tasks/Tasks/Cancelled.md',
+            'Projects/Tasks/Project',
+            'cancelled',
+          ),
+          sourceNote('Projects/Other/Project.md', 'type: project'),
+          task(
+            'Projects/Other/Tasks/Do not mix.md',
+            'Projects/Other/Project',
+            'todo',
+          ),
+        ]),
+        selectedProjectPath: 'Projects/Tasks/Project.md',
+        readyDisplayLimit: 5,
+        taskDisplayLimit: 20,
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 6,
+      displayed: 6,
+      truncated: false,
+      statuses: ['backlog', 'todo', 'in-progress', 'waiting', 'review'],
+      search: '',
+    });
+    expect(model.allTasks.items.map((item) => item.path)).toEqual([
+      'Projects/Tasks/Tasks/Backlog.md',
+      'Projects/Tasks/Tasks/Todo first.md',
+      'Projects/Tasks/Tasks/Todo later.md',
+      'Projects/Tasks/Tasks/In progress.md',
+      'Projects/Tasks/Tasks/Waiting.md',
+      'Projects/Tasks/Tasks/Review.md',
+    ]);
+    expect(model.allTasks.items[1]).toMatchObject({
+      status: 'todo',
+      rank: 100,
+      priority: 'low',
+      ready: true,
+      blockerCount: 0,
+    });
+    expect(model.allTasks.items[2]).toMatchObject({
+      status: 'todo',
+      ready: false,
+      blockerCount: 1,
+    });
+  });
+
+  it('makes terminal tasks explicitly filterable and searches title or path case-insensitively', () => {
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication([
+          sourceNote('Projects/History/Project.md', 'type: project'),
+          task(
+            'Projects/History/Tasks/Released.md',
+            'Projects/History/Project',
+            'done',
+          ),
+          task(
+            'Projects/History/Tasks/Abandoned HISTORY.md',
+            'Projects/History/Project',
+            'cancelled',
+          ),
+          task(
+            'Projects/History/Tasks/History active.md',
+            'Projects/History/Project',
+            'todo',
+          ),
+        ]),
+        selectedProjectPath: 'Projects/History/Project.md',
+        readyDisplayLimit: 5,
+        taskStatuses: ['done', 'cancelled'],
+        taskSearch: '  abandoned history  ',
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 1,
+      displayed: 1,
+      truncated: false,
+      statuses: ['done', 'cancelled'],
+      search: 'abandoned history',
+    });
+    expect(model.allTasks.items[0]).toMatchObject({
+      path: 'Projects/History/Tasks/Abandoned HISTORY.md',
+      status: 'cancelled',
+    });
+  });
+
+  it('caps All Tasks rendering at 200 results after filtering', () => {
+    const generatedTasks = Array.from({ length: 205 }, (_, index) =>
+      task(
+        'Projects/Large/Tasks/Task ' + String(index).padStart(3, '0') + '.md',
+        'Projects/Large/Project',
+        'backlog',
+      ),
+    );
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication([
+          sourceNote('Projects/Large/Project.md', 'type: project'),
+          ...generatedTasks,
+        ]),
+        selectedProjectPath: 'Projects/Large/Project.md',
+        readyDisplayLimit: 5,
+        taskDisplayLimit: 500,
+        taskStatuses: ['backlog'],
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 205,
+      displayed: 200,
+      truncated: true,
+    });
+    expect(model.allTasks.items[0]?.path).toBe(
+      'Projects/Large/Tasks/Task 000.md',
+    );
+    expect(model.allTasks.items.at(-1)?.path).toBe(
+      'Projects/Large/Tasks/Task 199.md',
+    );
+  });
+
+  it('filters by priority, epic, milestone, owner, and due state while exposing deterministic options', () => {
+    const notes = [
+      sourceNote('Projects/Filters/Project.md', 'type: project'),
+      sourceNote(
+        'Projects/Filters/Epics/Engine.md',
+        [
+          'type: epic',
+          'project: "[[Projects/Filters/Project]]"',
+          'status: active',
+        ].join('\n'),
+      ),
+      sourceNote(
+        'Projects/Filters/Milestones/Alpha.md',
+        [
+          'type: milestone',
+          'project: "[[Projects/Filters/Project]]"',
+          'status: planned',
+        ].join('\n'),
+      ),
+      task(
+        'Projects/Filters/Tasks/Matching.md',
+        'Projects/Filters/Project',
+        'todo',
+        [
+          'priority: high',
+          'owner: Robin',
+          'due_date: 2026-08-03',
+          'epic: "[[Projects/Filters/Epics/Engine]]"',
+          'milestone: "[[Projects/Filters/Milestones/Alpha]]"',
+        ],
+      ),
+      task(
+        'Projects/Filters/Tasks/Other.md',
+        'Projects/Filters/Project',
+        'todo',
+        ['priority: low', 'owner: Casey', 'due_date: 2026-08-04'],
+      ),
+    ];
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication(notes),
+        selectedProjectPath: 'Projects/Filters/Project.md',
+        readyDisplayLimit: 5,
+        taskPriority: 'high',
+        taskEpicPath: 'Projects/Filters/Epics/Engine.md',
+        taskMilestonePath: 'Projects/Filters/Milestones/Alpha.md',
+        taskOwner: 'Robin',
+        taskDueState: 'today',
+        taskToday: '2026-08-03',
+      }),
+    );
+
+    expect(model.allTasks).toMatchObject({
+      total: 1,
+      priority: 'high',
+      epicPath: 'Projects/Filters/Epics/Engine.md',
+      milestonePath: 'Projects/Filters/Milestones/Alpha.md',
+      owner: 'Robin',
+      dueState: 'today',
+      filterOptions: {
+        epics: [
+          {
+            value: 'Projects/Filters/Epics/Engine.md',
+            label: 'Engine',
+          },
+        ],
+        milestones: [
+          {
+            value: 'Projects/Filters/Milestones/Alpha.md',
+            label: 'Alpha',
+          },
+        ],
+        owners: [
+          { value: 'Casey', label: 'Casey' },
+          { value: 'Robin', label: 'Robin' },
+        ],
+      },
+    });
+    expect(model.allTasks.items[0]).toMatchObject({
+      path: 'Projects/Filters/Tasks/Matching.md',
+      priority: 'high',
+      owner: 'Robin',
+      dueDate: '2026-08-03',
+      epic: {
+        path: 'Projects/Filters/Epics/Engine.md',
+        title: 'Engine',
+      },
+      milestone: {
+        path: 'Projects/Filters/Milestones/Alpha.md',
+        title: 'Alpha',
+      },
+    });
+  });
+
+  it('distinguishes past, today, future, and missing due dates from an injected local date', () => {
+    const notes = [
+      sourceNote('Projects/Due/Project.md', 'type: project'),
+      task('Projects/Due/Tasks/Past.md', 'Projects/Due/Project', 'todo', [
+        'due_date: 2026-08-02',
+      ]),
+      task('Projects/Due/Tasks/Today.md', 'Projects/Due/Project', 'todo', [
+        'due_date: 2026-08-03',
+      ]),
+      task('Projects/Due/Tasks/Future.md', 'Projects/Due/Project', 'todo', [
+        'due_date: 2026-08-04',
+      ]),
+      task('Projects/Due/Tasks/None.md', 'Projects/Due/Project', 'todo'),
+    ];
+    const expected = {
+      past: 'Past',
+      today: 'Today',
+      future: 'Future',
+      none: 'None',
+    } as const;
+
+    for (const [dueState, title] of Object.entries(expected)) {
+      const model = project(
+        buildProjectWorkbenchModel({
+          publication: publication(notes),
+          selectedProjectPath: 'Projects/Due/Project.md',
+          readyDisplayLimit: 5,
+          taskDueState: dueState as keyof typeof expected,
+          taskToday: '2026-08-03',
+        }),
+      );
+      expect(model.allTasks.items.map((item) => item.title)).toEqual([title]);
+    }
+  });
   it('exposes bounded, severity-ordered diagnostic details for only the selected project', () => {
     const model = project(
       buildProjectWorkbenchModel({
