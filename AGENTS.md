@@ -8,12 +8,14 @@ code or product behavior, read these files in order:
 1. `CURRENT-DESIGN.md` for the authoritative product-contract reading order
    and precedence rules.
 2. `README.md` for implemented behavior, setup, commands, and manual checks.
-3. `docs/CURRENT_WORK.md` for the active working-tree handoff and validation
-   status.
-4. `docs/ARCHITECTURE.md` for dependency direction and implemented boundaries.
-5. The owning document under `docs/design/` and any relevant record under
+3. Recent history on the current branch (`git log --oneline -20`) for what has
+   changed and why. History is the primary record of work in progress.
+4. `docs/CURRENT_WORK.md` for validation status, outstanding manual checks, and
+   the next decision point — the state Git cannot carry.
+5. `docs/ARCHITECTURE.md` for dependency direction and implemented boundaries.
+6. The owning document under `docs/design/` and any relevant record under
    `docs/decisions/`.
-6. Nearby source, tests, and fixtures for the behavior being changed.
+7. Nearby source, tests, and fixtures for the behavior being changed.
 
 When documents conflict, follow the precedence defined in
 `CURRENT-DESIGN.md`. Implementation-status claims belong in `README.md` and
@@ -58,19 +60,36 @@ When documents conflict, follow the precedence defined in
 
 - Inspect the working tree before editing and preserve unrelated or
   user-authored changes. Do not assume the current branch is clean.
-- Do not edit or commit generated `node_modules/`, `dist/`, `export/`,
-  `coverage/`, or log output.
+- Do not edit generated `node_modules/`, `dist/`, `export/`, `coverage/`, or
+  log output.
 - Prefer the smallest change that follows neighboring patterns. Update focused
   tests and fixtures with behavior changes.
 - Record material architectural or product choices in a concise ADR using
   `docs/decisions/0000-template.md`. Preserve superseded decisions as history.
-- Update `docs/CURRENT_WORK.md` when the active slice, validation status,
-  remaining manual checks, or next decision point changes.
+- Update `docs/CURRENT_WORK.md` only for state the commit history cannot
+  carry: validation evidence, outstanding manual checks, known loose ends, and
+  the next decision point. Do not restate what changed — the branch and its
+  commits are that record.
 - Update `README.md` and `docs/ARCHITECTURE.md` when implemented or released
   boundaries change. Do not use `docs/PROJECT_PLAN.md` as current guidance; it
   is retained as a historical bootstrap plan.
-- Do not commit, push, release, or change versions unless the user explicitly
-  requests it.
+
+## Version control
+
+Commit history is the primary record of in-progress work. Keep it granular
+enough that prose documentation does not need to restate it.
+
+- Work on a short-lived branch off `main`, named for the slice — for example
+  `feat/task-creation`. Do not commit directly to `main`.
+- Commit in small, self-contained steps as work lands rather than one large
+  commit at the end. Each commit should stand on its own: it builds, it passes
+  the checks that were run against it, and it makes one coherent change.
+- Write commit subjects that carry intent, not a restatement of the diff. A
+  reader should be able to follow the slice from `git log --oneline` alone.
+- Keep documentation updates in the same commit as the behavior they describe,
+  so history never claims something the code does not do.
+- Do not push, merge, release, or change versions unless the user explicitly
+  requests it. Committing on a branch does not imply approval for any of these.
 
 ## Validation
 
