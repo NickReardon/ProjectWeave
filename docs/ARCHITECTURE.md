@@ -4,7 +4,9 @@
 
 The first read-only slices implement the shared core and persistent project
 workbench described by Designs 01, 02, 09, 16, and 17. ADRs 0006 and 0007
-record the platform baseline and workspace-view decisions.
+record the platform baseline and workspace-view decisions. The deterministic
+task-template rendering foundation from Plan Addendum 005, Design 18, and ADR
+0005 is implemented in the domain but has no caller yet.
 
 ## Dependency direction
 
@@ -19,6 +21,11 @@ Obsidian Vault and MetadataCache
   -> persisted project-root scope
       -> read-only VaultReader and LinkResolver ports
       -> index coordinator and builder
+
+future creation callers (UI or agent)
+  -> creation context, template source, and invariants
+      -> task template renderer
+          -> template parser and Markdown parser
 ```
 
 Dependencies point inward. Domain, indexing, and application modules do not
@@ -29,6 +36,16 @@ import Obsidian, Node, Electron, views, or future MCP code.
 - **Domain:** supported entities, controlled values, diagnostics, wiki-link
   parsing, template exclusion, workflow defaults, and readiness concepts live
   under src/domain.
+- **Templates:** src/domain/templates parses a Markdown template into reserved
+  metadata, declared typed inputs, frontmatter properties, and a body, then
+  renders one task note from an injected creation context. Rendering is a pure
+  function of its request: it reads no clock, environment, network, or file.
+  Precedence runs template static values, context defaults and explicit typed
+  inputs, then the entity-type and selected-project invariant overlay. The
+  packaged minimal task template is embedded as a plugin asset, and every
+  rendered note is re-parsed with the ordinary entity parser before it is
+  returned. The renderer produces content only; it has no write capability and
+  no proposal, path-allocation, or template-map resolution behavior.
 - **Indexing:** IndexBuilder deterministically publishes a complete immutable
   snapshot. IndexCoordinator owns asynchronous rebuilds, coalesced targeted
   reads, revisions, stale-last-good state, and unload cancellation.
@@ -72,7 +89,10 @@ None of these paths has access to a write-capable vault port.
 
 Content-changing work will enter through separate typed Template, Proposal, and
 Write Coordinator services. Views and future agent adapters must call those
-services rather than acquire generic file mutation access.
+services rather than acquire generic file mutation access. The task template
+renderer is the first of those services. It returns a target path and note
+content to its caller and has no access to a write-capable port, so nothing in
+the current runtime can commit what it renders.
 
 ## Release boundary
 

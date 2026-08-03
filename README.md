@@ -40,13 +40,47 @@ The first two read-only walking slices are implemented:
   scaffold location;
 - a plugin-lifetime read publication layer that keeps open views current when
   indexed project folders replace the indexing runtime;
-- fixture-backed parser, index, query, dashboard projection,
-  incremental-update, lifecycle, and release-inventory tests.
+- a deterministic task-template renderer in the domain, covering template
+  parsing, typed variable substitution, optional-field omission, conditional
+  body blocks, and entity-type/project invariants;
+- fixture-backed parser, index, query, dashboard projection, template
+  rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
-Task creation, template rendering, proposal commits, full Plan/Board/My Work
+The template renderer is a pure core service with no caller yet: nothing in
+the running plugin renders, proposes, or writes a note. Task creation UI,
+project template-map resolution, proposal commits, full Plan/Board/My Work
 perspectives, portfolio views, and agent/MCP transport remain later slices.
 The repository does not currently designate which later slice comes next.
+
+## Note templates
+
+`templates/default/` holds the packaged starter templates. Only
+`templates/default/task.md` is currently used by code; the plugin embeds a
+copy so rendering works without filesystem access, and a test keeps the two
+byte-identical. The remaining files are inputs for later slices.
+
+A template is an ordinary Markdown note marked `weave_template: true` with a
+`template_for` kind. Marked templates are excluded from entity indexing, so a
+template never appears as a task. Rendering removes the template-only keys
+(`weave_template`, `template_schema`, `template_for`, `template_name`,
+`template_description`, `template_inputs`) and keeps every other property.
+
+Frontmatter placeholders must occupy a whole value, such as
+`points: "{{points}}"`. They are replaced with the typed value, and a property
+whose optional variable is unset is omitted rather than left empty. Body
+placeholders insert Markdown, `{{#if variable}}` / `{{/if}}` blocks are the
+only control construct and cannot nest, and `\{{` writes a literal `{{`.
+`{{date}}`, `{{time}}`, and `{{datetime}}` accept formats built from `YYYY`,
+`MM`, `DD`, `HH`, `mm`, and `ss` with bracketed literals, for example
+`{{date:YYYY-MM-DD}}`.
+
+The renderer executes nothing and reads nothing: it has no clock, network,
+environment, or file access, and every value comes from the creation context
+its caller supplies. Unknown variables, malformed or unmatched directives,
+invalid metadata or input types, undeclared inputs, an unsafe target path, and
+a template that contradicts the entity type or selected project are all
+errors, and no note is produced.
 
 ## Development
 
