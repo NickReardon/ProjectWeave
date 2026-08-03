@@ -15,8 +15,7 @@ point changes — not for every change to the code.
 
 - **Date:** 2026-08-03
 - **Branch:** `feat/task-template-renderer`
-- **Commit:** `277b9a3` — the last code commit on the branch, on top of
-  "feat(domain): render task notes deterministically from templates"
+- **Commit:** `79c274b` — "fix(domain): enforce template creation contracts"
 - **Version:** `0.2.0`
 - **State:** the persistent Project Workbench slice is merged on `main` and
   still awaits the manual Obsidian checks below. On top of it, this branch adds
@@ -45,12 +44,12 @@ resulting behavior. Neither is restated here.
 
 ## Verification evidence
 
-`npm run check` was run on 2026-08-03 against the committed `277b9a3` tree on
+`npm run check` was run on 2026-08-03 against the committed `79c274b` tree on
 Node.js 24.11.1, and passed:
 
 - version records synchronized at `0.2.0`;
 - Prettier, ESLint, and `tsc --noEmit` passed;
-- 13 Vitest files passed with 94 tests;
+- 13 Vitest files passed with 113 tests;
 - 5 Node script tests passed;
 - the production bundle built successfully;
 - the release inventory contained exactly `main.js`, `manifest.json`, and
