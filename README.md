@@ -9,9 +9,11 @@ other process features a project does not use.
 The current product direction and normative reading order are in
 [CURRENT-DESIGN.md](CURRENT-DESIGN.md).
 
-Contributors and coding agents should begin with [AGENTS.md](AGENTS.md). The
-active working-tree handoff, validation evidence, and remaining manual checks
-are in [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md).
+Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
+defines the branch and small-commit workflow. Validation evidence, remaining
+manual checks, and the next decision point are in
+[docs/CURRENT_WORK.md](docs/CURRENT_WORK.md); commit history is the record of
+what changed.
 
 ## Current status
 
