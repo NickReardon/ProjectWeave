@@ -43,15 +43,20 @@ The first two read-only walking slices are implemented:
 - a deterministic task-template renderer in the domain, covering template
   parsing, typed variable substitution, optional-field omission, conditional
   body blocks, and entity-type/project invariants;
+- a read-only application resolver for project task-template defaults and named
+  variants, with explicit packaged fallback and fail-closed broken references;
+- an exact one-file task-creation proposal service carrying project/template
+  fingerprints, target-absence preconditions, frontmatter changes, rendered
+  bytes, and expected indexing postconditions;
 - fixture-backed parser, index, query, dashboard projection, template
   rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
-The template renderer is a pure core service with no caller yet: nothing in
-the running plugin renders, proposes, or writes a note. Task creation UI,
-project template-map resolution, proposal commits, full Plan/Board/My Work
-perspectives, portfolio views, and agent/MCP transport remain later slices.
-The repository does not currently designate which later slice comes next.
+The application proposal service now consumes the template renderer, but it is
+not wired into the running plugin. It can read project/template inputs and
+detect a target collision; it cannot write a note. Task creation UI, safe
+proposal commits, rank/path allocation, full Plan/Board/My Work perspectives,
+portfolio views, and agent/MCP transport remain later slices.
 
 ## Note templates
 
@@ -59,6 +64,11 @@ The repository does not currently designate which later slice comes next.
 `templates/default/task.md` is currently used by code; the plugin embeds a
 copy so rendering works without filesystem access, and a test keeps the two
 byte-identical. The remaining files are inputs for later slices.
+For tasks, a project may map default and named variants under
+`weave.templates.task`. References resolve relative to the project note using
+the same link semantics as indexing. Missing configuration uses the packaged
+minimal task template; an explicit broken, ambiguous, malformed, or
+wrong-kind reference fails without silently falling back.
 
 A template is an ordinary Markdown note marked `weave_template: true` with a
 `template_for` kind. Marked templates are excluded from entity indexing, so a
