@@ -4,6 +4,7 @@ import {
   parseWikiLink,
 } from '../markdown-parser';
 import type { Diagnostic, TaskPriority, TaskStatus } from '../model';
+import { isSafeVaultNotePath } from '../vault-path';
 import { formatClock, hasError, templateDiagnostic } from './model';
 import type {
   ResolvedVariable,
@@ -195,20 +196,7 @@ function validateTargetPath(
   path: string,
   diagnostics: Diagnostic[],
 ): string | null {
-  const normalized = normalizeVaultPath(raw);
-  const unsafe =
-    raw !== normalized ||
-    normalized.length === 0 ||
-    !normalized.toLowerCase().endsWith('.md') ||
-    hasControlCharacter(normalized) ||
-    normalized
-      .split('/')
-      .some(
-        (segment) =>
-          segment.length === 0 || segment === '.' || segment === '..',
-      );
-
-  if (unsafe) {
+  if (!isSafeVaultNotePath(raw)) {
     diagnostics.push(
       templateDiagnostic(
         path,
@@ -221,17 +209,7 @@ function validateTargetPath(
     );
     return null;
   }
-  return normalized;
-}
-
-function hasControlCharacter(value: string): boolean {
-  for (const character of value) {
-    const code = character.codePointAt(0) ?? 0;
-    if (code < 0x20 || code === 0x7f) {
-      return true;
-    }
-  }
-  return false;
+  return normalizeVaultPath(raw);
 }
 
 function validateProjectLink(
