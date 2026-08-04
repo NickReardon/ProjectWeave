@@ -70,6 +70,12 @@ When documents conflict, follow the precedence defined in
   carry: validation evidence, outstanding manual checks, known loose ends, and
   the next decision point. Do not restate what changed — the branch and its
   commits are that record.
+- Treat `docs/CURRENT_WORK.md` as the proposed post-merge handoff. Before a
+  branch lands, make the file truthful for the resulting `main` state. Never
+  record the current branch, current HEAD, branch hygiene, or an instruction to
+  merge that branch there; keep pre-merge handoff details in the pull request
+  or task conversation. A commit may be named only as immutable validation
+  evidence, such as the source commit against which a command passed.
 - Update `README.md` and `docs/ARCHITECTURE.md` when implemented or released
   boundaries change. Do not use `docs/PROJECT_PLAN.md` as current guidance; it
   is retained as a historical bootstrap plan.

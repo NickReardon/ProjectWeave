@@ -4,125 +4,91 @@
 
 This file records only what commit history cannot: validation evidence,
 outstanding manual checks, known loose ends, and the next decision point. For
-what changed and why, read the branch history — `AGENTS.md` defines the
-small-commit workflow that keeps it readable. This is operational context, not
+what changed and why, read the commit history. This is operational context, not
 a product contract; `CURRENT-DESIGN.md` owns product precedence.
 
-Update it when verification state, outstanding checks, or the next decision
-point changes — not for every change to the code.
+Write every branch's update as the proposed post-merge handoff: it must be
+truthful for the resulting `main` state. Do not record the current branch,
+current HEAD, branch hygiene, or the act of merging the branch. Those details
+belong in the pull request or task conversation. An exact commit belongs here
+only when it identifies immutable evidence, such as the source commit against
+which validation ran.
 
-## Snapshot
+Update this file when verification state, outstanding checks, known loose
+ends, or the next decision changes — not for every code change.
 
-- **Date:** 2026-08-03
-- **Branch:** codex/all-tasks-dashboard
-- **Commit:** 45f3efd — "build: export 0.3.0 to the test vault"
-- **Version:** 0.3.0
-- **State:** the task-proposal foundation is merged into main. The filterable,
-  read-only, project-scoped All Tasks dashboard is committed on the feature
-  branch and passes the complete automated gate. Version 0.3.0 was exported and
-  installed into the configured disposable test vault. The workbench still
-  awaits the manual Obsidian checks below; the running plugin remains read-only
-  and has no creation caller. Nothing has been released.
-- **Branch hygiene:** codex/all-tasks-dashboard is based on current main. Its
-  implementation and behavior documentation are committed, with no
-  uncommitted code changes.
+## Operational state
 
-## Active slices
+- The filterable, read-only Project Workbench and the task-template proposal
+  foundation pass the complete automated gate.
+- Version 0.3.0 was exported and installed into the configured disposable test
+  vault. The focused manual Obsidian checks below have not started.
+- The running plugin remains read-only. The proposal service has no runtime
+  caller, and no creation UI or write coordinator exists.
+- Local test-vault installation and the preview/stable release workflow are
+  documented and automatically exercised. Nothing has been released.
 
-**Persistent Project Workbench** (main, 240da87): a persistent Obsidian
-workbench layered over the original Ready Now modal, carried by a
-plugin-lifetime read publication, a pure snapshot-consistent projection, and
-live non-writing diagnostic banners. ADR 0007 records the persistent ItemView
-decision. Automatically verified, not yet manually accepted.
+## Automated verification
 
-**Filterable All Tasks dashboard** (codex/all-tasks-dashboard, f8a04b2): keeps
-Ready Now and adds a bounded project task list whose status, text, priority,
-epic, milestone, owner, and due-state filters can be combined. Terminal work is
-hidden by default but explicitly retrievable. Results and filter options derive
-from one publication, never mix projects, open exact notes without replacing
-the workbench, and refresh after new index publications. The filter state is
-transient rather than persisted project data.
+`npm run check` passed on 2026-08-03 against source commit `45f3efd` using
+Node.js 24.11.1:
 
-**Task-template rendering foundation** (main, 79c274b): Plan Addendum 005,
-Design 18, and ADR 0005 reduced to the smallest useful piece - parsing,
-validating, and rendering one task note from a template plus an injected
-creation context. Fully covered by automated tests and consumed by the
-application proposal service; it changes no observable plugin behavior and
-needs no manual Obsidian check of its own.
-
-**Task creation proposal foundation** (main, e6e2338 merge; dad45f0
-implementation): resolves packaged or project-owned task templates,
-fingerprints the project and template read set, renders exact
-frontmatter/content, rejects target collisions, and returns typed preconditions
-and expected postconditions. It exposes no write-capable port and has no
-runtime UI or agent caller.
-
-Read the branch history for what each slice contains and README.md for the
-resulting behavior. Neither is restated here.
-
-## Verification evidence
-
-npm run check was rerun on 2026-08-03 against 45f3efd on
-codex/all-tasks-dashboard using Node.js 24.11.1, and passed:
-
-- version records synchronized at 0.3.0;
-- Prettier, ESLint, and tsc --noEmit passed;
+- version records were synchronized at 0.3.0;
+- Prettier, ESLint, and `tsc --noEmit` passed;
 - 15 Vitest files passed with 135 tests;
 - 9 Node script tests passed;
 - the production bundle built successfully;
-- the release inventory contained exactly main.js, manifest.json, and
-  styles.css, with only the expected obsidian runtime import.
+- the release inventory contained exactly `main.js`, `manifest.json`, and
+  `styles.css`, with only the expected Obsidian runtime import.
 
-npm run export then produced export/project-weave and the 52,574-byte
-export/project-weave-0.3.0.zip. The locally configured export hook copied the
-three runtime files into D:\Obsidian Weave\.obsidian\plugins\project-weave;
-SHA-256 comparison confirmed every copy matched the export, the installed
-manifest reports 0.3.0, and the vault's existing data.json remained present.
+`npm run export` then produced `export/project-weave` and the 52,574-byte
+`export/project-weave-0.3.0.zip`. The configured export hook copied the three
+runtime files into the disposable test vault. SHA-256 comparison confirmed
+that every installed file matched the export, the installed manifest reported
+0.3.0, and the vault's existing `data.json` remained present.
 
-On 2026-08-03, `npm run test-vault:update` was exercised on
-`chore/plugin-release-testing`. It rebuilt and verified 0.3.0, required the
-configured disposable vault, installed all three runtime files, and byte
-comparison confirmed every installed file matched the fresh export while
-`data.json` remained present. The added installer failure-path test passed.
-The aggregate `npm run check` reached the format gate but was stopped by the
-unrelated untracked `CLAUDE.md`; the task files passed a focused Prettier
-check, and ESLint, `tsc --noEmit`, all 135 Vitest tests, all 10 Node script
-tests, the production build, and release-inventory verification passed when
-run independently.
+The subsequent release-workflow slice exercised `npm run test-vault:update`,
+including its failure path. The task files passed a focused Prettier check, and
+ESLint, `tsc --noEmit`, all 135 Vitest tests, all 10 Node script tests, the
+production build, and release-inventory verification passed independently.
+The aggregate check reached the format gate but was stopped by the unrelated
+untracked `CLAUDE.md`; this is not recorded as a complete-gate pass.
 
-The prior proposal-foundation gate on dad45f0 passed with 15 Vitest files and
-130 tests. CI runs the same complete gate on Node.js 22.x and 24.x.
+On 2026-08-03, the merge-stable handoff workflow was verified against source
+commit `018012b`. The current-work guard and focused Prettier check passed, as
+did ESLint, `tsc --noEmit`, all 135 Vitest tests, all 13 Node script tests, the
+production build, and release-inventory verification. The aggregate
+`npm run check` passed its version and current-work gates, then stopped at the
+same unrelated untracked `CLAUDE.md` formatting issue.
 
 Automated validation does not replace the manual Obsidian checks below. The
-Obsidian-facing modules — src/ui/project-workbench-view.ts, src/main.ts,
-src/ui/settings-tab.ts, and src/ui/note-diagnostic-banner.ts — have no
-automated DOM coverage. The pure projection now covers project isolation,
-default and terminal statuses, blocked-task discoverability, case-insensitive
-title/path search, all planning-metadata filters, injected-date due states,
-deterministic ordering, and the 200-result cap. Until the checks below are
-recorded, no part of the workbench slice has been verified in a running
-Obsidian instance.
+Obsidian-facing modules have no automated DOM coverage. The pure projection
+covers project isolation, default and terminal statuses, blocked-task
+discoverability, case-insensitive title/path search, all planning-metadata
+filters, injected-date due states, deterministic ordering, and the 200-result
+cap.
 
 ## Manual checks still required
 
-Use a disposable Obsidian vault populated from tests/fixtures/vault/ and
+Use a disposable Obsidian vault populated from `tests/fixtures/vault/` and
 verify:
 
 1. The ribbon, command palette, and settings button open one reusable Project
    Workbench tab.
-2. Obsidian restores the workbench and its selected project after workspace
-   reload; transient task filters reset rather than becoming project data.
+2. Obsidian restores the workbench and selected project after workspace reload;
+   transient task filters reset rather than becoming project data.
 3. With the fixture project selected, **Implement request** is the only Ready
    task and opens in another tab without replacing the dashboard.
 4. All Tasks initially shows both todo tasks and **External prerequisite**
-   (in-progress), while **Define request** (done) appears after selecting done.
+   (`in-progress`), while **Define request** (`done`) appears after selecting
+   done.
 5. Title/path search and combined status, priority, epic, milestone, owner, and
    due-state filters isolate the expected tasks; **Reset filters** restores the
    non-terminal default. Verify **Due today** against the local calendar date.
 6. Editing task status, metadata, or dependencies refreshes Ready Now, All
    Tasks, counts, and available filter options after one index publication.
-7. An invalid status such as complete produces task.status.invalid with
-   recovery guidance and exact-note navigation; changing it to done removes
+7. An invalid status such as `complete` produces `task.status.invalid` with
+   recovery guidance and exact-note navigation; changing it to `done` removes
    the diagnostic.
 8. A malformed entity or task without a usable project relationship appears in
    the prominent **Unassigned diagnostics** section with its source-note link
@@ -135,14 +101,9 @@ verify:
     stale-last-good state, zero filter matches, 200-result truncation, narrow
     layouts, and a mobile-compatible Obsidian environment remain usable.
 
-**Status as of 2026-08-03: not started.** None of the checks above has been
-performed or recorded. Record results here before treating the slice as
-manually accepted.
-
-The renderer, resolver, and proposal service add no manual check. They have no
-runtime UI or write access, and their exact outputs and failure modes are
-covered by automated tests. They become manually checkable once a creation UI
-calls the proposal service.
+**Status as of 2026-08-03: not started.** Record results here before treating
+the workbench as manually accepted. The renderer, resolver, and proposal
+service add no manual check until a creation UI calls them.
 
 ## Known loose ends
 
@@ -152,45 +113,23 @@ Verified against the committed tree; none blocks the manual checks:
   replacement runtime in `src/main.ts` instead of mutating the reader.
 - The template resolver and proposal service have no runtime caller. They and
   the renderer are tree-shaken out of `dist/main.js`, so the running plugin
-  remains unchanged and read-only even though the application services are
-  directly exercised by tests.
-- `templateClockFromLocalDate` exists so a future caller has one tested place
-  to convert an instant into the renderer's civil clock. Nothing calls it yet.
+  remains read-only.
+- `templateClockFromLocalDate` exists for a future caller. Nothing calls it
+  yet.
 - Only `templates/default/task.md` has a consumer. The other packaged starter
-  templates remain inputs for later kinds, and only the task template's
-  embedded copy is checked against its file.
+  templates remain inputs for later kinds.
 - The renderer normalizes CRLF template bodies to LF so identical requests
-  render identical bytes. This is deliberate and asserted, but it means a
-  CRLF-authored template does not round-trip its line endings.
+  render identical bytes.
 - A static frontmatter property whose template value is explicitly empty
-  renders as `key: null` rather than being dropped. Omission is reserved for
-  unset optional placeholders, so an author's explicit empty value is not
-  silently discarded.
-
-## Current product boundary
-
-The plugin remains read-only. The persistent workbench now exposes Ready Now,
-diagnostics, and a filterable All Tasks list, but it is not yet the full
-write-capable Plan/Board/My Work workspace. Project task-template resolution,
-template fingerprinting, and exact one-file task proposals are implemented,
-but no runtime caller, path/rank allocator, preview/confirmation UI, or write
-coordinator exists. Rendering and proposal construction cover the task kind
-only; epics, milestones, planning periods, and documents are not supported.
-Their contracts remain design inputs, not claims about current code.
-Note-diagnostic jump-to-field behavior and inline field highlighting are
-deferred beyond the first banner pass.
+  renders as `key: null`. Omission is reserved for unset optional placeholders.
 
 ## Next decision point
 
-The dashboard implementation sequence is complete. Continue in this order:
-
-1. Complete and record the manual Obsidian checks above. Record defects before
-   merging codex/all-tasks-dashboard into main.
-2. If manual acceptance passes, merge the dashboard branch without changing
-   versions or releasing.
-3. Resume the task-creation vertical with typed target-path and rank allocation
+1. Complete and record the manual Obsidian checks above. Record any defects
+   before treating the workbench as accepted.
+2. Resume the task-creation vertical with typed target-path and rank allocation
    plus a read-only single-task preview/confirmation caller for the existing
    proposal service.
-4. Add the write coordinator and commit-time stale-read checks only after the
+3. Add the write coordinator and commit-time stale-read checks only after the
    preview exposes every target path, precondition, rendered byte set, and
    expected postcondition. Keep further note kinds behind a complete task flow.
