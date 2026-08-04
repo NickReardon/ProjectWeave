@@ -2,7 +2,7 @@
 
 ## Status
 
-The first read-only slices implement the shared core and persistent project
+The implemented slices implement the shared core and persistent project
 workbench described by Designs 01, 02, 09, 16, and 17. ADRs 0006 and 0007
 record the platform baseline and workspace-view decisions. The deterministic
 task-template renderer, project template resolver, and exact task-creation
@@ -24,6 +24,8 @@ Obsidian Vault and MetadataCache
       -> index coordinator and builder
 
 task creation preview command and modal
+  -> task creation commit service
+      -> create-only NoteWriter port
   -> task creation preview service
       -> task target-path and rank allocation
           -> shared vault path safety and filename derivation
@@ -106,6 +108,14 @@ import Obsidian, Node, Electron, views, or future MCP code.
   `TaskSearchCandidate` carries, so
   matching note bodies would be a snapshot decision rather than a matcher
   change — indexing discards content after parsing.
+- **Creation commit:** TaskCreationCommitService is the only path to a vault
+  write. It re-reads the proposal's read set and compares fingerprints,
+  re-checks target absence, re-validates the produced note in memory, then
+  writes once, per the single-file sequence in design 10. It writes the
+  proposal's own bytes rather than re-rendering, so a confirmed preview cannot
+  become a different note. A packaged template is exempt from the re-read: it
+  ships in the plugin build and has no vault note behind it. Every failure
+  reports that the vault is unchanged.
 - **Creation preview:** TaskCreationPreviewService composes allocation with the
   proposal service into one reviewable result, keeping the chosen path and rank
   visible even when the proposal fails. Its operation id is derived from the
@@ -118,10 +128,16 @@ import Obsidian, Node, Electron, views, or future MCP code.
   because no coordinator exists to commit one; it discards in-flight previews
   on close so a late response cannot repaint a dismissed draft.
 - **Ports:** VaultReader has read/list methods only. LinkResolver isolates
-  Obsidian link semantics.
+  Obsidian link semantics. NoteWriter is the sole write-capable port and
+  exposes exactly one operation, create-a-note-that-does-not-exist; it cannot
+  express overwrite, move, or delete, and only the commit service may use it.
 - **Adapters:** src/adapters/obsidian is the only vault/API integration. It uses
-  Vault.cachedRead, MetadataCache link resolution, and TFile metadata; it
-  filters paths before content reads and exposes no content-write primitive.
+  Vault.cachedRead, MetadataCache link resolution, and TFile metadata, and
+  filters paths before content reads. ObsidianNoteWriter creates through
+  Vault.create and Vault.createFolder, never the filesystem, and refuses any
+  path that is not a safe normalized Markdown path inside the configured
+  project roots. Parent folders are created only as part of a confirmed
+  creation that needs them.
 - **Entry point/UI:** src/main.ts registers the persistent workbench before
   layout restoration, defers indexing until layout readiness, registers managed
   scope-aware vault events, owns runtime replacement after a scope change, and

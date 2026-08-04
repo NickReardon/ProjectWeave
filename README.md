@@ -17,7 +17,7 @@ what changed.
 
 ## Current status
 
-The current read-only workbench slices are implemented:
+The implemented slices are:
 
 - strict TypeScript Obsidian plugin and production bundle;
 - asynchronous, non-writing Markdown indexing behind read-only ports;
@@ -54,19 +54,32 @@ The current read-only workbench slices are implemented:
   the project note's location, accepts an optional organizing subfolder,
   sanitizes a title into a safe filename, suggests the first free path, and
   spaces ranks 1000 apart;
-- a read-only **Preview task creation** command and modal showing the allocated
-  path and rank, resolved template, preconditions, read set, expected
-  postconditions, and exact rendered bytes, with no action that writes;
+- a **Preview task creation** command and modal showing the allocated path and
+  rank, resolved template, preconditions, read set, expected postconditions,
+  and exact rendered bytes, with an explicit **Create task** action;
+- a commit coordinator that re-reads the proposal's inputs, compares
+  fingerprints, re-checks target absence, and re-validates the produced note
+  before writing it once;
+- a create-only note-writing port with no way to express overwrite, move, or
+  delete, implemented over Obsidian's Vault API;
 - fixture-backed parser, index, query, dashboard projection, template
   rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
-**Preview task creation** in the command palette is the first surface that
-exercises this chain end to end: it allocates a path and rank, resolves the
-template, and shows the exact bytes that would be written, along with the
-preconditions and expected postconditions. It has no confirm action, because
-Project Weave still has no write coordinator — nothing in the running plugin
-can create a note. Safe proposal commits, rank rebalancing and reorder, full
+**Preview task creation** in the command palette exercises this chain end to
+end: it allocates a path and rank, resolves the template, shows the exact bytes
+that would be written along with the preconditions and expected
+postconditions, and creates the note when you confirm.
+
+Creation is the only thing Project Weave writes. Indexing, plugin load,
+settings changes, navigation, and the dashboard never modify vault content.
+The write path creates new notes only: it has no operation that can modify,
+move, or delete an existing note, and a target that already exists is refused
+rather than overwritten. If the project note or template changes between
+preview and confirmation, the commit aborts and asks you to preview again,
+rather than writing something you did not see.
+
+Editing existing tasks, rank rebalancing and reorder, further note kinds, full
 Plan/Board/My Work perspectives, portfolio views, and agent/MCP transport
 remain later slices.
 
@@ -193,8 +206,14 @@ existing rank, and the rendered note matches that path and rank. Add a
 subfolder such as `Combat` and confirm it nests. Enter a title matching an
 existing task and confirm a numbered name is suggested with an explicit notice
 rather than an overwrite. Try a title such as `///` and confirm a diagnostic
-appears instead of a filename. Closing and reopening the modal starts a fresh
-draft; no vault file is created at any point.
+appears instead of a filename. Closing the modal creates nothing.
+
+**Use a disposable vault for the creation check, because it writes.** Confirm
+**Create task** creates exactly the previewed path with the previewed bytes,
+creating the `Tasks` folder if it was missing, and that the new task appears
+in the dashboard after the index refreshes. With the modal open, edit the
+project note in another tab, then confirm: the commit must refuse with a
+message about the note having changed, and create nothing.
 
 ## Versioning and exports
 

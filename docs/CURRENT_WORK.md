@@ -19,16 +19,19 @@ ends, or the next decision changes — not for every code change.
 
 ## Operational state
 
-- The filterable, read-only Project Workbench and the task-template proposal
-  foundation pass the complete automated gate.
+- The filterable Project Workbench and the task creation chain — allocation,
+  template resolution, proposal, preview, and commit — pass the complete
+  automated gate.
 - Version 0.3.0 was exported and installed into the configured disposable test
   vault. Four of the focused manual Obsidian checks below have passed against
   that build; the rest are outstanding, so the workbench is not yet manually
   accepted.
-- The running plugin remains read-only. A **Preview task creation** command now
-  exercises allocation, template resolution, and proposal construction and
-  displays the exact bytes that would be written, but it offers no action that
-  writes and no write coordinator exists.
+- **Project Weave now writes to the vault.** Confirming **Create task** in the
+  preview modal creates one new note. That is the only write: indexing, plugin
+  load, settings changes, navigation, and the dashboard still modify nothing,
+  and the write path cannot modify, move, or delete an existing note.
+- Creation has never been exercised against a real vault. Manual check 13 is
+  the first time anything in this project writes outside a test double.
 - Task target paths and backlog ranks are now allocated by pure application
   code. ADR 0008 settles the folder convention, filename derivation, collision
   policy, and rank rule that `docs/design/README.md` had left open.
@@ -123,8 +126,13 @@ verify:
     folder, a rank one gap past the largest existing rank, and rendered bytes
     matching both. A subfolder nests, a colliding title yields a numbered
     suggestion with an explicit notice, and an unusable title yields a
-    diagnostic. The modal offers no action that writes, and the vault gains no
-    file at any point.
+    diagnostic. Closing the modal creates nothing.
+13. In a disposable vault, **Create task** writes exactly the previewed path
+    with the previewed bytes, creates a missing `Tasks` folder, and the new
+    task appears in the dashboard after the index refreshes. Editing the
+    project note while the modal is open makes the commit refuse with a
+    changed-note message and create nothing. No existing note is modified at
+    any point.
 
 **Status as of 2026-08-03: partially complete.** Checks 2, 8, 9, and 10 were
 run against the installed 0.3.0 build and passed, with no defects observed:
@@ -139,11 +147,11 @@ check 9: the diagnostic appeared and cleared as expected, but the workbench
 listing's recovery guidance and exact-note navigation were not confirmed
 separately. Treat it as outstanding.
 
-Checks 1, 3, 4, 5, 6, 11, and 12 remain outstanding. Record their results here
+Checks 1, 3, 4, 5, 6, 11, 12, and 13 remain outstanding. Record their results here
 before treating the workbench as manually accepted. Check 12 is new and has not
-been run at all: the preview surface is the first slice in this chain that
-changes the shipped bundle, so unlike the renderer, resolver, allocator, and
-proposal service before it, it cannot be accepted on automated evidence alone.
+been run at all, and check 13 covers the first vault write this project has
+ever performed. Neither can be accepted on automated evidence: the commit path
+is proven only against test doubles, never against Obsidian's Vault API.
 
 Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems,
 which bears on checks 1 and 3 through 6 in particular. That is supporting
@@ -158,12 +166,13 @@ Verified against the committed tree; none blocks the manual checks:
 
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
-- The template resolver, proposal service, allocator, and renderer now all have
-  a runtime caller through the preview command, so they are compiled into
-  `dist/main.js` for the first time. The plugin stays read-only because no
-  write-capable port exists, not because the code is absent.
-- The preview modal has no confirm affordance at all. Once the write
-  coordinator lands, that gap is where explicit form confirmation belongs.
+- The template resolver, proposal service, allocator, renderer, and commit
+  coordinator all have a runtime caller through the preview command.
+- Only task creation is writable. Editing an existing note, rank rebalancing,
+  and further note kinds have no write path, by design.
+- The commit coordinator handles exactly one created file. Multi-file
+  proposals, and the partial-success reporting design 10 requires for them,
+  are not implemented.
 - The whitespace-token and subsequence task-search strategies are implemented
   and tested but have no runtime caller; the workbench always uses the
   substring default. Reaching them needs either a changed default or a
@@ -192,6 +201,6 @@ Verified against the committed tree; none blocks the manual checks:
    before treating the workbench as accepted.
 2. Run the outstanding manual Obsidian checks, including the new preview check,
    in one session against a rebuilt test-vault install.
-3. Add the write coordinator and commit-time stale-read checks only after the
-   preview exposes every target path, precondition, rendered byte set, and
-   expected postcondition. Keep further note kinds behind a complete task flow.
+3. Keep further note kinds and any edit path behind a manually accepted task
+   creation flow. Multi-file proposals need the partial-success reporting
+   design 10 requires before any bulk operation ships.
