@@ -60,10 +60,10 @@ export type TaskCreationPreviewResult =
  * Compose target-path and rank allocation with the task creation proposal
  * service to produce everything a user must see before any note is written.
  *
- * This service still cannot write. It exists so the exact target path,
- * preconditions, rendered bytes, and expected postconditions are visible and
- * reviewable before a write coordinator is built, which is the order the
- * safe-write contract requires.
+ * This service itself cannot write: it holds no writer and produces only a
+ * proposal. Committing that proposal is TaskCreationCommitService's job, and
+ * the two are deliberately separate so everything the write would do is
+ * reviewable before anything is written.
  */
 export class TaskCreationPreviewService {
   readonly #getSnapshot: () => IndexSnapshot;
