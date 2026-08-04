@@ -356,13 +356,18 @@
 
 .project-weave-workbench__status-options {
   /* A grid rather than wrapped flex so the checkboxes line up in columns once
-     they wrap; ragged rows read as broken. The floor is font-relative and set
-     here, not on the labels, so the columns track the user's font size. At
-     typical pane widths this still fits every status on one row. */
+     they wrap; ragged rows read as broken. Tracks size to their content rather
+     than sharing the width evenly, so a short label like Todo does not carry
+     the trailing space of the longest one — `auto` as the max with
+     justify-content:start packs them left instead of stretching. The floor is
+     font-relative and set here, not on the labels, so the columns track the
+     user's font size. */
   display: grid;
   font-size: var(--font-ui-smaller);
   gap: var(--size-4-1) var(--size-4-3);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5em), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5em), auto));
+  justify-content: start;
+  padding-inline: var(--size-4-2);
 }
 
 .project-weave-workbench__status-options label {
