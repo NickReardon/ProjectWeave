@@ -22,7 +22,9 @@ ends, or the next decision changes — not for every code change.
 - The filterable, read-only Project Workbench and the task-template proposal
   foundation pass the complete automated gate.
 - Version 0.3.0 was exported and installed into the configured disposable test
-  vault. The focused manual Obsidian checks below have not started.
+  vault. Four of the focused manual Obsidian checks below have passed against
+  that build; the rest are outstanding, so the workbench is not yet manually
+  accepted.
 - The running plugin remains read-only. The proposal service and the task
   path/rank allocator have no runtime caller, and no creation UI or write
   coordinator exists.
@@ -117,15 +119,30 @@ verify:
     stale-last-good state, zero filter matches, 200-result truncation, narrow
     layouts, and a mobile-compatible Obsidian environment remain usable.
 
-**Status as of 2026-08-03: not started.** Record results here before treating
-the workbench as manually accepted. The renderer, resolver, proposal service,
-and allocator add no manual check until a creation UI calls them.
+**Status as of 2026-08-03: partially complete.** Checks 2, 8, 9, and 10 were
+run against the installed 0.3.0 build and passed, with no defects observed:
+workspace restoration kept the workbench and selected project while resetting
+transient filters, a task with no usable project relationship appeared under
+**Unassigned diagnostics**, the note banner rendered in both editing and
+reading modes and cleared after correction, and a project-root change rebuilt
+without publishing from the retired runtime.
 
-Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems.
-That is supporting evidence, not a substitute for the list above: several of
-these checks target states ordinary use does not reach, including workspace
-restoration, retired-runtime callbacks, stale-last-good state, 200-result
-truncation, and a mobile-compatible environment.
+Check 7 was exercised only incidentally, while making a note invalid to set up
+check 9: the diagnostic appeared and cleared as expected, but the workbench
+listing's recovery guidance and exact-note navigation were not confirmed
+separately. Treat it as outstanding.
+
+Checks 1, 3, 4, 5, 6, and 11 remain outstanding. Record their results here
+before treating the workbench as manually accepted. The renderer, resolver,
+proposal service, and allocator add no manual check until a creation UI calls
+them.
+
+Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems,
+which bears on checks 1 and 3 through 6 in particular. That is supporting
+evidence, not a substitute for the list above: the states still unreached by
+either ordinary use or the checks run so far are stale-last-good, an
+unavailable restored selection, zero filter matches, 200-result truncation,
+narrow layouts, and a mobile-compatible environment.
 
 ## Known loose ends
 
