@@ -39,6 +39,13 @@ export class ObsidianVaultReader implements VaultReader {
     );
   }
 
+  public async listMarkdownPaths(): Promise<readonly string[]> {
+    return this.#vault
+      .getMarkdownFiles()
+      .filter((file) => this.includesPath(file.path))
+      .map((file) => file.path);
+  }
+
   public async readMarkdownNote(path: string): Promise<SourceNote | null> {
     if (!this.includesPath(path)) {
       return null;

@@ -7,6 +7,9 @@ import type {
 } from '../application/task-creation-preview';
 import type { Diagnostic } from '../domain/model';
 
+/** Pause after typing before a preview runs. */
+const PREVIEW_DEBOUNCE_MS = 250;
+
 /** Runs one preview against the current index publication. */
 export type TaskCreationPreviewRunner = (
   request: Omit<TaskCreationPreviewRequest, 'projectPath' | 'clock'>,
@@ -36,6 +39,7 @@ export class TaskCreationPreviewModal extends Modal {
   #createOnBoard = false;
   #result: TaskCreationPreviewResult | null = null;
   #pending = 0;
+  #debounce: number | null = null;
   #outputEl: HTMLElement | null = null;
 
   public constructor(app: App, context: TaskCreationPreviewContext) {
@@ -63,9 +67,7 @@ export class TaskCreationPreviewModal extends Modal {
           this.#title = value;
           this.#schedulePreview();
         });
-        window.setTimeout(() => {
-          text.inputEl.focus();
-        }, 0);
+        text.inputEl.focus();
       });
 
     new Setting(this.contentEl)
@@ -98,13 +100,33 @@ export class TaskCreationPreviewModal extends Modal {
     // Abandons any in-flight preview: a later response must not repopulate a
     // closed modal, and an uncommitted draft is never authorization to write.
     this.#pending += 1;
+    if (this.#debounce !== null) {
+      window.clearTimeout(this.#debounce);
+      this.#debounce = null;
+    }
     this.#result = null;
     this.#outputEl = null;
     this.contentEl.empty();
   }
 
+  /**
+   * Coalesce keystrokes before previewing. Rebuilding the output while the
+   * user is still typing rewrites DOM on every character, which is both
+   * wasteful and disruptive to the field being typed into; waiting for a pause
+   * means the form is untouched while input is in flight.
+   */
   #schedulePreview(): void {
     const token = (this.#pending += 1);
+    if (this.#debounce !== null) {
+      window.clearTimeout(this.#debounce);
+    }
+    this.#debounce = window.setTimeout(() => {
+      this.#debounce = null;
+      this.#runPreview(token);
+    }, PREVIEW_DEBOUNCE_MS);
+  }
+
+  #runPreview(token: number): void {
     void this.#context
       .run({
         title: this.#title,

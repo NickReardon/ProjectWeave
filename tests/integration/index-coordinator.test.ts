@@ -99,6 +99,10 @@ class MemoryVaultReader implements VaultReader {
     return [...this.#notes.values()].map((note) => ({ ...note }));
   }
 
+  public async listMarkdownPaths(): Promise<readonly string[]> {
+    return [...this.#notes.keys()];
+  }
+
   public async readMarkdownNote(path: string): Promise<SourceNote | null> {
     this.readPaths.push(path);
     const note = this.#notes.get(path);

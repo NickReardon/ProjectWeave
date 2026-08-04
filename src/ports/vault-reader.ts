@@ -3,6 +3,12 @@ import type { SourceNote } from '../domain/model';
 
 export interface VaultReader {
   listMarkdownNotes(): Promise<readonly SourceNote[]>;
+  /**
+   * Paths only, without reading or fingerprinting content. Path allocation
+   * needs to know which paths are taken, and paying a full-vault content read
+   * for that is prohibitive on every keystroke of a live preview.
+   */
+  listMarkdownPaths(): Promise<readonly string[]>;
   readMarkdownNote(path: string): Promise<SourceNote | null>;
 }
 
