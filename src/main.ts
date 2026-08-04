@@ -97,8 +97,8 @@ export default class ProjectWeavePlugin extends Plugin {
       },
     });
     this.addCommand({
-      id: 'preview-task-creation',
-      name: 'Preview task creation',
+      id: 'create-task',
+      name: 'Create task',
       callback: () => {
         this.#openTaskCreationPreview();
       },

@@ -63,13 +63,13 @@ export class TaskCreationPreviewModal extends Modal {
   }
 
   public override onOpen(): void {
-    this.setTitle('Project Weave — Preview task creation');
+    this.setTitle('Project Weave — Create task');
     this.contentEl.empty();
     this.contentEl.addClass('project-weave-task-preview');
 
     this.contentEl.createEl('p', {
       cls: 'project-weave-task-preview__summary',
-      text: `Previewing a new task in ${this.#context.projectTitle}. Nothing is written.`,
+      text: `New task in ${this.#context.projectTitle}. Nothing is written until you choose Create task.`,
     });
 
     new Setting(this.contentEl)

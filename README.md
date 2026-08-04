@@ -54,7 +54,7 @@ The implemented slices are:
   the project note's location, accepts an optional organizing subfolder,
   sanitizes a title into a safe filename, suggests the first free path, and
   spaces ranks 1000 apart;
-- a **Preview task creation** command and modal showing the allocated path and
+- a **Create task** command and modal showing the allocated path and
   rank, resolved template, preconditions, read set, expected postconditions,
   and exact rendered bytes, with an explicit **Create task** action;
 - a commit coordinator that re-reads the proposal's inputs, compares
@@ -66,7 +66,7 @@ The implemented slices are:
   rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
-**Preview task creation** in the command palette exercises this chain end to
+**Create task** in the command palette exercises this chain end to
 end: it allocates a path and rank, resolves the template, shows the exact bytes
 that would be written along with the preconditions and expected
 postconditions, and creates the note when you confirm.
@@ -200,7 +200,7 @@ prominent **Unassigned diagnostics** section, so every indexed error remains
 findable even when Project Weave cannot safely infer project ownership.
 
 To check the creation preview, open a project or task note and run **Project
-Weave: Preview task creation**. Type a title and confirm the target path
+Weave: Create task**. Type a title and confirm the target path
 resolves under `Projects/Game/Tasks/`, the rank is 1000 past the largest
 existing rank, and the rendered note matches that path and rank. Add a
 subfolder such as `Combat` and confirm it nests. Enter a title matching an

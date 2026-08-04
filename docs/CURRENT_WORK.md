@@ -122,7 +122,7 @@ verify:
 11. Multiple-project selection, unavailable restored selection, empty scope,
     stale-last-good state, zero filter matches, 200-result truncation, narrow
     layouts, and a mobile-compatible Obsidian environment remain usable.
-12. **Preview task creation** resolves a target path under the project's task
+12. **Create task** previews a target path under the project's task
     folder, a rank one gap past the largest existing rank, and rendered bytes
     matching both. A subfolder nests, a colliding title yields a numbered
     suggestion with an explicit notice, and an unusable title yields a
