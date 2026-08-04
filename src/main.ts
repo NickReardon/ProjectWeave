@@ -7,6 +7,10 @@ import {
 } from './adapters/obsidian/obsidian-vault-reader';
 import { buildProjectWorkbenchModel } from './application/project-workbench-model';
 import { ProjectWeaveReadSource } from './application/project-weave-read-source';
+import { TaskCreationPreviewService } from './application/task-creation-preview';
+import { TaskCreationProposalService } from './application/task-creation-proposal';
+import { TaskTemplateResolver } from './application/task-template-resolver';
+import { templateClockFromLocalDate } from './domain/templates/model';
 import { IndexCoordinator } from './indexing/index-coordinator';
 import {
   classifyScopeTransition,
@@ -23,6 +27,7 @@ import {
 import { NoteDiagnosticBannerController } from './ui/note-diagnostic-banner';
 import { ReadyNowModal } from './ui/ready-now-modal';
 import { ProjectWeaveSettingTab } from './ui/settings-tab';
+import { TaskCreationPreviewModal } from './ui/task-creation-preview-modal';
 
 interface ProjectWeaveRuntime {
   readonly reader: ObsidianVaultReader;
@@ -87,6 +92,13 @@ export default class ProjectWeavePlugin extends Plugin {
       name: 'Open Ready Now',
       callback: () => {
         void this.#openReadyNow();
+      },
+    });
+    this.addCommand({
+      id: 'preview-task-creation',
+      name: 'Preview task creation',
+      callback: () => {
+        this.#openTaskCreationPreview();
       },
     });
     this.addCommand({
@@ -303,6 +315,57 @@ export default class ProjectWeavePlugin extends Plugin {
       return;
     }
     new ReadyNowModal(this.app, result).open();
+  }
+
+  #openTaskCreationPreview(): void {
+    const runtime = this.#runtime;
+    if (runtime === null) {
+      new Notice('Project Weave is not loaded.');
+      return;
+    }
+    const publication = this.#readSource.current;
+    if (publication.snapshot.revision === 0) {
+      new Notice('Project Weave is still indexing the vault.');
+      return;
+    }
+
+    const projectModel = buildProjectWorkbenchModel({
+      publication,
+      selectedProjectPath: null,
+      activePath: this.app.workspace.getActiveFile()?.path ?? null,
+      readyDisplayLimit: 1,
+    });
+    if (projectModel.state !== 'project') {
+      new Notice('Open a project or task note before previewing a new task.');
+      return;
+    }
+    const { project } = projectModel;
+
+    // Each preview reads the publication current when it runs, so a rebuild
+    // while the modal is open is reflected rather than silently stale.
+    const previews = new TaskCreationPreviewService(
+      () => this.#readSource.current.snapshot,
+      runtime.reader,
+      new TaskCreationProposalService(
+        () => this.#readSource.current.snapshot,
+        runtime.reader,
+        new TaskTemplateResolver(
+          runtime.reader,
+          new ObsidianLinkResolver(this.app.metadataCache),
+        ),
+      ),
+    );
+
+    new TaskCreationPreviewModal(this.app, {
+      projectTitle: project.title,
+      projectPath: project.path,
+      run: (request) =>
+        previews.preview({
+          ...request,
+          projectPath: project.path,
+          clock: templateClockFromLocalDate(new Date()),
+        }),
+    }).open();
   }
 
   #showIndexStatus(): void {
