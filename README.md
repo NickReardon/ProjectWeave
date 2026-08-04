@@ -54,15 +54,19 @@ The current read-only workbench slices are implemented:
   the project note's location, accepts an optional organizing subfolder,
   sanitizes a title into a safe filename, suggests the first free path, and
   spaces ranks 1000 apart;
+- a read-only **Preview task creation** command and modal showing the allocated
+  path and rank, resolved template, preconditions, read set, expected
+  postconditions, and exact rendered bytes, with no action that writes;
 - fixture-backed parser, index, query, dashboard projection, template
   rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
-The application proposal service now consumes the template renderer, and
-allocation can supply the target path and rank it expects, but none of it is
-wired into the running plugin. Together they can read project/template inputs,
-choose a free path, and detect a target collision; they cannot write a note.
-Task creation UI, safe proposal commits, rank rebalancing and reorder, full
+**Preview task creation** in the command palette is the first surface that
+exercises this chain end to end: it allocates a path and rank, resolves the
+template, and shows the exact bytes that would be written, along with the
+preconditions and expected postconditions. It has no confirm action, because
+Project Weave still has no write coordinator — nothing in the running plugin
+can create a note. Safe proposal commits, rank rebalancing and reorder, full
 Plan/Board/My Work perspectives, portfolio views, and agent/MCP transport
 remain later slices.
 
@@ -181,6 +185,16 @@ are intentionally deferred.
 Malformed notes and notes whose project link cannot resolve appear in the
 prominent **Unassigned diagnostics** section, so every indexed error remains
 findable even when Project Weave cannot safely infer project ownership.
+
+To check the creation preview, open a project or task note and run **Project
+Weave: Preview task creation**. Type a title and confirm the target path
+resolves under `Projects/Game/Tasks/`, the rank is 1000 past the largest
+existing rank, and the rendered note matches that path and rank. Add a
+subfolder such as `Combat` and confirm it nests. Enter a title matching an
+existing task and confirm a numbered name is suggested with an explicit notice
+rather than an overwrite. Try a title such as `///` and confirm a diagnostic
+appears instead of a filename. Closing and reopening the modal starts a fresh
+draft; no vault file is created at any point.
 
 ## Versioning and exports
 

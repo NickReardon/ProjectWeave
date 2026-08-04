@@ -23,10 +23,11 @@ Obsidian Vault and MetadataCache
       -> read-only VaultReader and LinkResolver ports
       -> index coordinator and builder
 
-future creation callers (UI or agent adapter)
-  -> task target-path and rank allocation
-      -> shared vault path safety and filename derivation
-  -> task creation proposal service
+task creation preview command and modal
+  -> task creation preview service
+      -> task target-path and rank allocation
+          -> shared vault path safety and filename derivation
+      -> task creation proposal service
       -> project task-template resolver
           -> read-only VaultReader and LinkResolver ports
       -> creation context, template source, and invariants
@@ -34,9 +35,11 @@ future creation callers (UI or agent adapter)
               -> template parser and Markdown parser
 ```
 
-Allocation sits beside the proposal service rather than inside it: a caller
-allocates a path and rank, then proposes. The proposal service's input contract
-is unchanged and it remains the authority on target collisions.
+Allocation sits beside the proposal service rather than inside it: the preview
+service allocates a path and rank, then proposes. The proposal service's input
+contract is unchanged and it remains the authority on target collisions. The
+preview surface reads and renders only; no write-capable port exists for it to
+call.
 
 Dependencies point inward. Domain, indexing, and application modules do not
 import Obsidian, Node, Electron, views, or future MCP code.
@@ -91,9 +94,17 @@ import Obsidian, Node, Electron, views, or future MCP code.
   rather than throwing. Suggesting a free path is not reserving one:
   TaskCreationProposalService remains the authority on target collisions. ADR
   0008 records the folder, filename, collision, and rank rules.
+- **Creation preview:** TaskCreationPreviewService composes allocation with the
+  proposal service into one reviewable result, keeping the chosen path and rank
+  visible even when the proposal fails. Its operation id is derived from the
+  index revision and target rather than generated, so a preview is
+  reproducible. The UI injects the civil clock; the service reads none.
 - **UI:** the Project Workbench and note-diagnostic banner consume the stable
   read publication. The banner mounts through public Markdown view containers,
-  refreshes on workspace and index publications, and never edits Markdown.
+  refreshes on workspace and index publications, and never edits Markdown. The
+  task creation preview modal renders a proposal and offers no confirm action,
+  because no coordinator exists to commit one; it discards in-flight previews
+  on close so a late response cannot repaint a dismissed draft.
 - **Ports:** VaultReader has read/list methods only. LinkResolver isolates
   Obsidian link semantics.
 - **Adapters:** src/adapters/obsidian is the only vault/API integration. It uses
