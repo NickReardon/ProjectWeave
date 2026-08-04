@@ -715,6 +715,34 @@ export class ProjectWorkbenchView extends ItemView {
       search.value = this.#taskSearch;
     });
 
+    const reset = filters.createEl('button', {
+      cls: 'project-weave-workbench__reset-filters',
+      text: 'Reset filters',
+      attr: {
+        type: 'button',
+        'data-workbench-focus-key': 'task-filter-reset',
+      },
+    });
+
+    reset.addEventListener('click', () => {
+      this.#taskStatuses = new Set<TaskStatus>(
+        DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
+      );
+      this.#taskSearch = '';
+      this.#taskPriority = null;
+      this.#taskEpicPath = null;
+      this.#taskMilestonePath = null;
+      this.#taskOwner = null;
+      this.#taskDueState = null;
+      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+      // The controls are no longer rebuilt, so reset must push the cleared
+      // state back into them explicitly.
+      for (const sync of this.#taskFilterSyncs) {
+        sync();
+      }
+      this.#refreshTasks();
+    });
+
     const statusFilters = filters.createEl('fieldset', {
       cls: 'project-weave-workbench__status-filters',
     });
@@ -745,34 +773,6 @@ export class ProjectWorkbenchView extends ItemView {
       });
       label.createSpan({ text: taskStatusLabel(status) });
     }
-
-    const reset = filters.createEl('button', {
-      cls: 'project-weave-workbench__reset-filters',
-      text: 'Reset filters',
-      attr: {
-        type: 'button',
-        'data-workbench-focus-key': 'task-filter-reset',
-      },
-    });
-
-    reset.addEventListener('click', () => {
-      this.#taskStatuses = new Set<TaskStatus>(
-        DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
-      );
-      this.#taskSearch = '';
-      this.#taskPriority = null;
-      this.#taskEpicPath = null;
-      this.#taskMilestonePath = null;
-      this.#taskOwner = null;
-      this.#taskDueState = null;
-      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      // The controls are no longer rebuilt, so reset must push the cleared
-      // state back into them explicitly.
-      for (const sync of this.#taskFilterSyncs) {
-        sync();
-      }
-      this.#refreshTasks();
-    });
 
     const details = filters.createDiv({
       cls: 'project-weave-workbench__task-filter-details',
