@@ -355,16 +355,21 @@
 }
 
 .project-weave-workbench__status-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--size-4-1) var(--size-4-4);
+  /* A grid rather than wrapped flex so the checkboxes line up in columns once
+     they wrap; ragged rows read as broken. The floor is font-relative and set
+     here, not on the labels, so the columns track the user's font size. At
+     typical pane widths this still fits every status on one row. */
+  display: grid;
+  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-1) var(--size-4-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5em), 1fr));
 }
 
 .project-weave-workbench__status-options label {
   align-items: center;
-  display: inline-flex;
-  font-size: var(--font-ui-smaller);
+  display: flex;
   gap: var(--size-4-1);
+  min-width: 0;
 }
 
 .project-weave-workbench__reset-filters {
