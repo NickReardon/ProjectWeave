@@ -1,4 +1,5 @@
 import { Modal, Notice, Setting } from 'obsidian';
+import type { ButtonComponent } from 'obsidian';
 import type { App } from 'obsidian';
 
 import type {
@@ -54,7 +55,7 @@ export class TaskCreationPreviewModal extends Modal {
   #debounce: number | null = null;
   #committing = false;
   #outputEl: HTMLElement | null = null;
-  #createButton: HTMLButtonElement | null = null;
+  #createButton: ButtonComponent | null = null;
   #statusEl: HTMLElement | null = null;
 
   public constructor(app: App, context: TaskCreationPreviewContext) {
@@ -118,16 +119,17 @@ export class TaskCreationPreviewModal extends Modal {
       cls: 'project-weave-task-preview__output',
     });
 
-    const actions = new Setting(this.contentEl);
-    actions.addButton((button) => {
+    new Setting(this.contentEl).addButton((button) => {
       button
         .setButtonText('Create task')
         .setCta()
         .onClick(() => {
           void this.#create();
         });
-      button.setDisabled(true);
-      this.#createButton = button.buttonEl;
+      // Keep the component, not its element. Driving the disabled state
+      // through Obsidian's own API in both directions avoids a button that is
+      // disabled by the component but re-enabled only on the raw element.
+      this.#createButton = button;
     });
     this.#statusEl = this.contentEl.createDiv({
       cls: 'project-weave-task-preview__status',
@@ -204,7 +206,26 @@ export class TaskCreationPreviewModal extends Modal {
    */
   async #create(): Promise<void> {
     const result = this.#result;
-    if (this.#committing || result === null || !result.ok) {
+    if (this.#committing) {
+      return;
+    }
+    // Never return silently: a click that does nothing is indistinguishable
+    // from a broken button.
+    if (result === null) {
+      this.#setStatus(
+        this.#title.trim() === ''
+          ? 'Enter a title first.'
+          : 'Still preparing the preview — try again in a moment.',
+        'error',
+      );
+      return;
+    }
+    if (!result.ok) {
+      this.#setStatus(
+        result.diagnostics[0]?.message ??
+          'This task cannot be created as previewed.',
+        'error',
+      );
       return;
     }
     this.#committing = true;
@@ -247,8 +268,15 @@ export class TaskCreationPreviewModal extends Modal {
       return;
     }
     const ready = this.#result?.ok === true && !this.#committing;
-    button.disabled = !ready;
-    button.setText(this.#committing ? 'Creating…' : 'Create task');
+    button.setDisabled(!ready);
+    button.setButtonText(this.#committing ? 'Creating…' : 'Create task');
+    // A disabled control that looks enabled reads as a broken button, so say
+    // why it cannot run rather than silently ignoring the click.
+    button.buttonEl.title = ready
+      ? 'Create this note'
+      : this.#title.trim() === ''
+        ? 'Enter a title first'
+        : 'This task cannot be created yet — see the diagnostics above';
   }
 
   #setStatus(text: string, tone: 'error' | 'info' = 'info'): void {
