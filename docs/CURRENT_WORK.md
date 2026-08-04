@@ -54,6 +54,13 @@ production build, and release-inventory verification passed independently.
 The aggregate check reached the format gate but was stopped by the unrelated
 untracked `CLAUDE.md`; this is not recorded as a complete-gate pass.
 
+On 2026-08-03, the merge-stable handoff workflow was verified against source
+commit `018012b`. The current-work guard and focused Prettier check passed, as
+did ESLint, `tsc --noEmit`, all 135 Vitest tests, all 13 Node script tests, the
+production build, and release-inventory verification. The aggregate
+`npm run check` passed its version and current-work gates, then stopped at the
+same unrelated untracked `CLAUDE.md` formatting issue.
+
 Automated validation does not replace the manual Obsidian checks below. The
 Obsidian-facing modules have no automated DOM coverage. The pure projection
 covers project isolation, default and terminal statuses, blocked-task
