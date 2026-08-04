@@ -22,6 +22,12 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from '../domain/model';
+import {
+  applyTextSelection,
+  asSelectableField,
+  captureTextSelection,
+  type TextSelection,
+} from './text-selection';
 
 export const PROJECT_WORKBENCH_VIEW_TYPE = 'project-weave-workbench';
 
@@ -38,6 +44,12 @@ const WORKBENCH_STATE_VERSION = 1;
 
 export interface ProjectWorkbenchActions {
   rebuildIndex(): Promise<void>;
+}
+
+/** What must survive a full re-render so typing is not disrupted. */
+interface WorkbenchFocusState {
+  readonly key: string;
+  readonly selection: TextSelection | null;
 }
 
 interface DiagnosticSectionOptions {
@@ -191,7 +203,7 @@ export class ProjectWorkbenchView extends ItemView {
       return;
     }
 
-    const focusKey = this.#captureFocusKey();
+    const focusState = this.#captureFocusState();
     const model = buildProjectWorkbenchModel({
       publication: this.#publication,
       selectedProjectPath: this.#selectedProjectPath,
@@ -259,7 +271,7 @@ export class ProjectWorkbenchView extends ItemView {
         this.#renderProject(root, model);
         break;
     }
-    this.#restoreFocus(focusKey);
+    this.#restoreFocus(focusState);
   }
 
   #renderHeader(root: HTMLElement, model: ProjectWorkbenchModel): void {
@@ -1061,19 +1073,30 @@ export class ProjectWorkbenchView extends ItemView {
     }
   }
 
-  #captureFocusKey(): string | null {
+  #captureFocusState(): WorkbenchFocusState | null {
     const activeElement = this.contentEl.ownerDocument.activeElement;
     if (activeElement === null || !this.contentEl.contains(activeElement)) {
       return null;
     }
-    return activeElement.getAttribute('data-workbench-focus-key');
+    const key = activeElement.getAttribute('data-workbench-focus-key');
+    if (key === null) {
+      return null;
+    }
+    const field = asSelectableField(activeElement);
+    return {
+      key,
+      selection: field === null ? null : captureTextSelection(field),
+    };
   }
 
-  #restoreFocus(focusKey: string | null): void {
-    if (focusKey === null) {
+  #restoreFocus(focusState: WorkbenchFocusState | null): void {
+    if (focusState === null) {
       return;
     }
-    if (this.#focusByKey(focusKey)) {
+    const focusKey = focusState.key;
+    // Only the exact element carries a caret worth restoring; the fallbacks
+    // below land on headings, where a selection means nothing.
+    if (this.#focusByKey(focusKey, focusState.selection)) {
       return;
     }
     if (
@@ -1108,7 +1131,10 @@ export class ProjectWorkbenchView extends ItemView {
     this.#focusByKey('refresh');
   }
 
-  #focusByKey(focusKey: string): boolean {
+  #focusByKey(
+    focusKey: string,
+    selection: TextSelection | null = null,
+  ): boolean {
     const focusTarget = [
       ...this.contentEl.querySelectorAll<HTMLElement>(
         '[data-workbench-focus-key]',
@@ -1117,8 +1143,17 @@ export class ProjectWorkbenchView extends ItemView {
       (element) =>
         element.getAttribute('data-workbench-focus-key') === focusKey,
     );
-    focusTarget?.focus({ preventScroll: true });
-    return focusTarget !== undefined;
+    if (focusTarget === undefined) {
+      return false;
+    }
+    focusTarget.focus({ preventScroll: true });
+    if (selection !== null) {
+      const field = asSelectableField(focusTarget);
+      if (field !== null) {
+        applyTextSelection(field, selection);
+      }
+    }
+    return true;
   }
 }
 
