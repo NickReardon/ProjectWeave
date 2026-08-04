@@ -59,7 +59,7 @@ interface DiagnosticSectionOptions {
   readonly emptyMessage?: string;
   readonly focusPrefix: 'project-diagnostics' | 'unassigned-diagnostics';
   readonly limitLabel: string;
-  readonly currentDisplayLimit: number;
+  readonly readDisplayLimit: () => number;
   readonly increaseDisplayLimit: () => void;
   readonly emphasized?: boolean;
 }
@@ -90,6 +90,16 @@ export class ProjectWorkbenchView extends ItemView {
   #taskCountEl: HTMLElement | null = null;
   #taskResultsEl: HTMLElement | null = null;
   #taskFilterSyncs: (() => void)[] = [];
+  #readyCountEl: HTMLElement | null = null;
+  #readyResultsEl: HTMLElement | null = null;
+  #diagnosticSections = new Map<
+    string,
+    {
+      readonly results: HTMLElement;
+      readonly count: HTMLElement;
+      readonly options: DiagnosticSectionOptions;
+    }
+  >();
 
   public constructor(
     leaf: WorkspaceLeaf,
@@ -224,6 +234,9 @@ export class ProjectWorkbenchView extends ItemView {
     this.#taskCountEl = null;
     this.#taskResultsEl = null;
     this.#taskFilterSyncs = [];
+    this.#readyCountEl = null;
+    this.#readyResultsEl = null;
+    this.#diagnosticSections.clear();
     const root = this.contentEl.createDiv({
       cls: 'project-weave-workbench__content',
     });
@@ -309,6 +322,53 @@ export class ProjectWorkbenchView extends ItemView {
       return;
     }
     this.#renderTaskResults(model);
+  }
+
+  /** Re-render only one diagnostics section's results; see #refreshTasks. */
+  #refreshDiagnostics(focusPrefix: string): void {
+    const section = this.#diagnosticSections.get(focusPrefix);
+    if (!this.#opened || section === undefined) {
+      this.#render();
+      return;
+    }
+    const model = this.#buildModel();
+    if (model.state !== 'project' && focusPrefix === 'project-diagnostics') {
+      this.#render();
+      return;
+    }
+    const diagnostics =
+      focusPrefix === 'unassigned-diagnostics'
+        ? model.unassignedDiagnostics
+        : model.state === 'project'
+          ? model.diagnostics
+          : null;
+    if (diagnostics === null) {
+      this.#render();
+      return;
+    }
+    this.#renderDiagnosticResults(
+      diagnostics,
+      section.results,
+      section.count,
+      section.options,
+    );
+  }
+
+  /** Re-render only the Ready Now results; see #refreshTasks. */
+  #refreshReady(): void {
+    if (!this.#opened) {
+      return;
+    }
+    if (this.#readyResultsEl === null) {
+      this.#render();
+      return;
+    }
+    const model = this.#buildModel();
+    if (model.state !== 'project') {
+      this.#render();
+      return;
+    }
+    this.#renderReadyResults(model);
   }
 
   #renderHeader(root: HTMLElement, model: ProjectWorkbenchModel): void {
@@ -494,13 +554,25 @@ export class ProjectWorkbenchView extends ItemView {
         'data-workbench-focus-key': 'ready-heading',
       },
     });
-    readyHeading.createSpan({
-      text:
-        String(model.ready.displayed) +
-        ' of ' +
-        String(model.ready.total) +
-        ' ready',
+    this.#readyCountEl = readyHeading.createSpan({
+      text: readyCountLabel(model),
     });
+
+    this.#readyResultsEl = readySection.createDiv({
+      cls: 'project-weave-workbench__ready-results',
+    });
+    this.#renderReadyResults(model);
+  }
+
+  #renderReadyResults(
+    model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+  ): void {
+    const readySection = this.#readyResultsEl;
+    if (readySection === null) {
+      return;
+    }
+    readySection.empty();
+    this.#readyCountEl?.setText(readyCountLabel(model));
 
     if (model.taskState === 'no_tasks') {
       this.#renderMessage(
@@ -566,7 +638,7 @@ export class ProjectWorkbenchView extends ItemView {
             MAX_READY_DISPLAY_LIMIT,
             this.#readyDisplayLimit + READY_DISPLAY_INCREMENT,
           );
-          this.#render();
+          this.#refreshReady();
         });
       } else {
         readySection.createEl('p', {
@@ -922,7 +994,7 @@ export class ProjectWorkbenchView extends ItemView {
       emptyMessage: 'No diagnostics for this project.',
       focusPrefix: 'project-diagnostics',
       limitLabel: 'project diagnostics',
-      currentDisplayLimit: this.#diagnosticDisplayLimit,
+      readDisplayLimit: () => this.#diagnosticDisplayLimit,
       increaseDisplayLimit: () => {
         this.#diagnosticDisplayLimit = Math.min(
           MAX_DIAGNOSTIC_DISPLAY_LIMIT,
@@ -946,7 +1018,7 @@ export class ProjectWorkbenchView extends ItemView {
         'These notes could not be associated with any available project. Open each note and correct the named field or link.',
       focusPrefix: 'unassigned-diagnostics',
       limitLabel: 'unassigned diagnostics',
-      currentDisplayLimit: this.#unassignedDiagnosticDisplayLimit,
+      readDisplayLimit: () => this.#unassignedDiagnosticDisplayLimit,
       increaseDisplayLimit: () => {
         this.#unassignedDiagnosticDisplayLimit = Math.min(
           MAX_DIAGNOSTIC_DISPLAY_LIMIT,
@@ -980,7 +1052,7 @@ export class ProjectWorkbenchView extends ItemView {
         'data-workbench-focus-key': options.focusPrefix + '-heading',
       },
     });
-    heading.createSpan({
+    const count = heading.createSpan({
       text: diagnosticSummary(diagnostics),
     });
     if (diagnostics.total === 0) {
@@ -994,6 +1066,26 @@ export class ProjectWorkbenchView extends ItemView {
       cls: 'project-weave-workbench__diagnostics-intro',
       text: options.intro,
     });
+
+    const results = section.createDiv({
+      cls: 'project-weave-workbench__diagnostic-results',
+    });
+    this.#diagnosticSections.set(options.focusPrefix, {
+      results,
+      count,
+      options,
+    });
+    this.#renderDiagnosticResults(diagnostics, results, count, options);
+  }
+
+  #renderDiagnosticResults(
+    diagnostics: ProjectWorkbenchDiagnosticsModel,
+    section: HTMLElement,
+    count: HTMLElement,
+    options: DiagnosticSectionOptions,
+  ): void {
+    section.empty();
+    count.setText(diagnosticSummary(diagnostics));
 
     const groupList = section.createDiv({
       cls: 'project-weave-workbench__diagnostic-groups',
@@ -1093,7 +1185,7 @@ export class ProjectWorkbenchView extends ItemView {
     }
 
     if (diagnostics.truncated) {
-      if (options.currentDisplayLimit < MAX_DIAGNOSTIC_DISPLAY_LIMIT) {
+      if (options.readDisplayLimit() < MAX_DIAGNOSTIC_DISPLAY_LIMIT) {
         const loadMore = section.createEl('button', {
           cls: 'project-weave-workbench__load-more',
           text: 'Show more diagnostics',
@@ -1104,7 +1196,7 @@ export class ProjectWorkbenchView extends ItemView {
         });
         loadMore.addEventListener('click', () => {
           options.increaseDisplayLimit();
-          this.#render();
+          this.#refreshDiagnostics(options.focusPrefix);
         });
       } else {
         section.createEl('p', {
@@ -1228,6 +1320,17 @@ export class ProjectWorkbenchView extends ItemView {
     }
     return true;
   }
+}
+
+function readyCountLabel(
+  model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+): string {
+  return (
+    String(model.ready.displayed) +
+    ' of ' +
+    String(model.ready.total) +
+    ' ready'
+  );
 }
 
 function taskCountLabel(
