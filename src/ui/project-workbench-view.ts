@@ -84,6 +84,13 @@ export class ProjectWorkbenchView extends ItemView {
   #unsubscribe: (() => void) | null = null;
   #opened = false;
 
+  // Live handles into the All Tasks section. Filter changes re-render only the
+  // results through these, leaving the controls' DOM identity — and therefore
+  // their focus, caret, and selection — untouched.
+  #taskCountEl: HTMLElement | null = null;
+  #taskResultsEl: HTMLElement | null = null;
+  #taskFilterSyncs: (() => void)[] = [];
+
   public constructor(
     leaf: WorkspaceLeaf,
     readSource: ProjectWeaveReadSource,
@@ -204,23 +211,7 @@ export class ProjectWorkbenchView extends ItemView {
     }
 
     const focusState = this.#captureFocusState();
-    const model = buildProjectWorkbenchModel({
-      publication: this.#publication,
-      selectedProjectPath: this.#selectedProjectPath,
-      activePath: this.#activePathHint,
-      readyDisplayLimit: this.#readyDisplayLimit,
-      taskDisplayLimit: this.#taskDisplayLimit,
-      taskStatuses: [...this.#taskStatuses],
-      taskSearch: this.#taskSearch,
-      taskPriority: this.#taskPriority,
-      taskEpicPath: this.#taskEpicPath,
-      taskMilestonePath: this.#taskMilestonePath,
-      taskOwner: this.#taskOwner,
-      taskDueState: this.#taskDueState,
-      taskToday: localDateKey(new Date()),
-      diagnosticDisplayLimit: this.#diagnosticDisplayLimit,
-      unassignedDiagnosticDisplayLimit: this.#unassignedDiagnosticDisplayLimit,
-    });
+    const model = this.#buildModel();
 
     if (model.state === 'project' && this.#selectedProjectPath === null) {
       this.#selectedProjectPath = model.project.path;
@@ -229,6 +220,10 @@ export class ProjectWorkbenchView extends ItemView {
     }
 
     this.contentEl.empty();
+    // Every handle below points into DOM that empty() just destroyed.
+    this.#taskCountEl = null;
+    this.#taskResultsEl = null;
+    this.#taskFilterSyncs = [];
     const root = this.contentEl.createDiv({
       cls: 'project-weave-workbench__content',
     });
@@ -272,6 +267,48 @@ export class ProjectWorkbenchView extends ItemView {
         break;
     }
     this.#restoreFocus(focusState);
+  }
+
+  #buildModel(): ProjectWorkbenchModel {
+    return buildProjectWorkbenchModel({
+      publication: this.#publication,
+      selectedProjectPath: this.#selectedProjectPath,
+      activePath: this.#activePathHint,
+      readyDisplayLimit: this.#readyDisplayLimit,
+      taskDisplayLimit: this.#taskDisplayLimit,
+      taskStatuses: [...this.#taskStatuses],
+      taskSearch: this.#taskSearch,
+      taskPriority: this.#taskPriority,
+      taskEpicPath: this.#taskEpicPath,
+      taskMilestonePath: this.#taskMilestonePath,
+      taskOwner: this.#taskOwner,
+      taskDueState: this.#taskDueState,
+      taskToday: localDateKey(new Date()),
+      diagnosticDisplayLimit: this.#diagnosticDisplayLimit,
+      unassignedDiagnosticDisplayLimit: this.#unassignedDiagnosticDisplayLimit,
+    });
+  }
+
+  /**
+   * Re-render only the All Tasks results. The filter controls keep their DOM,
+   * so typing is never interrupted by the render it triggers. Falls back to a
+   * full render when the section is absent or the view is no longer showing a
+   * project, since then the page structure itself has to change.
+   */
+  #refreshTasks(): void {
+    if (!this.#opened) {
+      return;
+    }
+    if (this.#taskResultsEl === null) {
+      this.#render();
+      return;
+    }
+    const model = this.#buildModel();
+    if (model.state !== 'project') {
+      this.#render();
+      return;
+    }
+    this.#renderTaskResults(model);
   }
 
   #renderHeader(root: HTMLElement, model: ProjectWorkbenchModel): void {
@@ -558,12 +595,8 @@ export class ProjectWorkbenchView extends ItemView {
         'data-workbench-focus-key': 'all-tasks-heading',
       },
     });
-    heading.createSpan({
-      text:
-        String(model.allTasks.displayed) +
-        ' of ' +
-        String(model.allTasks.total) +
-        ' matching',
+    this.#taskCountEl = heading.createSpan({
+      text: taskCountLabel(model),
     });
 
     const filters = section.createDiv({
@@ -584,7 +617,10 @@ export class ProjectWorkbenchView extends ItemView {
     search.addEventListener('input', () => {
       this.#taskSearch = search.value;
       this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      this.#render();
+      this.#refreshTasks();
+    });
+    this.#taskFilterSyncs.push(() => {
+      search.value = this.#taskSearch;
     });
 
     const statusFilters = filters.createEl('fieldset', {
@@ -610,7 +646,10 @@ export class ProjectWorkbenchView extends ItemView {
           this.#taskStatuses.delete(status);
         }
         this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-        this.#render();
+        this.#refreshTasks();
+      });
+      this.#taskFilterSyncs.push(() => {
+        checkbox.checked = this.#taskStatuses.has(status);
       });
       label.createSpan({ text: taskStatusLabel(status) });
     }
@@ -635,7 +674,12 @@ export class ProjectWorkbenchView extends ItemView {
       this.#taskOwner = null;
       this.#taskDueState = null;
       this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      this.#render();
+      // The controls are no longer rebuilt, so reset must push the cleared
+      // state back into them explicitly.
+      for (const sync of this.#taskFilterSyncs) {
+        sync();
+      }
+      this.#refreshTasks();
     });
 
     const details = filters.createDiv({
@@ -649,7 +693,7 @@ export class ProjectWorkbenchView extends ItemView {
         value: priority,
         label: taskStatusLabel(priority),
       })),
-      this.#taskPriority,
+      () => this.#taskPriority,
       (value) => {
         this.#taskPriority = value as TaskPriority | null;
       },
@@ -659,7 +703,7 @@ export class ProjectWorkbenchView extends ItemView {
       'Epic',
       'task-filter-epic',
       model.allTasks.filterOptions.epics,
-      this.#taskEpicPath,
+      () => this.#taskEpicPath,
       (value) => {
         this.#taskEpicPath = value;
       },
@@ -669,7 +713,7 @@ export class ProjectWorkbenchView extends ItemView {
       'Milestone',
       'task-filter-milestone',
       model.allTasks.filterOptions.milestones,
-      this.#taskMilestonePath,
+      () => this.#taskMilestonePath,
       (value) => {
         this.#taskMilestonePath = value;
       },
@@ -679,7 +723,7 @@ export class ProjectWorkbenchView extends ItemView {
       'Owner',
       'task-filter-owner',
       model.allTasks.filterOptions.owners,
-      this.#taskOwner,
+      () => this.#taskOwner,
       (value) => {
         this.#taskOwner = value;
       },
@@ -692,11 +736,27 @@ export class ProjectWorkbenchView extends ItemView {
         value: dueState,
         label: dueStateLabel(dueState),
       })),
-      this.#taskDueState,
+      () => this.#taskDueState,
       (value) => {
         this.#taskDueState = value as ProjectWorkbenchDueState | null;
       },
     );
+
+    this.#taskResultsEl = section.createDiv({
+      cls: 'project-weave-workbench__task-results',
+    });
+    this.#renderTaskResults(model);
+  }
+
+  #renderTaskResults(
+    model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+  ): void {
+    const section = this.#taskResultsEl;
+    if (section === null) {
+      return;
+    }
+    section.empty();
+    this.#taskCountEl?.setText(taskCountLabel(model));
 
     if (model.counts.tasks === 0) {
       this.#renderMessage(
@@ -784,7 +844,7 @@ export class ProjectWorkbenchView extends ItemView {
             MAX_TASK_DISPLAY_LIMIT,
             this.#taskDisplayLimit + TASK_DISPLAY_INCREMENT,
           );
-          this.#render();
+          this.#refreshTasks();
         });
       } else {
         section.createEl('p', {
@@ -802,7 +862,7 @@ export class ProjectWorkbenchView extends ItemView {
     labelText: string,
     focusKey: string,
     options: readonly ProjectWorkbenchTaskFilterOption[],
-    selectedValue: string | null,
+    readValue: () => string | null,
     onChange: (value: string | null) => void,
   ): void {
     const label = container.createEl('label');
@@ -820,11 +880,14 @@ export class ProjectWorkbenchView extends ItemView {
         value: option.value,
       });
     }
+
+    const selectedValue = readValue();
+    let unavailable: HTMLOptionElement | null = null;
     if (
       selectedValue !== null &&
       !options.some((option) => option.value === selectedValue)
     ) {
-      select.createEl('option', {
+      unavailable = select.createEl('option', {
         text: 'Unavailable: ' + selectedValue,
         value: selectedValue,
       });
@@ -833,7 +896,17 @@ export class ProjectWorkbenchView extends ItemView {
     select.addEventListener('change', () => {
       onChange(select.value.length === 0 ? null : select.value);
       this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      this.#render();
+      this.#refreshTasks();
+    });
+    this.#taskFilterSyncs.push(() => {
+      const current = readValue();
+      // Drop a stale "Unavailable" entry once its value is no longer chosen,
+      // which a full rebuild used to handle implicitly.
+      if (unavailable !== null && current !== unavailable.value) {
+        unavailable.remove();
+        unavailable = null;
+      }
+      select.value = current ?? '';
     });
   }
 
@@ -1155,6 +1228,17 @@ export class ProjectWorkbenchView extends ItemView {
     }
     return true;
   }
+}
+
+function taskCountLabel(
+  model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+): string {
+  return (
+    String(model.allTasks.displayed) +
+    ' of ' +
+    String(model.allTasks.total) +
+    ' matching'
+  );
 }
 
 function diagnosticRevisionSummary(model: ProjectWorkbenchModel): string {
