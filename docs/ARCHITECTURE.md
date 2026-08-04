@@ -24,6 +24,8 @@ Obsidian Vault and MetadataCache
       -> index coordinator and builder
 
 future creation callers (UI or agent adapter)
+  -> task target-path and rank allocation
+      -> shared vault path safety and filename derivation
   -> task creation proposal service
       -> project task-template resolver
           -> read-only VaultReader and LinkResolver ports
@@ -32,6 +34,10 @@ future creation callers (UI or agent adapter)
               -> template parser and Markdown parser
 ```
 
+Allocation sits beside the proposal service rather than inside it: a caller
+allocates a path and rank, then proposes. The proposal service's input contract
+is unchanged and it remains the authority on target collisions.
+
 Dependencies point inward. Domain, indexing, and application modules do not
 import Obsidian, Node, Electron, views, or future MCP code.
 
@@ -39,7 +45,10 @@ import Obsidian, Node, Electron, views, or future MCP code.
 
 - **Domain:** supported entities, controlled values, diagnostics, wiki-link
   parsing, template exclusion, workflow defaults, and readiness concepts live
-  under src/domain.
+  under src/domain. src/domain/vault-path holds the single path-safety gate
+  shared by template rendering and target allocation, plus title-to-filename
+  derivation. It rejects unsafe or unnormalized paths rather than repairing
+  them, so a caller's mistake cannot silently move a write.
 - **Templates:** src/domain/templates parses a Markdown template into reserved
   metadata, declared typed inputs, frontmatter properties, and a body, then
   renders one task note from an injected creation context. Rendering is a pure
@@ -74,6 +83,14 @@ import Obsidian, Node, Electron, views, or future MCP code.
   TaskCreationProposalService renders one exact create proposal with
   fingerprints, target-absence and index-freshness preconditions, exact
   frontmatter/content, and expected postconditions. Neither service can write.
+- **Creation allocation:** src/application/task-creation-allocator derives a
+  task's target path from the folder holding its project note, honors an
+  optional subfolder, sanitizes the title into a filename, and suggests the
+  first free name; it allocates rank one 1000-gap past the project's largest
+  existing rank. Both allocators are pure and bounded, returning diagnostics
+  rather than throwing. Suggesting a free path is not reserving one:
+  TaskCreationProposalService remains the authority on target collisions. ADR
+  0008 records the folder, filename, collision, and rank rules.
 - **UI:** the Project Workbench and note-diagnostic banner consume the stable
   read publication. The banner mounts through public Markdown view containers,
   refreshes on workspace and index publications, and never edits Markdown.

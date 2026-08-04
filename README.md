@@ -50,15 +50,29 @@ The current read-only workbench slices are implemented:
 - an exact one-file task-creation proposal service carrying project/template
   fingerprints, target-absence preconditions, frontmatter changes, rendered
   bytes, and expected indexing postconditions;
+- pure task target-path and rank allocation that derives a `Tasks` folder from
+  the project note's location, accepts an optional organizing subfolder,
+  sanitizes a title into a safe filename, suggests the first free path, and
+  spaces ranks 1000 apart;
 - fixture-backed parser, index, query, dashboard projection, template
   rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
-The application proposal service now consumes the template renderer, but it is
-not wired into the running plugin. It can read project/template inputs and
-detect a target collision; it cannot write a note. Task creation UI, safe
-proposal commits, rank/path allocation, full Plan/Board/My Work perspectives,
-portfolio views, and agent/MCP transport remain later slices.
+The application proposal service now consumes the template renderer, and
+allocation can supply the target path and rank it expects, but none of it is
+wired into the running plugin. Together they can read project/template inputs,
+choose a free path, and detect a target collision; they cannot write a note.
+Task creation UI, safe proposal commits, rank rebalancing and reorder, full
+Plan/Board/My Work perspectives, portfolio views, and agent/MCP transport
+remain later slices.
+
+New task notes are placed in a `Tasks` folder beside the project note, so
+`Projects/Game/Project.md` gives `Projects/Game/Tasks/`. A caller may pass a
+subfolder beneath it for organization. Titles become filenames with
+path-hostile and link-hostile characters replaced; a colliding name gets a
+numeric suffix as a visible suggestion, never as a silent overwrite.
+[ADR 0008](docs/decisions/0008-derive-task-paths-and-allocate-spaced-ranks.md)
+records these rules.
 
 ## Note templates
 

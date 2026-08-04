@@ -23,8 +23,12 @@ ends, or the next decision changes — not for every code change.
   foundation pass the complete automated gate.
 - Version 0.3.0 was exported and installed into the configured disposable test
   vault. The focused manual Obsidian checks below have not started.
-- The running plugin remains read-only. The proposal service has no runtime
-  caller, and no creation UI or write coordinator exists.
+- The running plugin remains read-only. The proposal service and the task
+  path/rank allocator have no runtime caller, and no creation UI or write
+  coordinator exists.
+- Task target paths and backlog ranks are now allocated by pure application
+  code. ADR 0008 settles the folder convention, filename derivation, collision
+  policy, and rank rule that `docs/design/README.md` had left open.
 - Local test-vault installation and the preview/stable release workflow are
   documented and automatically exercised. Nothing has been released.
 
@@ -60,6 +64,18 @@ did ESLint, `tsc --noEmit`, all 135 Vitest tests, all 13 Node script tests, the
 production build, and release-inventory verification. The aggregate
 `npm run check` passed its version and current-work gates, then stopped at the
 same unrelated untracked `CLAUDE.md` formatting issue.
+
+On 2026-08-03, `npm run check` passed in full against source commit `cd886ba`,
+which adds task path and rank allocation: version and current-work gates,
+Prettier, ESLint, `tsc --noEmit`, 17 Vitest files with 179 tests, 13 Node
+script tests, the production build, and a release inventory of exactly
+`main.js`, `manifest.json`, and `styles.css`. This is the first complete-gate
+pass recorded here; the earlier runs stopped at the untracked `CLAUDE.md`,
+which is now tracked and formatted.
+
+Allocation is confirmed absent from `dist/main.js`, so it is tree-shaken out
+and the running plugin is unchanged. The proposal service and its seven tests
+were not modified by that slice.
 
 Automated validation does not replace the manual Obsidian checks below. The
 Obsidian-facing modules have no automated DOM coverage. The pure projection
@@ -102,8 +118,14 @@ verify:
     layouts, and a mobile-compatible Obsidian environment remain usable.
 
 **Status as of 2026-08-03: not started.** Record results here before treating
-the workbench as manually accepted. The renderer, resolver, and proposal
-service add no manual check until a creation UI calls them.
+the workbench as manually accepted. The renderer, resolver, proposal service,
+and allocator add no manual check until a creation UI calls them.
+
+Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems.
+That is supporting evidence, not a substitute for the list above: several of
+these checks target states ordinary use does not reach, including workspace
+restoration, retired-runtime callbacks, stale-last-good state, 200-result
+truncation, and a mobile-compatible environment.
 
 ## Known loose ends
 
@@ -111,9 +133,15 @@ Verified against the committed tree; none blocks the manual checks:
 
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
-- The template resolver and proposal service have no runtime caller. They and
-  the renderer are tree-shaken out of `dist/main.js`, so the running plugin
-  remains read-only.
+- The template resolver, proposal service, and task path/rank allocator have no
+  runtime caller. They and the renderer are tree-shaken out of `dist/main.js`,
+  so the running plugin remains read-only.
+- Allocation covers creation only. Midpoint insertion for reordering and
+  Rebalance Backlog Ranks are specified by design 15 but unimplemented; both
+  belong to a reorder slice, and rebalance is a previewed bulk write.
+- The `Tasks` folder convention from ADR 0008 is fixed. The per-project
+  override and the vault-wide setting considered there were deferred until a
+  caller needs them.
 - `templateClockFromLocalDate` exists for a future caller. Nothing calls it
   yet.
 - Only `templates/default/task.md` has a consumer. The other packaged starter
@@ -127,9 +155,10 @@ Verified against the committed tree; none blocks the manual checks:
 
 1. Complete and record the manual Obsidian checks above. Record any defects
    before treating the workbench as accepted.
-2. Resume the task-creation vertical with typed target-path and rank allocation
-   plus a read-only single-task preview/confirmation caller for the existing
-   proposal service.
+2. Add a read-only single-task preview and confirmation caller that composes
+   allocation with the proposal service. It gives the allocator and the
+   proposal service their first runtime caller, and it is the point at which
+   the manual Obsidian checks above become worth running in one session.
 3. Add the write coordinator and commit-time stale-read checks only after the
    preview exposes every target path, precondition, rendered byte set, and
    expected postcondition. Keep further note kinds behind a complete task flow.
