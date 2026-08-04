@@ -66,8 +66,8 @@ The implemented slices are:
   rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
 
-**Create task** in the command palette exercises this chain end to
-end: it allocates a path and rank, resolves the template, shows the exact bytes
+**New task** in the workbench, or **Create task** in the command palette,
+exercises this chain end to end: it allocates a path and rank, resolves the template, shows the exact bytes
 that would be written along with the preconditions and expected
 postconditions, and creates the note when you confirm.
 
@@ -199,8 +199,10 @@ Malformed notes and notes whose project link cannot resolve appear in the
 prominent **Unassigned diagnostics** section, so every indexed error remains
 findable even when Project Weave cannot safely infer project ownership.
 
-To check the creation preview, open a project or task note and run **Project
-Weave: Create task**. Type a title and confirm the target path
+To check the creation preview, press **New task** in the workbench, or open a
+project or task note and run **Project Weave: Create task**. The workbench
+button uses the project already selected there; the command infers one from
+the active note. Type a title and confirm the target path
 resolves under `Projects/Game/Tasks/`, the rank is 1000 past the largest
 existing rank, and the rendered note matches that path and rank. Add a
 subfolder such as `Combat` and confirm it nests. Enter a title matching an

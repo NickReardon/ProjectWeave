@@ -727,3 +727,9 @@
 .project-weave-task-preview__status-text--error {
   color: var(--text-error);
 }
+
+.project-weave-workbench__project-actions {
+  display: flex;
+  gap: var(--size-4-2);
+  justify-content: flex-start;
+}

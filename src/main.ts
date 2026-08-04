@@ -55,6 +55,9 @@ export default class ProjectWeavePlugin extends Plugin {
       (leaf: WorkspaceLeaf) =>
         new ProjectWorkbenchView(leaf, this.#readSource, {
           rebuildIndex: () => this.rebuildIndex(false),
+          createTask: (projectPath) => {
+            this.#openTaskCreationPreview(projectPath);
+          },
         }),
     );
     this.addSettingTab(new ProjectWeaveSettingTab(this.app, this));
@@ -319,7 +322,12 @@ export default class ProjectWeavePlugin extends Plugin {
     new ReadyNowModal(this.app, result).open();
   }
 
-  #openTaskCreationPreview(): void {
+  /**
+   * Opens the create-task flow. A caller that already knows the project — the
+   * workbench does — passes it, so the flow never guesses from the active
+   * note and never refuses because no project note happens to be open.
+   */
+  #openTaskCreationPreview(requestedProjectPath?: string): void {
     const runtime = this.#runtime;
     if (runtime === null) {
       new Notice('Project Weave is not loaded.');
@@ -333,12 +341,19 @@ export default class ProjectWeavePlugin extends Plugin {
 
     const projectModel = buildProjectWorkbenchModel({
       publication,
-      selectedProjectPath: null,
-      activePath: this.app.workspace.getActiveFile()?.path ?? null,
+      selectedProjectPath: requestedProjectPath ?? null,
+      activePath:
+        requestedProjectPath === undefined
+          ? (this.app.workspace.getActiveFile()?.path ?? null)
+          : null,
       readyDisplayLimit: 1,
     });
     if (projectModel.state !== 'project') {
-      new Notice('Open a project or task note before previewing a new task.');
+      new Notice(
+        requestedProjectPath === undefined
+          ? 'Open a project or task note before creating a task.'
+          : 'That project is no longer available. Rebuilding the index may help.',
+      );
       return;
     }
     const { project } = projectModel;

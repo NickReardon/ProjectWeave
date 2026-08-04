@@ -44,6 +44,8 @@ const WORKBENCH_STATE_VERSION = 1;
 
 export interface ProjectWorkbenchActions {
   rebuildIndex(): Promise<void>;
+  /** Opens the create-task flow for an already-resolved project. */
+  createTask(projectPath: string): void;
 }
 
 /** What must survive a full re-render so typing is not disrupted. */
@@ -507,6 +509,24 @@ export class ProjectWorkbenchView extends ItemView {
     root: HTMLElement,
     model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
   ): void {
+    const actions = root.createDiv({
+      cls: 'project-weave-workbench__project-actions',
+    });
+    const newTask = actions.createEl('button', {
+      cls: 'project-weave-workbench__new-task mod-cta',
+      text: 'New task',
+      attr: {
+        type: 'button',
+        title: 'Create a task in ' + model.project.title,
+        'data-workbench-focus-key': 'new-task',
+      },
+    });
+    newTask.addEventListener('click', () => {
+      // The workbench already knows which project is selected, so the flow
+      // never has to infer one from whichever note happens to be active.
+      this.#actions.createTask(model.project.path);
+    });
+
     const metrics = root.createEl('section', {
       cls: 'project-weave-workbench__metrics',
       attr: { 'aria-label': 'Project summary' },

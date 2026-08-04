@@ -127,7 +127,8 @@ verify:
     matching both. A subfolder nests, a colliding title yields a numbered
     suggestion with an explicit notice, and an unusable title yields a
     diagnostic. Closing the modal creates nothing.
-13. In a disposable vault, **Create task** writes exactly the previewed path
+13. In a disposable vault, creating from both the workbench **New task**
+    button and the command palette writes exactly the previewed path
     with the previewed bytes, creates a missing `Tasks` folder, and the new
     task appears in the dashboard after the index refreshes. Editing the
     project note while the modal is open makes the commit refuse with a
