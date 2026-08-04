@@ -22,6 +22,12 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from '../domain/model';
+import {
+  applyTextSelection,
+  asSelectableField,
+  captureTextSelection,
+  type TextSelection,
+} from './text-selection';
 
 export const PROJECT_WORKBENCH_VIEW_TYPE = 'project-weave-workbench';
 
@@ -40,6 +46,12 @@ export interface ProjectWorkbenchActions {
   rebuildIndex(): Promise<void>;
 }
 
+/** What must survive a full re-render so typing is not disrupted. */
+interface WorkbenchFocusState {
+  readonly key: string;
+  readonly selection: TextSelection | null;
+}
+
 interface DiagnosticSectionOptions {
   readonly title: string;
   readonly ariaLabel: string;
@@ -47,7 +59,7 @@ interface DiagnosticSectionOptions {
   readonly emptyMessage?: string;
   readonly focusPrefix: 'project-diagnostics' | 'unassigned-diagnostics';
   readonly limitLabel: string;
-  readonly currentDisplayLimit: number;
+  readonly readDisplayLimit: () => number;
   readonly increaseDisplayLimit: () => void;
   readonly emphasized?: boolean;
 }
@@ -71,6 +83,23 @@ export class ProjectWorkbenchView extends ItemView {
   #unassignedDiagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
   #unsubscribe: (() => void) | null = null;
   #opened = false;
+
+  // Live handles into the All Tasks section. Filter changes re-render only the
+  // results through these, leaving the controls' DOM identity — and therefore
+  // their focus, caret, and selection — untouched.
+  #taskCountEl: HTMLElement | null = null;
+  #taskResultsEl: HTMLElement | null = null;
+  #taskFilterSyncs: (() => void)[] = [];
+  #readyCountEl: HTMLElement | null = null;
+  #readyResultsEl: HTMLElement | null = null;
+  #diagnosticSections = new Map<
+    string,
+    {
+      readonly results: HTMLElement;
+      readonly count: HTMLElement;
+      readonly options: DiagnosticSectionOptions;
+    }
+  >();
 
   public constructor(
     leaf: WorkspaceLeaf,
@@ -191,24 +220,8 @@ export class ProjectWorkbenchView extends ItemView {
       return;
     }
 
-    const focusKey = this.#captureFocusKey();
-    const model = buildProjectWorkbenchModel({
-      publication: this.#publication,
-      selectedProjectPath: this.#selectedProjectPath,
-      activePath: this.#activePathHint,
-      readyDisplayLimit: this.#readyDisplayLimit,
-      taskDisplayLimit: this.#taskDisplayLimit,
-      taskStatuses: [...this.#taskStatuses],
-      taskSearch: this.#taskSearch,
-      taskPriority: this.#taskPriority,
-      taskEpicPath: this.#taskEpicPath,
-      taskMilestonePath: this.#taskMilestonePath,
-      taskOwner: this.#taskOwner,
-      taskDueState: this.#taskDueState,
-      taskToday: localDateKey(new Date()),
-      diagnosticDisplayLimit: this.#diagnosticDisplayLimit,
-      unassignedDiagnosticDisplayLimit: this.#unassignedDiagnosticDisplayLimit,
-    });
+    const focusState = this.#captureFocusState();
+    const model = this.#buildModel();
 
     if (model.state === 'project' && this.#selectedProjectPath === null) {
       this.#selectedProjectPath = model.project.path;
@@ -217,6 +230,13 @@ export class ProjectWorkbenchView extends ItemView {
     }
 
     this.contentEl.empty();
+    // Every handle below points into DOM that empty() just destroyed.
+    this.#taskCountEl = null;
+    this.#taskResultsEl = null;
+    this.#taskFilterSyncs = [];
+    this.#readyCountEl = null;
+    this.#readyResultsEl = null;
+    this.#diagnosticSections.clear();
     const root = this.contentEl.createDiv({
       cls: 'project-weave-workbench__content',
     });
@@ -259,7 +279,96 @@ export class ProjectWorkbenchView extends ItemView {
         this.#renderProject(root, model);
         break;
     }
-    this.#restoreFocus(focusKey);
+    this.#restoreFocus(focusState);
+  }
+
+  #buildModel(): ProjectWorkbenchModel {
+    return buildProjectWorkbenchModel({
+      publication: this.#publication,
+      selectedProjectPath: this.#selectedProjectPath,
+      activePath: this.#activePathHint,
+      readyDisplayLimit: this.#readyDisplayLimit,
+      taskDisplayLimit: this.#taskDisplayLimit,
+      taskStatuses: [...this.#taskStatuses],
+      taskSearch: this.#taskSearch,
+      taskPriority: this.#taskPriority,
+      taskEpicPath: this.#taskEpicPath,
+      taskMilestonePath: this.#taskMilestonePath,
+      taskOwner: this.#taskOwner,
+      taskDueState: this.#taskDueState,
+      taskToday: localDateKey(new Date()),
+      diagnosticDisplayLimit: this.#diagnosticDisplayLimit,
+      unassignedDiagnosticDisplayLimit: this.#unassignedDiagnosticDisplayLimit,
+    });
+  }
+
+  /**
+   * Re-render only the All Tasks results. The filter controls keep their DOM,
+   * so typing is never interrupted by the render it triggers. Falls back to a
+   * full render when the section is absent or the view is no longer showing a
+   * project, since then the page structure itself has to change.
+   */
+  #refreshTasks(): void {
+    if (!this.#opened) {
+      return;
+    }
+    if (this.#taskResultsEl === null) {
+      this.#render();
+      return;
+    }
+    const model = this.#buildModel();
+    if (model.state !== 'project') {
+      this.#render();
+      return;
+    }
+    this.#renderTaskResults(model);
+  }
+
+  /** Re-render only one diagnostics section's results; see #refreshTasks. */
+  #refreshDiagnostics(focusPrefix: string): void {
+    const section = this.#diagnosticSections.get(focusPrefix);
+    if (!this.#opened || section === undefined) {
+      this.#render();
+      return;
+    }
+    const model = this.#buildModel();
+    if (model.state !== 'project' && focusPrefix === 'project-diagnostics') {
+      this.#render();
+      return;
+    }
+    const diagnostics =
+      focusPrefix === 'unassigned-diagnostics'
+        ? model.unassignedDiagnostics
+        : model.state === 'project'
+          ? model.diagnostics
+          : null;
+    if (diagnostics === null) {
+      this.#render();
+      return;
+    }
+    this.#renderDiagnosticResults(
+      diagnostics,
+      section.results,
+      section.count,
+      section.options,
+    );
+  }
+
+  /** Re-render only the Ready Now results; see #refreshTasks. */
+  #refreshReady(): void {
+    if (!this.#opened) {
+      return;
+    }
+    if (this.#readyResultsEl === null) {
+      this.#render();
+      return;
+    }
+    const model = this.#buildModel();
+    if (model.state !== 'project') {
+      this.#render();
+      return;
+    }
+    this.#renderReadyResults(model);
   }
 
   #renderHeader(root: HTMLElement, model: ProjectWorkbenchModel): void {
@@ -445,13 +554,25 @@ export class ProjectWorkbenchView extends ItemView {
         'data-workbench-focus-key': 'ready-heading',
       },
     });
-    readyHeading.createSpan({
-      text:
-        String(model.ready.displayed) +
-        ' of ' +
-        String(model.ready.total) +
-        ' ready',
+    this.#readyCountEl = readyHeading.createSpan({
+      text: readyCountLabel(model),
     });
+
+    this.#readyResultsEl = readySection.createDiv({
+      cls: 'project-weave-workbench__ready-results',
+    });
+    this.#renderReadyResults(model);
+  }
+
+  #renderReadyResults(
+    model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+  ): void {
+    const readySection = this.#readyResultsEl;
+    if (readySection === null) {
+      return;
+    }
+    readySection.empty();
+    this.#readyCountEl?.setText(readyCountLabel(model));
 
     if (model.taskState === 'no_tasks') {
       this.#renderMessage(
@@ -517,7 +638,7 @@ export class ProjectWorkbenchView extends ItemView {
             MAX_READY_DISPLAY_LIMIT,
             this.#readyDisplayLimit + READY_DISPLAY_INCREMENT,
           );
-          this.#render();
+          this.#refreshReady();
         });
       } else {
         readySection.createEl('p', {
@@ -546,12 +667,8 @@ export class ProjectWorkbenchView extends ItemView {
         'data-workbench-focus-key': 'all-tasks-heading',
       },
     });
-    heading.createSpan({
-      text:
-        String(model.allTasks.displayed) +
-        ' of ' +
-        String(model.allTasks.total) +
-        ' matching',
+    this.#taskCountEl = heading.createSpan({
+      text: taskCountLabel(model),
     });
 
     const filters = section.createDiv({
@@ -572,7 +689,10 @@ export class ProjectWorkbenchView extends ItemView {
     search.addEventListener('input', () => {
       this.#taskSearch = search.value;
       this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      this.#render();
+      this.#refreshTasks();
+    });
+    this.#taskFilterSyncs.push(() => {
+      search.value = this.#taskSearch;
     });
 
     const statusFilters = filters.createEl('fieldset', {
@@ -598,7 +718,10 @@ export class ProjectWorkbenchView extends ItemView {
           this.#taskStatuses.delete(status);
         }
         this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-        this.#render();
+        this.#refreshTasks();
+      });
+      this.#taskFilterSyncs.push(() => {
+        checkbox.checked = this.#taskStatuses.has(status);
       });
       label.createSpan({ text: taskStatusLabel(status) });
     }
@@ -623,7 +746,12 @@ export class ProjectWorkbenchView extends ItemView {
       this.#taskOwner = null;
       this.#taskDueState = null;
       this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      this.#render();
+      // The controls are no longer rebuilt, so reset must push the cleared
+      // state back into them explicitly.
+      for (const sync of this.#taskFilterSyncs) {
+        sync();
+      }
+      this.#refreshTasks();
     });
 
     const details = filters.createDiv({
@@ -637,7 +765,7 @@ export class ProjectWorkbenchView extends ItemView {
         value: priority,
         label: taskStatusLabel(priority),
       })),
-      this.#taskPriority,
+      () => this.#taskPriority,
       (value) => {
         this.#taskPriority = value as TaskPriority | null;
       },
@@ -647,7 +775,7 @@ export class ProjectWorkbenchView extends ItemView {
       'Epic',
       'task-filter-epic',
       model.allTasks.filterOptions.epics,
-      this.#taskEpicPath,
+      () => this.#taskEpicPath,
       (value) => {
         this.#taskEpicPath = value;
       },
@@ -657,7 +785,7 @@ export class ProjectWorkbenchView extends ItemView {
       'Milestone',
       'task-filter-milestone',
       model.allTasks.filterOptions.milestones,
-      this.#taskMilestonePath,
+      () => this.#taskMilestonePath,
       (value) => {
         this.#taskMilestonePath = value;
       },
@@ -667,7 +795,7 @@ export class ProjectWorkbenchView extends ItemView {
       'Owner',
       'task-filter-owner',
       model.allTasks.filterOptions.owners,
-      this.#taskOwner,
+      () => this.#taskOwner,
       (value) => {
         this.#taskOwner = value;
       },
@@ -680,11 +808,27 @@ export class ProjectWorkbenchView extends ItemView {
         value: dueState,
         label: dueStateLabel(dueState),
       })),
-      this.#taskDueState,
+      () => this.#taskDueState,
       (value) => {
         this.#taskDueState = value as ProjectWorkbenchDueState | null;
       },
     );
+
+    this.#taskResultsEl = section.createDiv({
+      cls: 'project-weave-workbench__task-results',
+    });
+    this.#renderTaskResults(model);
+  }
+
+  #renderTaskResults(
+    model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+  ): void {
+    const section = this.#taskResultsEl;
+    if (section === null) {
+      return;
+    }
+    section.empty();
+    this.#taskCountEl?.setText(taskCountLabel(model));
 
     if (model.counts.tasks === 0) {
       this.#renderMessage(
@@ -772,7 +916,7 @@ export class ProjectWorkbenchView extends ItemView {
             MAX_TASK_DISPLAY_LIMIT,
             this.#taskDisplayLimit + TASK_DISPLAY_INCREMENT,
           );
-          this.#render();
+          this.#refreshTasks();
         });
       } else {
         section.createEl('p', {
@@ -790,7 +934,7 @@ export class ProjectWorkbenchView extends ItemView {
     labelText: string,
     focusKey: string,
     options: readonly ProjectWorkbenchTaskFilterOption[],
-    selectedValue: string | null,
+    readValue: () => string | null,
     onChange: (value: string | null) => void,
   ): void {
     const label = container.createEl('label');
@@ -808,11 +952,14 @@ export class ProjectWorkbenchView extends ItemView {
         value: option.value,
       });
     }
+
+    const selectedValue = readValue();
+    let unavailable: HTMLOptionElement | null = null;
     if (
       selectedValue !== null &&
       !options.some((option) => option.value === selectedValue)
     ) {
-      select.createEl('option', {
+      unavailable = select.createEl('option', {
         text: 'Unavailable: ' + selectedValue,
         value: selectedValue,
       });
@@ -821,7 +968,17 @@ export class ProjectWorkbenchView extends ItemView {
     select.addEventListener('change', () => {
       onChange(select.value.length === 0 ? null : select.value);
       this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      this.#render();
+      this.#refreshTasks();
+    });
+    this.#taskFilterSyncs.push(() => {
+      const current = readValue();
+      // Drop a stale "Unavailable" entry once its value is no longer chosen,
+      // which a full rebuild used to handle implicitly.
+      if (unavailable !== null && current !== unavailable.value) {
+        unavailable.remove();
+        unavailable = null;
+      }
+      select.value = current ?? '';
     });
   }
 
@@ -837,7 +994,7 @@ export class ProjectWorkbenchView extends ItemView {
       emptyMessage: 'No diagnostics for this project.',
       focusPrefix: 'project-diagnostics',
       limitLabel: 'project diagnostics',
-      currentDisplayLimit: this.#diagnosticDisplayLimit,
+      readDisplayLimit: () => this.#diagnosticDisplayLimit,
       increaseDisplayLimit: () => {
         this.#diagnosticDisplayLimit = Math.min(
           MAX_DIAGNOSTIC_DISPLAY_LIMIT,
@@ -861,7 +1018,7 @@ export class ProjectWorkbenchView extends ItemView {
         'These notes could not be associated with any available project. Open each note and correct the named field or link.',
       focusPrefix: 'unassigned-diagnostics',
       limitLabel: 'unassigned diagnostics',
-      currentDisplayLimit: this.#unassignedDiagnosticDisplayLimit,
+      readDisplayLimit: () => this.#unassignedDiagnosticDisplayLimit,
       increaseDisplayLimit: () => {
         this.#unassignedDiagnosticDisplayLimit = Math.min(
           MAX_DIAGNOSTIC_DISPLAY_LIMIT,
@@ -895,7 +1052,7 @@ export class ProjectWorkbenchView extends ItemView {
         'data-workbench-focus-key': options.focusPrefix + '-heading',
       },
     });
-    heading.createSpan({
+    const count = heading.createSpan({
       text: diagnosticSummary(diagnostics),
     });
     if (diagnostics.total === 0) {
@@ -909,6 +1066,26 @@ export class ProjectWorkbenchView extends ItemView {
       cls: 'project-weave-workbench__diagnostics-intro',
       text: options.intro,
     });
+
+    const results = section.createDiv({
+      cls: 'project-weave-workbench__diagnostic-results',
+    });
+    this.#diagnosticSections.set(options.focusPrefix, {
+      results,
+      count,
+      options,
+    });
+    this.#renderDiagnosticResults(diagnostics, results, count, options);
+  }
+
+  #renderDiagnosticResults(
+    diagnostics: ProjectWorkbenchDiagnosticsModel,
+    section: HTMLElement,
+    count: HTMLElement,
+    options: DiagnosticSectionOptions,
+  ): void {
+    section.empty();
+    count.setText(diagnosticSummary(diagnostics));
 
     const groupList = section.createDiv({
       cls: 'project-weave-workbench__diagnostic-groups',
@@ -1008,7 +1185,7 @@ export class ProjectWorkbenchView extends ItemView {
     }
 
     if (diagnostics.truncated) {
-      if (options.currentDisplayLimit < MAX_DIAGNOSTIC_DISPLAY_LIMIT) {
+      if (options.readDisplayLimit() < MAX_DIAGNOSTIC_DISPLAY_LIMIT) {
         const loadMore = section.createEl('button', {
           cls: 'project-weave-workbench__load-more',
           text: 'Show more diagnostics',
@@ -1019,7 +1196,7 @@ export class ProjectWorkbenchView extends ItemView {
         });
         loadMore.addEventListener('click', () => {
           options.increaseDisplayLimit();
-          this.#render();
+          this.#refreshDiagnostics(options.focusPrefix);
         });
       } else {
         section.createEl('p', {
@@ -1061,19 +1238,30 @@ export class ProjectWorkbenchView extends ItemView {
     }
   }
 
-  #captureFocusKey(): string | null {
+  #captureFocusState(): WorkbenchFocusState | null {
     const activeElement = this.contentEl.ownerDocument.activeElement;
     if (activeElement === null || !this.contentEl.contains(activeElement)) {
       return null;
     }
-    return activeElement.getAttribute('data-workbench-focus-key');
+    const key = activeElement.getAttribute('data-workbench-focus-key');
+    if (key === null) {
+      return null;
+    }
+    const field = asSelectableField(activeElement);
+    return {
+      key,
+      selection: field === null ? null : captureTextSelection(field),
+    };
   }
 
-  #restoreFocus(focusKey: string | null): void {
-    if (focusKey === null) {
+  #restoreFocus(focusState: WorkbenchFocusState | null): void {
+    if (focusState === null) {
       return;
     }
-    if (this.#focusByKey(focusKey)) {
+    const focusKey = focusState.key;
+    // Only the exact element carries a caret worth restoring; the fallbacks
+    // below land on headings, where a selection means nothing.
+    if (this.#focusByKey(focusKey, focusState.selection)) {
       return;
     }
     if (
@@ -1108,7 +1296,10 @@ export class ProjectWorkbenchView extends ItemView {
     this.#focusByKey('refresh');
   }
 
-  #focusByKey(focusKey: string): boolean {
+  #focusByKey(
+    focusKey: string,
+    selection: TextSelection | null = null,
+  ): boolean {
     const focusTarget = [
       ...this.contentEl.querySelectorAll<HTMLElement>(
         '[data-workbench-focus-key]',
@@ -1117,9 +1308,40 @@ export class ProjectWorkbenchView extends ItemView {
       (element) =>
         element.getAttribute('data-workbench-focus-key') === focusKey,
     );
-    focusTarget?.focus({ preventScroll: true });
-    return focusTarget !== undefined;
+    if (focusTarget === undefined) {
+      return false;
+    }
+    focusTarget.focus({ preventScroll: true });
+    if (selection !== null) {
+      const field = asSelectableField(focusTarget);
+      if (field !== null) {
+        applyTextSelection(field, selection);
+      }
+    }
+    return true;
   }
+}
+
+function readyCountLabel(
+  model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+): string {
+  return (
+    String(model.ready.displayed) +
+    ' of ' +
+    String(model.ready.total) +
+    ' ready'
+  );
+}
+
+function taskCountLabel(
+  model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
+): string {
+  return (
+    String(model.allTasks.displayed) +
+    ' of ' +
+    String(model.allTasks.total) +
+    ' matching'
+  );
 }
 
 function diagnosticRevisionSummary(model: ProjectWorkbenchModel): string {

@@ -30,6 +30,10 @@ class MemoryVault implements VaultReader {
     return [...this.#notes.values()];
   }
 
+  public async listMarkdownPaths(): Promise<readonly string[]> {
+    return [...this.#notes.keys()];
+  }
+
   public async readMarkdownNote(path: string): Promise<SourceNote | null> {
     return this.#notes.get(path) ?? null;
   }
@@ -294,6 +298,33 @@ describe('collectVaultNotePaths', () => {
         'projects/game/tasks/implement request.md',
       ]),
     );
+  });
+
+  it('never reads note contents to learn which paths are taken', async () => {
+    // A live preview re-runs this on every pause in typing. Reading and
+    // fingerprinting every note in scope to collect paths made that
+    // prohibitively expensive on a real vault.
+    const notes = [
+      sourceNote('Projects/Game/Project.md', 'type: project'),
+      sourceNote('Projects/Game/Tasks/A.md', 'type: task'),
+    ];
+    let contentReads = 0;
+    const counting: VaultReader = {
+      listMarkdownNotes: async () => {
+        contentReads += 1;
+        return notes;
+      },
+      listMarkdownPaths: async () => notes.map((note) => note.path),
+      readMarkdownNote: async (path) => {
+        contentReads += 1;
+        return notes.find((note) => note.path === path) ?? null;
+      },
+    };
+
+    await expect(collectVaultNotePaths(counting)).resolves.toEqual(
+      new Set(['projects/game/project.md', 'projects/game/tasks/a.md']),
+    );
+    expect(contentReads).toBe(0);
   });
 
   it('feeds allocation so a differently-cased note still counts as taken', async () => {

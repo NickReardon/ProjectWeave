@@ -11,6 +11,7 @@ import type {
   TaskStatus,
 } from '../domain/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
+import { substringTaskSearch, type TaskSearchMatcher } from './task-search';
 import type { ProjectWeaveReadPublication } from './project-weave-read-source';
 
 const DEFAULT_READY_DISPLAY_LIMIT = 10;
@@ -56,6 +57,8 @@ export interface ProjectWorkbenchProjectionInput {
   readonly taskDisplayLimit?: number;
   readonly taskStatuses?: readonly TaskStatus[];
   readonly taskSearch?: string;
+  /** Matching strategy for taskSearch; defaults to literal substring. */
+  readonly taskSearchMatcher?: TaskSearchMatcher;
   readonly taskPriority?: TaskPriority | null;
   readonly taskEpicPath?: string | null;
   readonly taskMilestonePath?: string | null;
@@ -245,22 +248,7 @@ export function buildProjectWorkbenchModel(
         requestedProjectPath: selectedProjectPath,
       };
     }
-    return projectModel(
-      base,
-      selected,
-      snapshot,
-      input.readyDisplayLimit,
-      input.taskDisplayLimit,
-      input.taskStatuses,
-      input.taskSearch,
-      input.taskPriority,
-      input.taskEpicPath,
-      input.taskMilestonePath,
-      input.taskOwner,
-      input.taskDueState,
-      input.taskToday,
-      input.diagnosticDisplayLimit,
-    );
+    return projectModel(base, selected, snapshot, input);
   }
 
   if (projects.length === 0) {
@@ -271,40 +259,29 @@ export function buildProjectWorkbenchModel(
   if (inferred === null) {
     return { ...base, state: 'choose_project' };
   }
-  return projectModel(
-    base,
-    inferred,
-    snapshot,
-    input.readyDisplayLimit,
-    input.taskDisplayLimit,
-    input.taskStatuses,
-    input.taskSearch,
-    input.taskPriority,
-    input.taskEpicPath,
-    input.taskMilestonePath,
-    input.taskOwner,
-    input.taskDueState,
-    input.taskToday,
-    input.diagnosticDisplayLimit,
-  );
+  return projectModel(base, inferred, snapshot, input);
 }
 
 function projectModel(
   base: ProjectWorkbenchBaseModel,
   project: ProjectEntity,
   snapshot: IndexSnapshot,
-  requestedReadyDisplayLimit: number,
-  requestedTaskDisplayLimit: number | undefined,
-  requestedTaskStatuses: readonly TaskStatus[] | undefined,
-  requestedTaskSearch: string | undefined,
-  requestedTaskPriority: TaskPriority | null | undefined,
-  requestedTaskEpicPath: string | null | undefined,
-  requestedTaskMilestonePath: string | null | undefined,
-  requestedTaskOwner: string | null | undefined,
-  requestedTaskDueState: ProjectWorkbenchDueState | null | undefined,
-  requestedTaskToday: string | undefined,
-  requestedDiagnosticDisplayLimit: number | undefined,
+  input: ProjectWorkbenchProjectionInput,
 ): ProjectWorkbenchProjectModel {
+  const {
+    readyDisplayLimit: requestedReadyDisplayLimit,
+    taskDisplayLimit: requestedTaskDisplayLimit,
+    taskStatuses: requestedTaskStatuses,
+    taskSearch: requestedTaskSearch,
+    taskPriority: requestedTaskPriority,
+    taskEpicPath: requestedTaskEpicPath,
+    taskMilestonePath: requestedTaskMilestonePath,
+    taskOwner: requestedTaskOwner,
+    taskDueState: requestedTaskDueState,
+    taskToday: requestedTaskToday,
+    diagnosticDisplayLimit: requestedDiagnosticDisplayLimit,
+  } = input;
+  const matchTask = input.taskSearchMatcher ?? substringTaskSearch;
   const tasks = snapshot.getTasksForProject(project.path);
   const scopedDiagnostics = getProjectDiagnostics(snapshot, project.path);
   const readyTasks = tasks
@@ -335,7 +312,7 @@ function projectModel(
       (task): task is TaskEntity & { readonly status: TaskStatus } =>
         task.status !== null &&
         taskStatuses.includes(task.status) &&
-        taskMatchesSearch(task, normalizedTaskSearch) &&
+        matchesSearch(matchTask, task, normalizedTaskSearch) &&
         (requestedTaskPriority == null ||
           (task.priority ?? 'normal') === requestedTaskPriority) &&
         (taskEpicPath === null ||
@@ -702,14 +679,15 @@ function isIsoDate(value: string | undefined): value is string {
   return value !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function taskMatchesSearch(task: TaskEntity, search: string): boolean {
+function matchesSearch(
+  matcher: TaskSearchMatcher,
+  task: TaskEntity,
+  search: string,
+): boolean {
   if (search.length === 0) {
     return true;
   }
-  return (
-    task.title.toLocaleLowerCase().includes(search) ||
-    task.path.toLocaleLowerCase().includes(search)
-  );
+  return matcher({ title: task.title, path: task.path }, search) !== null;
 }
 
 function priorityOrder(priority: TaskPriority | null): number {

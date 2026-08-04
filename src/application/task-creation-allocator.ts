@@ -193,10 +193,8 @@ export function allocateTaskRank(
 export async function collectVaultNotePaths(
   vault: VaultReader,
 ): Promise<ReadonlySet<string>> {
-  const notes = await vault.listMarkdownNotes();
-  return new Set(
-    notes.map((note) => normalizeVaultPath(note.path).toLowerCase()),
-  );
+  const paths = await vault.listMarkdownPaths();
+  return new Set(paths.map((path) => normalizeVaultPath(path).toLowerCase()));
 }
 
 /**

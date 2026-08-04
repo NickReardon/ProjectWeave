@@ -25,9 +25,10 @@ ends, or the next decision changes — not for every code change.
   vault. Four of the focused manual Obsidian checks below have passed against
   that build; the rest are outstanding, so the workbench is not yet manually
   accepted.
-- The running plugin remains read-only. The proposal service and the task
-  path/rank allocator have no runtime caller, and no creation UI or write
-  coordinator exists.
+- The running plugin remains read-only. A **Preview task creation** command now
+  exercises allocation, template resolution, and proposal construction and
+  displays the exact bytes that would be written, but it offers no action that
+  writes and no write coordinator exists.
 - Task target paths and backlog ranks are now allocated by pure application
   code. ADR 0008 settles the folder convention, filename derivation, collision
   policy, and rank rule that `docs/design/README.md` had left open.
@@ -118,6 +119,12 @@ verify:
 11. Multiple-project selection, unavailable restored selection, empty scope,
     stale-last-good state, zero filter matches, 200-result truncation, narrow
     layouts, and a mobile-compatible Obsidian environment remain usable.
+12. **Preview task creation** resolves a target path under the project's task
+    folder, a rank one gap past the largest existing rank, and rendered bytes
+    matching both. A subfolder nests, a colliding title yields a numbered
+    suggestion with an explicit notice, and an unusable title yields a
+    diagnostic. The modal offers no action that writes, and the vault gains no
+    file at any point.
 
 **Status as of 2026-08-03: partially complete.** Checks 2, 8, 9, and 10 were
 run against the installed 0.3.0 build and passed, with no defects observed:
@@ -132,10 +139,11 @@ check 9: the diagnostic appeared and cleared as expected, but the workbench
 listing's recovery guidance and exact-note navigation were not confirmed
 separately. Treat it as outstanding.
 
-Checks 1, 3, 4, 5, 6, and 11 remain outstanding. Record their results here
-before treating the workbench as manually accepted. The renderer, resolver,
-proposal service, and allocator add no manual check until a creation UI calls
-them.
+Checks 1, 3, 4, 5, 6, 11, and 12 remain outstanding. Record their results here
+before treating the workbench as manually accepted. Check 12 is new and has not
+been run at all: the preview surface is the first slice in this chain that
+changes the shipped bundle, so unlike the renderer, resolver, allocator, and
+proposal service before it, it cannot be accepted on automated evidence alone.
 
 Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems,
 which bears on checks 1 and 3 through 6 in particular. That is supporting
@@ -150,9 +158,19 @@ Verified against the committed tree; none blocks the manual checks:
 
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
-- The template resolver, proposal service, and task path/rank allocator have no
-  runtime caller. They and the renderer are tree-shaken out of `dist/main.js`,
-  so the running plugin remains read-only.
+- The template resolver, proposal service, allocator, and renderer now all have
+  a runtime caller through the preview command, so they are compiled into
+  `dist/main.js` for the first time. The plugin stays read-only because no
+  write-capable port exists, not because the code is absent.
+- The preview modal has no confirm affordance at all. Once the write
+  coordinator lands, that gap is where explicit form confirmation belongs.
+- The whitespace-token and subsequence task-search strategies are implemented
+  and tested but have no runtime caller; the workbench always uses the
+  substring default. Reaching them needs either a changed default or a
+  persisted user setting, and the latter is a compatibility surface.
+- Search match scores are used only to decide whether a task matches, never to
+  order results. Subsequence matching is therefore filter-only until the
+  projection sorts by score.
 - Allocation covers creation only. Midpoint insertion for reordering and
   Rebalance Backlog Ranks are specified by design 15 but unimplemented; both
   belong to a reorder slice, and rebalance is a previewed bulk write.
@@ -172,10 +190,8 @@ Verified against the committed tree; none blocks the manual checks:
 
 1. Complete and record the manual Obsidian checks above. Record any defects
    before treating the workbench as accepted.
-2. Add a read-only single-task preview and confirmation caller that composes
-   allocation with the proposal service. It gives the allocator and the
-   proposal service their first runtime caller, and it is the point at which
-   the manual Obsidian checks above become worth running in one session.
+2. Run the outstanding manual Obsidian checks, including the new preview check,
+   in one session against a rebuilt test-vault install.
 3. Add the write coordinator and commit-time stale-read checks only after the
    preview exposes every target path, precondition, rendered byte set, and
    expected postcondition. Keep further note kinds behind a complete task flow.
