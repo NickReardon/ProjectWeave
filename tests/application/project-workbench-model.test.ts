@@ -7,6 +7,7 @@ import {
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import { IndexSnapshot } from '../../src/indexing/index-snapshot';
+import type { TaskSearchMatcher } from '../../src/application/task-search';
 import { sourceNote } from '../helpers/source-note';
 
 describe('Project Workbench model', () => {
@@ -342,6 +343,71 @@ describe('Project Workbench model', () => {
       path: 'Projects/History/Tasks/Abandoned HISTORY.md',
       status: 'cancelled',
     });
+  });
+
+  it('filters through an injected search matcher instead of its default', () => {
+    // The seam that lets the search strategy change without touching the
+    // model. A token matcher stands in for a strategy added later: the default
+    // rejects a split query, an injected one accepts it.
+    const everyToken: TaskSearchMatcher = (candidate, query) =>
+      query
+        .split(/\s+/u)
+        .filter((token) => token.length > 0)
+        .every((token) =>
+          (candidate.title + '\n' + candidate.path)
+            .toLocaleLowerCase()
+            .includes(token),
+        )
+        ? 0
+        : null;
+
+    const scope = {
+      publication: publication([
+        sourceNote('Projects/Game/Project.md', 'type: project'),
+        task(
+          'Projects/Game/Tasks/Combat dodge roll.md',
+          'Projects/Game/Project',
+          'todo',
+        ),
+      ]),
+      selectedProjectPath: 'Projects/Game/Project.md',
+      readyDisplayLimit: 5,
+      taskSearch: 'combat roll',
+    } as const;
+
+    expect(project(buildProjectWorkbenchModel(scope)).allTasks.total).toBe(0);
+    expect(
+      project(
+        buildProjectWorkbenchModel({
+          ...scope,
+          taskSearchMatcher: everyToken,
+        }),
+      ).allTasks.total,
+    ).toBe(1);
+  });
+
+  it('keeps a matcher from widening the other filters', () => {
+    // A matcher that accepts everything must not resurrect a status the user
+    // excluded; search is one predicate among several, not an override.
+    const matchAll: TaskSearchMatcher = () => 0;
+    const model = project(
+      buildProjectWorkbenchModel({
+        publication: publication([
+          sourceNote('Projects/Game/Project.md', 'type: project'),
+          task(
+            'Projects/Game/Tasks/Combat dodge roll.md',
+            'Projects/Game/Project',
+            'done',
+          ),
+        ]),
+        selectedProjectPath: 'Projects/Game/Project.md',
+        readyDisplayLimit: 5,
+        taskSearch: 'anything',
+        taskSearchMatcher: matchAll,
+      }),
+    );
+
+    expect(model.allTasks.total).toBe(0);
   });
 
   it('caps All Tasks rendering at 200 results after filtering', () => {

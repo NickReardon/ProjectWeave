@@ -164,6 +164,13 @@ Verified against the committed tree; none blocks the manual checks:
   write-capable port exists, not because the code is absent.
 - The preview modal has no confirm affordance at all. Once the write
   coordinator lands, that gap is where explicit form confirmation belongs.
+- The whitespace-token and subsequence task-search strategies are implemented
+  and tested but have no runtime caller; the workbench always uses the
+  substring default. Reaching them needs either a changed default or a
+  persisted user setting, and the latter is a compatibility surface.
+- Search match scores are used only to decide whether a task matches, never to
+  order results. Subsequence matching is therefore filter-only until the
+  projection sorts by score.
 - Allocation covers creation only. Midpoint insertion for reordering and
   Rebalance Backlog Ranks are specified by design 15 but unimplemented; both
   belong to a reorder slice, and rebalance is a previewed bulk write.

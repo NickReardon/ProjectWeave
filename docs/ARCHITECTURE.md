@@ -94,6 +94,18 @@ import Obsidian, Node, Electron, views, or future MCP code.
   rather than throwing. Suggesting a free path is not reserving one:
   TaskCreationProposalService remains the authority on target collisions. ADR
   0008 records the folder, filename, collision, and rank rules.
+- **Task search:** the workbench projection matches search text through the
+  `TaskSearchMatcher` contract in src/application/task-search, defaulting to
+  the literal case-insensitive substring behavior. A caller may inject another
+  strategy, including one backed by Obsidian, which application code cannot
+  import itself. Whitespace-token and subsequence strategies ship beside the
+  default behind a named registry, but only the default has a runtime caller;
+  a persisted user choice is additive and not built. The projection filters on
+  match scores without ordering by them, so relevance ranking remains a sort
+  change rather than a matcher change. The contract sees only what
+  `TaskSearchCandidate` carries, so
+  matching note bodies would be a snapshot decision rather than a matcher
+  change — indexing discards content after parsing.
 - **Creation preview:** TaskCreationPreviewService composes allocation with the
   proposal service into one reviewable result, keeping the chosen path and rank
   visible even when the proposal fails. Its operation id is derived from the
