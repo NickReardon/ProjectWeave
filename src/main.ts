@@ -1,12 +1,14 @@
 import { Notice, Plugin, TFile } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 
+import { ObsidianNoteWriter } from './adapters/obsidian/obsidian-note-writer';
 import {
   ObsidianLinkResolver,
   ObsidianVaultReader,
 } from './adapters/obsidian/obsidian-vault-reader';
 import { buildProjectWorkbenchModel } from './application/project-workbench-model';
 import { ProjectWeaveReadSource } from './application/project-weave-read-source';
+import { TaskCreationCommitService } from './application/task-creation-commit';
 import { TaskCreationPreviewService } from './application/task-creation-preview';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
@@ -356,6 +358,14 @@ export default class ProjectWeavePlugin extends Plugin {
       ),
     );
 
+    // The writer is scoped to the same project roots the reader indexes, so a
+    // path outside them is refused by the adapter regardless of what asks.
+    const commits = new TaskCreationCommitService(
+      () => this.#readSource.current.snapshot,
+      runtime.reader,
+      new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),
+    );
+
     new TaskCreationPreviewModal(this.app, {
       projectTitle: project.title,
       projectPath: project.path,
@@ -365,7 +375,25 @@ export default class ProjectWeavePlugin extends Plugin {
           projectPath: project.path,
           clock: templateClockFromLocalDate(new Date()),
         }),
+      commit: (proposal) => commits.commit(proposal),
+      openNote: (path) => this.#openCreatedNote(path),
     }).open();
+  }
+
+  /** Opens a just-created note in a new tab, leaving the workbench in place. */
+  async #openCreatedNote(path: string): Promise<void> {
+    const file = this.app.vault.getFileByPath(path);
+    if (file === null) {
+      // The vault event for a brand-new file may not have landed yet.
+      new Notice('Created ' + path + '. Open it from the workbench.');
+      return;
+    }
+    try {
+      await this.app.workspace.getLeaf('tab').openFile(file, { active: true });
+    } catch (error) {
+      console.error('Project Weave could not open the created note', error);
+      new Notice('Created ' + path + ', but it could not be opened.');
+    }
   }
 
   #showIndexStatus(): void {
