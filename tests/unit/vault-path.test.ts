@@ -1,0 +1,138 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  hasControlCharacter,
+  isSafeVaultNotePath,
+  joinVaultPath,
+  sanitizeNoteFilename,
+  vaultParentFolder,
+} from '../../src/domain/vault-path';
+
+// Built rather than written literally: a raw NUL byte in this file would make
+// Git treat the whole test as binary and stop showing its diffs.
+const NUL = String.fromCodePoint(0);
+const DEL = String.fromCodePoint(0x7f);
+
+describe('isSafeVaultNotePath', () => {
+  it('accepts normalized vault-relative Markdown paths', () => {
+    expect(isSafeVaultNotePath('Projects/Game/Tasks/Fix crash.md')).toBe(true);
+    expect(isSafeVaultNotePath('Task.md')).toBe(true);
+    expect(isSafeVaultNotePath('Projects/Game/Tasks/Fix crash.MD')).toBe(true);
+  });
+
+  it('rejects paths that are not already normalized', () => {
+    // Repairing these would move a write out of the folder the caller meant.
+    expect(isSafeVaultNotePath('/Projects/Task.md')).toBe(false);
+    expect(isSafeVaultNotePath('Projects/Task.md/')).toBe(false);
+    expect(isSafeVaultNotePath('Projects\\Task.md')).toBe(false);
+  });
+
+  it('rejects traversal and empty segments', () => {
+    expect(isSafeVaultNotePath('Projects/../Task.md')).toBe(false);
+    expect(isSafeVaultNotePath('Projects/./Task.md')).toBe(false);
+    expect(isSafeVaultNotePath('Projects//Task.md')).toBe(false);
+  });
+
+  it('rejects control characters', () => {
+    expect(isSafeVaultNotePath(`Projects/Ta${NUL}sk.md`)).toBe(false);
+    expect(isSafeVaultNotePath(`Projects/Task${DEL}.md`)).toBe(false);
+    expect(isSafeVaultNotePath('Projects/Ta\tsk.md')).toBe(false);
+  });
+
+  it('rejects empty paths and non-Markdown targets', () => {
+    expect(isSafeVaultNotePath('')).toBe(false);
+    expect(isSafeVaultNotePath('Projects/Task')).toBe(false);
+    expect(isSafeVaultNotePath('Projects/Task.txt')).toBe(false);
+  });
+});
+
+describe('sanitizeNoteFilename', () => {
+  it('keeps an ordinary title unchanged', () => {
+    expect(sanitizeNoteFilename('Implement request')).toBe('Implement request');
+  });
+
+  it('replaces filesystem-unsafe characters and collapses the gaps', () => {
+    expect(sanitizeNoteFilename('Fix: crash in A/B')).toBe('Fix crash in A B');
+    expect(sanitizeNoteFilename('What?  Really*')).toBe('What Really');
+  });
+
+  it('replaces characters that would break the wiki links we write', () => {
+    // A created task is referenced by [[link]] from its relations, so a stem
+    // containing these would index as a note nothing can point at.
+    expect(sanitizeNoteFilename('Ship [v1] #now ^fast | done')).toBe(
+      'Ship v1 now fast done',
+    );
+  });
+
+  it('treats control characters as word separators, not as nothing', () => {
+    expect(sanitizeNoteFilename(`Fix${NUL} crash`)).toBe('Fix crash');
+    expect(sanitizeNoteFilename('Fix\tcrash')).toBe('Fix crash');
+  });
+
+  it('trims surrounding dots and spaces that Windows would strip anyway', () => {
+    expect(sanitizeNoteFilename('  ..Trim me..  ')).toBe('Trim me');
+  });
+
+  it('preserves non-ASCII titles', () => {
+    expect(sanitizeNoteFilename('Café résumé 日本語')).toBe(
+      'Café résumé 日本語',
+    );
+  });
+
+  it('caps long stems and re-trims the cut edge', () => {
+    const stem = sanitizeNoteFilename(`${'a'.repeat(119)}   tail`);
+    expect(stem).toBe('a'.repeat(119));
+    expect(stem).not.toMatch(/\s$/u);
+  });
+
+  it('returns null when nothing usable remains', () => {
+    expect(sanitizeNoteFilename('')).toBeNull();
+    expect(sanitizeNoteFilename('   ')).toBeNull();
+    expect(sanitizeNoteFilename('///')).toBeNull();
+    expect(sanitizeNoteFilename(NUL)).toBeNull();
+  });
+
+  it('returns null for Windows device names with or without an extension', () => {
+    expect(sanitizeNoteFilename('CON')).toBeNull();
+    expect(sanitizeNoteFilename('con')).toBeNull();
+    expect(sanitizeNoteFilename('LPT9.txt')).toBeNull();
+    expect(sanitizeNoteFilename('NUL')).toBeNull();
+    // Not reserved: the device name must be the whole first dot-segment.
+    expect(sanitizeNoteFilename('CONSOLE')).toBe('CONSOLE');
+    expect(sanitizeNoteFilename('COM10')).toBe('COM10');
+  });
+});
+
+describe('joinVaultPath', () => {
+  it('joins segments and drops empty ones', () => {
+    expect(joinVaultPath('Projects/Game', 'Tasks', 'A.md')).toBe(
+      'Projects/Game/Tasks/A.md',
+    );
+    expect(joinVaultPath('', 'Tasks', '', 'A.md')).toBe('Tasks/A.md');
+  });
+
+  it('normalizes each segment before joining', () => {
+    expect(joinVaultPath('/Projects/', 'Tasks\\Combat', 'A.md')).toBe(
+      'Projects/Tasks/Combat/A.md',
+    );
+  });
+});
+
+describe('vaultParentFolder', () => {
+  it('returns the containing folder', () => {
+    expect(vaultParentFolder('Projects/Game/Project.md')).toBe('Projects/Game');
+  });
+
+  it('returns an empty string for a root-level note', () => {
+    expect(vaultParentFolder('Project.md')).toBe('');
+  });
+});
+
+describe('hasControlCharacter', () => {
+  it('detects C0 controls and DEL', () => {
+    expect(hasControlCharacter('plain')).toBe(false);
+    expect(hasControlCharacter('a\tb')).toBe(true);
+    expect(hasControlCharacter('a\nb')).toBe(true);
+    expect(hasControlCharacter(`a${DEL}b`)).toBe(true);
+  });
+});
