@@ -46,7 +46,7 @@ export type ProjectWorkbenchDueState =
  */
 export type ProjectWorkbenchReadPublication = Pick<
   ProjectWeaveReadPublication,
-  'publicationId' | 'runtimeGeneration' | 'snapshot'
+  'publicationId' | 'runtimeGeneration' | 'publishedAt' | 'snapshot'
 >;
 
 export interface ProjectWorkbenchProjectionInput {
@@ -54,7 +54,11 @@ export interface ProjectWorkbenchProjectionInput {
   readonly selectedProjectPath: string | null;
   readonly activePath?: string | null;
   readonly readyDisplayLimit: number;
+  /** Index of the first ready task to return; snapped to a page boundary. */
+  readonly readyOffset?: number;
   readonly taskDisplayLimit?: number;
+  /** Index of the first matching task to return; snapped to a page boundary. */
+  readonly taskOffset?: number;
   readonly taskStatuses?: readonly TaskStatus[];
   readonly taskSearch?: string;
   /** Matching strategy for taskSearch; defaults to literal substring. */
@@ -92,6 +96,11 @@ export interface ProjectWorkbenchReadyModel {
   readonly items: readonly ProjectWorkbenchReadyItem[];
   readonly total: number;
   readonly displayed: number;
+  /** Index of the first returned item within the full ordered result. */
+  readonly offset: number;
+  /** Page size actually applied, after normalization. */
+  readonly pageSize: number;
+  /** True when ordered results continue past this page. */
   readonly truncated: boolean;
 }
 
@@ -129,6 +138,11 @@ export interface ProjectWorkbenchTasksModel {
   readonly items: readonly ProjectWorkbenchTaskItem[];
   readonly total: number;
   readonly displayed: number;
+  /** Index of the first returned item within the full filtered result. */
+  readonly offset: number;
+  /** Page size actually applied, after normalization. */
+  readonly pageSize: number;
+  /** True when filtered results continue past this page. */
   readonly truncated: boolean;
   readonly statuses: readonly TaskStatus[];
   readonly search: string;
@@ -172,6 +186,8 @@ interface ProjectWorkbenchBaseModel {
   readonly publicationId: number;
   readonly runtimeGeneration: number;
   readonly indexRevision: number;
+  /** Epoch milliseconds when the shown index was published. */
+  readonly indexUpdatedAt: number;
   readonly indexFreshness: IndexFreshness;
   readonly banner: ProjectWorkbenchBanner | null;
   readonly projectOptions: readonly ProjectWorkbenchProjectOption[];
@@ -226,6 +242,7 @@ export function buildProjectWorkbenchModel(
     publicationId: publication.publicationId,
     runtimeGeneration: publication.runtimeGeneration,
     indexRevision: snapshot.revision,
+    indexUpdatedAt: publication.publishedAt,
     indexFreshness: snapshot.freshness,
     banner: freshnessBanner(snapshot),
     projectOptions: projects.map(projectOption),
@@ -292,13 +309,24 @@ function projectModel(
     )
     .sort(compareReadyTask);
   const limit = normalizeReadyDisplayLimit(requestedReadyDisplayLimit);
-  const items = readyTasks.slice(0, limit).map((task) => ({
-    path: task.path,
-    title: task.title,
-    rank: task.rank,
-    priority: task.priority ?? 'normal',
-    unlockCount: countProjectTaskDependents(snapshot, task.path, project.path),
-  }));
+  const readyOffset = normalizePageOffset(
+    input.readyOffset,
+    readyTasks.length,
+    limit,
+  );
+  const items = readyTasks
+    .slice(readyOffset, readyOffset + limit)
+    .map((task) => ({
+      path: task.path,
+      title: task.title,
+      rank: task.rank,
+      priority: task.priority ?? 'normal',
+      unlockCount: countProjectTaskDependents(
+        snapshot,
+        task.path,
+        project.path,
+      ),
+    }));
   const totalReady = readyTasks.length;
   const taskStatuses = normalizeTaskStatuses(requestedTaskStatuses);
   const normalizedTaskSearch = normalizeTaskSearch(requestedTaskSearch);
@@ -324,22 +352,29 @@ function projectModel(
     )
     .sort(compareProjectTask);
   const taskLimit = normalizeTaskDisplayLimit(requestedTaskDisplayLimit);
-  const taskItems = filteredTasks.slice(0, taskLimit).map((task) => {
-    const readiness = snapshot.getReadiness(task.path);
-    return {
-      path: task.path,
-      title: task.title,
-      status: task.status,
-      rank: task.rank,
-      priority: task.priority ?? 'normal',
-      owner: task.owner,
-      dueDate: task.dueDate,
-      epic: taskRelation(snapshot, task.epic),
-      milestone: taskRelation(snapshot, task.milestone),
-      ready: readiness?.ready === true,
-      blockerCount: readiness?.blockers.length ?? 0,
-    };
-  });
+  const taskOffset = normalizePageOffset(
+    input.taskOffset,
+    filteredTasks.length,
+    taskLimit,
+  );
+  const taskItems = filteredTasks
+    .slice(taskOffset, taskOffset + taskLimit)
+    .map((task) => {
+      const readiness = snapshot.getReadiness(task.path);
+      return {
+        path: task.path,
+        title: task.title,
+        status: task.status,
+        rank: task.rank,
+        priority: task.priority ?? 'normal',
+        owner: task.owner,
+        dueDate: task.dueDate,
+        epic: taskRelation(snapshot, task.epic),
+        milestone: taskRelation(snapshot, task.milestone),
+        ready: readiness?.ready === true,
+        blockerCount: readiness?.blockers.length ?? 0,
+      };
+    });
   const diagnosticLimit = normalizeDiagnosticDisplayLimit(
     requestedDiagnosticDisplayLimit,
   );
@@ -371,13 +406,17 @@ function projectModel(
       items,
       total: totalReady,
       displayed: items.length,
-      truncated: items.length < totalReady,
+      offset: readyOffset,
+      pageSize: limit,
+      truncated: readyOffset + items.length < totalReady,
     },
     allTasks: {
       items: taskItems,
       total: filteredTasks.length,
       displayed: taskItems.length,
-      truncated: taskItems.length < filteredTasks.length,
+      offset: taskOffset,
+      pageSize: taskLimit,
+      truncated: taskOffset + taskItems.length < filteredTasks.length,
       statuses: taskStatuses,
       search: requestedTaskSearch?.trim() ?? '',
       priority: requestedTaskPriority ?? null,
@@ -708,6 +747,28 @@ function normalizeReadyDisplayLimit(value: number): number {
     return DEFAULT_READY_DISPLAY_LIMIT;
   }
   return Math.min(MAX_READY_DISPLAY_LIMIT, Math.max(1, Math.trunc(value)));
+}
+
+/**
+ * Snap a requested offset onto a page boundary inside the available results.
+ *
+ * The offset is a position, not a promise: results shrink when a task is
+ * edited, deleted, or filtered out, so an offset past the end lands on the last
+ * page rather than on an empty one. Snapping down to a multiple of the page
+ * size keeps page boundaries stable when the page size changes.
+ */
+function normalizePageOffset(
+  value: number | undefined,
+  total: number,
+  pageSize: number,
+): number {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+  const lastPageStart =
+    total === 0 ? 0 : Math.floor((total - 1) / pageSize) * pageSize;
+  const requested = Math.floor(Math.trunc(value) / pageSize) * pageSize;
+  return Math.min(requested, lastPageStart);
 }
 
 function normalizeTaskDisplayLimit(value: number | undefined): number {

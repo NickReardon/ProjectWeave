@@ -37,14 +37,14 @@ type: task
 title: "{{title}}"
 project: "{{project_link}}"
 status: "{{status}}"
-epic: "{{epic_link}}"
-milestone: "{{milestone_link}}"
-sprint: "{{planning_period_link}}"
-owner: "{{owner}}"
-priority: "{{priority}}"
-points: "{{points}}"
+epic:
+milestone:
+sprint:
+owner:
+priority:
+points:
 rank: "{{rank}}"
-due_date: "{{due_date}}"
+due_date:
 depends_on: "{{dependency_links}}"
 origin: "{{origin_link}}"
 created: "{{date}}"

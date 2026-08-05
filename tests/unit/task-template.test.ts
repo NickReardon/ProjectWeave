@@ -77,12 +77,16 @@ function content(result: TemplateRenderResult): string {
 }
 
 describe('renderTaskTemplate with the packaged minimal template', () => {
-  it('renders a valid task and omits every unset optional property', () => {
+  it('renders a valid task, keeping the planning properties and omitting the rest', () => {
     const result = renderTaskTemplate(request());
 
     expect(result.diagnostics).toEqual([]);
     expect(result.ok).toBe(true);
     expect(result.note?.targetPath).toBe(TARGET_PATH);
+    // The planning properties are empty statics, so an unset one renders as
+    // null rather than disappearing: a new task shows its shape in Obsidian's
+    // property editor. `rank`, `depends_on`, and `origin` stay placeholders
+    // and are still omitted when unset.
     expect(content(result)).toBe(
       [
         '---',
@@ -90,6 +94,13 @@ describe('renderTaskTemplate with the packaged minimal template', () => {
         'title: Implement travel request',
         'project: "[[Projects/Game/Project]]"',
         'status: todo',
+        'epic: null',
+        'milestone: null',
+        'sprint: null',
+        'owner: null',
+        'priority: null',
+        'points: null',
+        'due_date: null',
         'created: 2026-08-03',
         '---',
         '# Implement travel request',
@@ -143,6 +154,8 @@ describe('renderTaskTemplate with the packaged minimal template', () => {
         'project: "[[Projects/Game/Project]]"',
         'status: todo',
         'epic: "[[Projects/Game/Epics/Travel]]"',
+        'milestone: null',
+        'sprint: null',
         'owner: nick',
         'priority: high',
         'points: 3',

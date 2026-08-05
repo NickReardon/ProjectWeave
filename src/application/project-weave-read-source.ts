@@ -9,9 +9,19 @@ export interface ProjectWeaveReadRuntime {
 export interface ProjectWeaveReadPublication {
   readonly publicationId: number;
   readonly runtimeGeneration: number;
+  /**
+   * Epoch milliseconds when this publication was made, from the clock the
+   * caller supplied. Time is injected rather than read here so the read source
+   * stays deterministic under test, matching how the projection takes today's
+   * date from its caller.
+   */
+  readonly publishedAt: number;
   readonly snapshot: IndexSnapshot;
   readonly queryApi: ProjectWeaveQueryApi;
 }
+
+/** Epoch milliseconds. Injected so publication timing is testable. */
+export type ProjectWeaveClock = () => number;
 
 export type ProjectWeaveReadListener = (
   publication: ProjectWeaveReadPublication,
@@ -34,12 +44,18 @@ export class ProjectWeaveReadSource {
   #detachRuntime: (() => void) | null = null;
   #notifying = false;
   #disposed = false;
+  readonly #now: ProjectWeaveClock;
 
-  public constructor(initialSnapshot: IndexSnapshot = IndexSnapshot.empty()) {
+  public constructor(
+    initialSnapshot: IndexSnapshot = IndexSnapshot.empty(),
+    now: ProjectWeaveClock = () => Date.now(),
+  ) {
+    this.#now = now;
     this.#publication = createPublication(
       this.#publicationId,
       this.#runtimeGeneration,
       initialSnapshot,
+      this.#now(),
     );
   }
 
@@ -113,6 +129,7 @@ export class ProjectWeaveReadSource {
       this.#publicationId,
       generation,
       snapshot,
+      this.#now(),
     );
     this.#publication = publication;
     this.#pendingPublications.push({
@@ -170,10 +187,12 @@ function createPublication(
   publicationId: number,
   runtimeGeneration: number,
   snapshot: IndexSnapshot,
+  publishedAt: number,
 ): ProjectWeaveReadPublication {
   return Object.freeze({
     publicationId,
     runtimeGeneration,
+    publishedAt,
     snapshot,
     queryApi: new ProjectWeaveQueryApi(() => snapshot),
   });

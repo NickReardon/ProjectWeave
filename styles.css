@@ -377,6 +377,19 @@
   min-width: 0;
 }
 
+/* Obsidian styles :focus, so a control clicked with the mouse keeps a focused
+   look until something else takes focus: an unchecked box stays highlighted,
+   and New task stays held after the preview modal returns focus to it.
+   Returning focus to the trigger is right for keyboard users, so suppress the
+   indicator only when the browser says the focus was not keyboard-driven.
+   :focus-visible keeps it for Tab. */
+.project-weave-workbench__status-options
+  input[type='checkbox']:focus:not(:focus-visible),
+.project-weave-workbench__new-task:focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
 .project-weave-workbench__reset-filters {
   align-self: end;
   font-size: var(--font-ui-smaller);
@@ -471,13 +484,20 @@
 
 .project-weave-workbench__task-link {
   background: transparent;
+  border-radius: var(--radius-s);
   box-shadow: none;
   color: var(--text-normal);
   display: block;
   font-size: var(--font-ui-medium);
   font-weight: var(--font-semibold);
   height: auto;
-  padding: 0;
+  /* Padding rather than a bare label so the title is not flush against the
+     edge of its own box. No negative inline margin to compensate: pulling the
+     button back out to the card's padding edge is what made the box bleed to
+     the card borders. The box keeps the card's content width and the text sits
+     inside it. Vertical padding stays tight because the card already supplies
+     the row height. */
+  padding: var(--size-2-1) var(--size-4-2);
   text-align: left;
   white-space: normal;
   width: 100%;
@@ -489,12 +509,67 @@
   color: var(--text-accent);
 }
 
+/* Clicking a title left Obsidian's focus box drawn around the padded button,
+   which reads as a selected row. Keyboard focus still shows. */
+.project-weave-workbench__task-link:focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
 .project-weave-workbench__task-meta {
   margin-top: var(--size-4-1);
 }
 
 .project-weave-workbench__load-more {
   align-self: flex-start;
+}
+
+.project-weave-workbench__pager {
+  /* Wraps rather than overflows: in a narrow pane the readout drops below the
+     controls instead of clipping. */
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+  margin-top: var(--size-4-3);
+}
+
+.project-weave-workbench__page-size {
+  align-items: center;
+  display: flex;
+  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-1);
+}
+
+.project-weave-workbench__page-size select {
+  font-size: var(--font-ui-smaller);
+  height: auto;
+  padding: var(--size-4-1) var(--size-4-2);
+  width: auto;
+}
+
+.project-weave-workbench__page-status {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  /* Takes the slack so the buttons sit together at the trailing edge. */
+  flex: 1 1 auto;
+}
+
+.project-weave-workbench__page-button {
+  font-size: var(--font-ui-smaller);
+  height: auto;
+  padding: var(--size-4-1) var(--size-4-2);
+  white-space: nowrap;
+  width: auto;
+}
+
+.project-weave-workbench__page-button:disabled {
+  opacity: 0.5;
+}
+
+.project-weave-workbench__page-button:focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
 }
 
 .project-weave-workbench__empty {

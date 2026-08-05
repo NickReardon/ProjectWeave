@@ -79,6 +79,7 @@ async function openWorkbench(
   options: {
     readonly selectedProjectPath?: string;
     readonly activeFilePath?: string;
+    readonly now?: () => number;
   } = {},
 ): Promise<Harness> {
   const app = createStubApp(notes.map((note) => note.path));
@@ -86,7 +87,7 @@ async function openWorkbench(
   const leaf: StubLeaf = createStubLeaf(app);
 
   const runtime = new FakeRuntime(snapshotOf(notes));
-  const source = new ProjectWeaveReadSource();
+  const source = new ProjectWeaveReadSource(undefined, options.now);
   source.bind(runtime);
 
   const actions: ProjectWorkbenchActions = {
@@ -207,7 +208,43 @@ describe('Project Workbench view rendering', () => {
     expect(populated.text()).not.toContain('No tasks in this project');
   });
 
-  it('caps rendering at 200 results and says so rather than truncating silently', async () => {
+  it('reports how long ago the index updated, keeping exact detail in the tooltip', async () => {
+    const project = 'Projects/Game/Project.md';
+    const publishedAt = Date.now() - 5 * 60 * 1000;
+
+    const harness = await openWorkbench([projectNote(project)], {
+      selectedProjectPath: project,
+      now: () => publishedAt,
+    });
+
+    expect(harness.text()).toContain('updated 5 minutes ago');
+    // The relative label ages in place between publications, so the tooltip
+    // carries the absolute time and the revision behind it.
+    const title = harness.content
+      .querySelector('.project-weave-workbench__revision')
+      ?.getAttribute('title');
+    expect(title).toContain('index revision 1');
+    expect(title).toMatch(/^Updated \d{2}:\d{2} · /u);
+  });
+
+  it('names each unit of age from seconds to days', async () => {
+    const project = 'Projects/Game/Project.md';
+    const at = async (millisecondsAgo: number) =>
+      (
+        await openWorkbench([projectNote(project)], {
+          selectedProjectPath: project,
+          now: () => Date.now() - millisecondsAgo,
+        })
+      ).text();
+
+    expect(await at(0)).toContain('updated just now');
+    expect(await at(30 * 1000)).toContain('updated 30 seconds ago');
+    expect(await at(60 * 1000)).toContain('updated 1 minute ago');
+    expect(await at(3 * 60 * 60 * 1000)).toContain('updated 3 hours ago');
+    expect(await at(2 * 24 * 60 * 60 * 1000)).toContain('updated 2 days ago');
+  });
+
+  it('pages past the 200-result bound rather than stranding the tail', async () => {
     const project = 'Projects/Game/Project.md';
     const notes: SourceNote[] = [projectNote(project)];
     for (let index = 1; index <= 250; index += 1) {
@@ -224,25 +261,37 @@ describe('Project Workbench view rendering', () => {
       selectedProjectPath: project,
     });
 
-    // Both sections start at their initial page and grow through Show more.
-    for (let guard = 0; guard < 40; guard += 1) {
-      const loadMore = harness.content.querySelectorAll<HTMLButtonElement>(
-        '.project-weave-workbench__load-more',
-      );
-      if (loadMore.length === 0) {
-        break;
-      }
-      for (const button of loadMore) {
-        button.click();
-      }
-    }
-
-    expect(harness.text()).toContain('Showing the first 200 ready tasks.');
-    expect(harness.text()).toContain('Showing the first 200 of 250');
+    // Each section opens on its first page and says where that page sits.
+    expect(harness.text()).toContain('1–10 of 250 ready tasks');
+    expect(harness.text()).toContain('1–25 of 250 matching tasks');
     expect(
       harness.content.querySelectorAll('.project-weave-workbench__ready-item')
         .length,
-    ).toBe(200);
+    ).toBe(10);
+
+    const pageSize = harness.content.querySelector<HTMLSelectElement>(
+      '[data-workbench-focus-key="all-tasks-page-size"]',
+    );
+    pageSize!.value = '200';
+    pageSize!.dispatchEvent(new Event('change'));
+    expect(harness.text()).toContain('1–200 of 250 matching tasks');
+
+    // The 200 bound still holds per request; paging is how the rest is
+    // reached, so the tail past 200 is no longer stranded.
+    const next = () =>
+      harness.content.querySelector<HTMLButtonElement>(
+        '[data-workbench-focus-key="all-tasks-page-next"]',
+      );
+    next()!.click();
+    expect(harness.text()).toContain('201–250 of 250 matching tasks');
+    expect(harness.text()).toContain('Task 250');
+    expect(next()!.disabled).toBe(true);
+
+    const previous = harness.content.querySelector<HTMLButtonElement>(
+      '[data-workbench-focus-key="all-tasks-page-previous"]',
+    );
+    previous!.click();
+    expect(harness.text()).toContain('1–200 of 250 matching tasks');
   });
 
   it('marks a stale last-good index as an alert without hiding its results', async () => {
