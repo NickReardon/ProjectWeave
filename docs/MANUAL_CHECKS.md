@@ -341,11 +341,6 @@ also try it in a right sidebar. The filter controls should stack rather than
 overflow or clip. The status checkboxes should wrap into aligned columns.
 Known and accepted: the create-task modal is cramped at narrow widths.
 
-**11h — mobile compatibility.** Open the vault in Obsidian mobile, or in the
-desktop app's mobile emulation. The plugin declares `isDesktopOnly: false`, so
-it must load and the workbench must be usable. Any crash or missing view here
-is a release blocker.
-
 ---
 
 ### 12. Create-task preview
@@ -412,6 +407,19 @@ missing `Tasks` folder is created; the new task appears in the dashboard after
 the index refreshes; step 6 **refuses** with a message about the project note
 having changed and creates nothing; no pre-existing note is modified at any
 point.
+
+---
+
+### 14. Mobile compatibility — deferred
+
+Tracked separately from check 11 because it needs a device or emulator the
+desktop checks do not. Desktop acceptance does not wait on it; a release
+claiming mobile support does.
+
+Open the vault in Obsidian mobile, or in the desktop app's mobile emulation.
+The plugin declares `isDesktopOnly: false`, so it must load and the workbench
+must be usable. Run 11a through 11g there. Any crash or missing view here is a
+release blocker.
 
 ---
 
