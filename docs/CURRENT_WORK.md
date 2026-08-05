@@ -217,15 +217,15 @@ for desktop manual acceptance. Nothing in the workbench is known to be
 desktop-only; the check is unrun, not waived. Run it before any release that
 claims mobile support.
 
-Two cosmetic defects observed, neither affecting behavior:
-
-- A status checkbox keeps a highlighted, hovered-looking appearance after being
-  unchecked, and the **New task** button keeps a held-looking appearance after
-  the preview modal closes. Both are the same cause: `styles.css` defines no
-  focus styling, so these are Obsidian's default focus styles persisting after
-  a mouse click, and the button additionally receives focus back when the modal
-  closes. Returning focus to the trigger is correct for keyboard users, so the
-  fix is to style `:focus-visible` rather than to blur on click.
+Two cosmetic defects were observed, neither affecting behavior: a status
+checkbox kept a highlighted, hovered-looking appearance after being unchecked,
+and the **New task** button kept a held-looking appearance after the preview
+modal closed. Both had the same cause — Obsidian styles `:focus`, so a control
+clicked with the mouse stays lit until focus moves, and the modal returns focus
+to its trigger. `styles.css` now suppresses the indicator for
+`:focus:not(:focus-visible)` on those two controls, which leaves the keyboard
+focus ring intact. Confirm both in the app; no automated check covers how
+Obsidian draws focus.
 
 What remains for desktop acceptance is check 5's due-state filters and the
 unreached parts of check 11: stale last good, an unavailable restored
@@ -267,6 +267,13 @@ Verified against the committed tree; none blocks the manual checks:
   and its DOM helpers throw on an unimplemented `createEl` option rather than
   guessing. Extending it is expected as more UI gains coverage; it models
   Obsidian's API, never Obsidian's behavior.
+- A property rendered as `null` gives Obsidian nothing to infer a type from,
+  and Obsidian stores property types in vault config rather than in the note.
+  A vault that meets `due_date` or `points` as null first may register it as
+  Text rather than Date or Number. Project Weave must not write that config, so
+  the user sets the type once per vault. Confirm what Obsidian actually does
+  when checks 12 and 13 are re-run; if it registers the wrong type, weigh that
+  against the discoverability ADR 0010 buys.
 - No fixture task in `tests/fixtures/vault/` sets the planning properties, so a
   vault seeded from the fixture alone still does not teach Obsidian
   `due_date`. Creating one task through the plugin now does. Check 5's setup

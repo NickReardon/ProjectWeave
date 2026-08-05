@@ -377,6 +377,19 @@
   min-width: 0;
 }
 
+/* Obsidian styles :focus, so a control clicked with the mouse keeps a focused
+   look until something else takes focus: an unchecked box stays highlighted,
+   and New task stays held after the preview modal returns focus to it.
+   Returning focus to the trigger is right for keyboard users, so suppress the
+   indicator only when the browser says the focus was not keyboard-driven.
+   :focus-visible keeps it for Tab. */
+.project-weave-workbench__status-options
+  input[type='checkbox']:focus:not(:focus-visible),
+.project-weave-workbench__new-task:focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
 .project-weave-workbench__reset-filters {
   align-self: end;
   font-size: var(--font-ui-smaller);
