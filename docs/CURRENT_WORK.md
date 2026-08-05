@@ -22,10 +22,10 @@ ends, or the next decision changes — not for every code change.
 - The filterable Project Workbench and the task creation chain — allocation,
   template resolution, proposal, preview, and commit — pass the complete
   automated gate.
-- Version 0.3.0 was exported and installed into the configured disposable test
-  vault. Some of the focused manual Obsidian checks below have passed against
-  that build; each records its own status, and the ones still outstanding mean
-  the workbench as a whole is not yet manually accepted.
+- Version 0.4.0 was exported and installed into the configured disposable test
+  vault, replacing the 0.3.0 build the earlier checks ran against. Each check
+  below records its own status, and the ones still outstanding mean the
+  workbench as a whole is not yet manually accepted.
 - **Project Weave now writes to the vault.** Confirming **Create task** in the
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
@@ -98,6 +98,20 @@ shipped bundle is unchanged. Vitest, ESLint, and Prettier all skip `.claude`
 and `test-vault`, so another branch's worktree or an installed build cannot be
 counted as this tree's result.
 
+On 2026-08-05, `npm run check` passed in full against source commit `b8eb7bc`
+using Node.js 24.11.1: version records synchronized at 0.4.0, the current-work
+gate, Prettier, ESLint, `tsc --noEmit`, 23 Vitest files with 249 tests, 28 Node
+script tests, the production bundle, and a release inventory of exactly
+`main.js`, `manifest.json`, and `styles.css`.
+
+`npm run export` then produced `export/project-weave` and the 67,571-byte
+`export/project-weave-0.4.0.zip`, and the configured export hook installed the
+three runtime files into the disposable test vault. SHA-256 comparison
+confirmed each installed file matched the export, and the installed manifest
+reported 0.4.0. Reseeding that vault dated the fixture tasks correctly for the
+day it ran; it reported, and left in place, several notes an earlier manual
+session created.
+
 Automated validation does not replace the manual Obsidian checks below. The
 workbench view now has DOM coverage for the states ordinary use does not reach
 — an empty scope, an unavailable restored selection and its recovery, no tasks
@@ -169,8 +183,8 @@ numbering; this file remains authoritative for whether a check has passed.
 
 Checks 12 and 13 predate ADR 0010, which changes the frontmatter of every
 created task. Both passed on preview and written bytes agreeing, so both need
-re-running against a build that includes it before task creation counts as
-manually accepted again.
+re-running before task creation counts as manually accepted again. The
+installed 0.4.0 build includes ADR 0010, so both are now runnable.
 
 **Check 13 passed** against a real vault: creating from the workbench works,
 the task folder and requested subfolders are created, a duplicate title yields
@@ -227,10 +241,20 @@ to its trigger. `styles.css` now suppresses the indicator for
 focus ring intact. Confirm both in the app; no automated check covers how
 Obsidian draws focus.
 
-What remains for desktop acceptance is check 5's due-state filters and the
-unreached parts of check 11: stale last good, an unavailable restored
-selection, an empty scope, zero filter matches, 200-result truncation, and
-narrow layouts.
+What remains for desktop acceptance, all of it runnable against the installed
+0.4.0 build:
+
+- check 5's due-state filters, which the seeded due dates now make reachable;
+- the unreached parts of check 11 — stale last good, an unavailable restored
+  selection, an empty scope, zero filter matches, paging a project past the
+  200-result bound including the new **Page** field, and narrow layouts;
+- checks 12 and 13 re-run against ADR 0010's frontmatter;
+- the two cosmetic focus defects, which have a fix in `styles.css` that no
+  automated check can confirm.
+
+The disposable vault still holds a handful of notes an earlier manual session
+created, which the seeder reports rather than deletes. Remove them before
+running check 5 or 11, or they will appear in every task list.
 
 ## Known loose ends
 
