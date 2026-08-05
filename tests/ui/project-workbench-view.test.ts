@@ -208,23 +208,40 @@ describe('Project Workbench view rendering', () => {
     expect(populated.text()).not.toContain('No tasks in this project');
   });
 
-  it('reports when the index last updated, keeping the revision as a tooltip', async () => {
+  it('reports how long ago the index updated, keeping exact detail in the tooltip', async () => {
     const project = 'Projects/Game/Project.md';
-    const published = new Date();
-    published.setHours(14, 32, 0, 0);
+    const publishedAt = Date.now() - 5 * 60 * 1000;
 
     const harness = await openWorkbench([projectNote(project)], {
       selectedProjectPath: project,
-      now: () => published.getTime(),
+      now: () => publishedAt,
     });
 
-    expect(harness.text()).toContain('updated 14:32');
-    expect(harness.text()).not.toContain('revision');
-    expect(
-      harness.content
-        .querySelector('.project-weave-workbench__revision')
-        ?.getAttribute('title'),
-    ).toBe('Index revision 1');
+    expect(harness.text()).toContain('updated 5 minutes ago');
+    // The relative label ages in place between publications, so the tooltip
+    // carries the absolute time and the revision behind it.
+    const title = harness.content
+      .querySelector('.project-weave-workbench__revision')
+      ?.getAttribute('title');
+    expect(title).toContain('index revision 1');
+    expect(title).toMatch(/^Updated \d{2}:\d{2} · /u);
+  });
+
+  it('names each unit of age from seconds to days', async () => {
+    const project = 'Projects/Game/Project.md';
+    const at = async (millisecondsAgo: number) =>
+      (
+        await openWorkbench([projectNote(project)], {
+          selectedProjectPath: project,
+          now: () => Date.now() - millisecondsAgo,
+        })
+      ).text();
+
+    expect(await at(0)).toContain('updated just now');
+    expect(await at(30 * 1000)).toContain('updated 30 seconds ago');
+    expect(await at(60 * 1000)).toContain('updated 1 minute ago');
+    expect(await at(3 * 60 * 60 * 1000)).toContain('updated 3 hours ago');
+    expect(await at(2 * 24 * 60 * 60 * 1000)).toContain('updated 2 days ago');
   });
 
   it('pages past the 200-result bound rather than stranding the tail', async () => {

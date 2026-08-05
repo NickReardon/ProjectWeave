@@ -452,10 +452,14 @@ export class ProjectWorkbenchView extends ItemView {
         role: 'status',
         'aria-live': 'polite',
         'aria-atomic': 'true',
-        // The revision number answers "did it actually republish?" during a
-        // manual check. It is diagnostic rather than something to read at a
-        // glance, so it lives in the tooltip instead of the line itself.
-        title: 'Index revision ' + String(model.indexRevision),
+        // The absolute time keeps a relative label that has aged in place
+        // resolvable. The revision answers "did it actually republish?" during
+        // a manual check: diagnostic rather than glanceable.
+        title:
+          'Updated ' +
+          formatAbsoluteTimestamp(model.indexUpdatedAt) +
+          ' · index revision ' +
+          String(model.indexRevision),
       },
     });
   }
@@ -1596,19 +1600,55 @@ function localDateKey(date: Date): string {
 }
 
 /**
- * Local wall-clock time an index publication happened.
+ * How long ago an index publication happened, in the largest unit that still
+ * reads naturally.
  *
- * Absolute rather than relative ("2 minutes ago") on purpose: a relative label
- * is wrong the moment it is drawn and would need a timer to stay true, and the
- * workbench re-renders on publication, not on a tick. The date is shown only
- * when the publication is not from today, which is the case a bare time would
- * misrepresent.
+ * Computed when the line is drawn and not on a timer: the workbench re-renders
+ * on publication, so between publications the label ages without being
+ * rewritten. That is why the absolute timestamp stays in the tooltip — a label
+ * reading "5 minutes ago" an hour later is still resolvable there.
+ *
+ * A publication timed in the future means a clock moved, not that the index is
+ * ahead; it reads as "just now" rather than a negative age.
  */
-function formatUpdatedAt(publishedAt: number, now: Date = new Date()): string {
-  const published = new Date(publishedAt);
+function formatUpdatedAt(
+  publishedAt: number,
+  now: number = Date.now(),
+): string {
   if (!Number.isFinite(publishedAt)) {
     return 'unknown';
   }
+  const seconds = Math.floor((now - publishedAt) / 1000);
+  if (seconds < 10) {
+    return 'just now';
+  }
+  if (seconds < 60) {
+    return countedAgo(seconds, 'second');
+  }
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return countedAgo(minutes, 'minute');
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return countedAgo(hours, 'hour');
+  }
+  return countedAgo(Math.floor(hours / 24), 'day');
+}
+
+function countedAgo(count: number, unit: string): string {
+  return String(count) + ' ' + unit + (count === 1 ? '' : 's') + ' ago';
+}
+
+/** Absolute local timestamp, for the tooltip behind the relative label. */
+function formatAbsoluteTimestamp(
+  publishedAt: number,
+  now: Date = new Date(),
+): string {
+  if (!Number.isFinite(publishedAt)) {
+    return 'unknown';
+  }
+  const published = new Date(publishedAt);
   const time =
     String(published.getHours()).padStart(2, '0') +
     ':' +

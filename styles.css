@@ -493,9 +493,11 @@
   height: auto;
   /* Padding rather than a bare label so the hit area has room around the
      title. The matching negative inline margin keeps the text aligned with
-     the rest of the card, so the target grows without the layout shifting. */
+     the rest of the card, so the target grows without the layout shifting.
+     Vertical padding stays tight: the card already supplies the row's height,
+     and doubling it up makes every row taller for no extra reach. */
   margin-inline: calc(-1 * var(--size-4-2));
-  padding: var(--size-4-1) var(--size-4-2);
+  padding: var(--size-2-1) var(--size-4-2);
   text-align: left;
   white-space: normal;
   width: 100%;
@@ -505,6 +507,13 @@
   background: transparent;
   box-shadow: none;
   color: var(--text-accent);
+}
+
+/* Clicking a title left Obsidian's focus box drawn around the padded button,
+   which reads as a selected row. Keyboard focus still shows. */
+.project-weave-workbench__task-link:focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
 }
 
 .project-weave-workbench__task-meta {
