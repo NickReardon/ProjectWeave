@@ -95,7 +95,9 @@ cap.
 ## Manual checks still required
 
 Use a disposable Obsidian vault populated from `tests/fixtures/vault/` and
-verify:
+verify the checks below. `docs/MANUAL_CHECKS.md` holds the step-by-step
+procedure, fixture baseline, and pass criteria for each one, under the same
+numbering; this file remains authoritative for whether a check has passed.
 
 1. The ribbon, command palette, and settings button open one reusable Project
    Workbench tab.
