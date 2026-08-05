@@ -30,6 +30,11 @@
 }
 
 .project-weave-workbench {
+  /* The workbench lives in a pane, not the window. Sizing off the viewport
+     leaves a narrow pane in a wide window laid out for space it does not
+     have, so every responsive rule below keys off this container instead. */
+  container-name: workbench;
+  container-type: inline-size;
   overflow: auto;
   padding: 0;
 }
@@ -317,7 +322,7 @@
   border-radius: var(--radius-m);
   display: grid;
   gap: var(--size-4-3);
-  grid-template-columns: minmax(160px, 1fr) minmax(260px, 2fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   padding: var(--size-4-3);
 }
 
@@ -326,6 +331,9 @@
   flex-direction: column;
   font-size: var(--font-ui-smaller);
   gap: var(--size-4-1);
+  /* Grid items default to min-width:auto, which refuses to shrink below the
+     content and is what pushed this row off the page. */
+  min-width: 0;
 }
 
 .project-weave-workbench__task-search input {
@@ -334,6 +342,7 @@
 
 .project-weave-workbench__status-filters {
   border: 0;
+  grid-column: 1 / -1;
   margin: 0;
   min-width: 0;
   padding: 0;
@@ -346,27 +355,42 @@
 }
 
 .project-weave-workbench__status-options {
-  display: flex;
-  flex-wrap: wrap;
+  /* A grid rather than wrapped flex so the checkboxes line up in columns once
+     they wrap; ragged rows read as broken. Tracks size to their content rather
+     than sharing the width evenly, so a short label like Todo does not carry
+     the trailing space of the longest one — `auto` as the max with
+     justify-content:start packs them left instead of stretching. The floor is
+     font-relative and set here, not on the labels, so the columns track the
+     user's font size. */
+  display: grid;
+  font-size: var(--font-ui-smaller);
   gap: var(--size-4-1) var(--size-4-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5em), auto));
+  justify-content: start;
+  padding-inline: var(--size-4-2);
 }
 
 .project-weave-workbench__status-options label {
   align-items: center;
-  display: inline-flex;
-  font-size: var(--font-ui-smaller);
+  display: flex;
   gap: var(--size-4-1);
+  min-width: 0;
 }
 
 .project-weave-workbench__reset-filters {
+  align-self: end;
+  font-size: var(--font-ui-smaller);
+  height: auto;
+  padding: var(--size-4-1) var(--size-4-2);
   white-space: nowrap;
+  width: auto;
 }
 
 .project-weave-workbench__task-filter-details {
   display: grid;
   gap: var(--size-4-2);
   grid-column: 1 / -1;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
 }
 
 .project-weave-workbench__task-filter-details label {
@@ -583,7 +607,9 @@
     margin-inline: var(--size-4-2);
     max-height: 32vh;
   }
+}
 
+@container workbench (max-width: 700px) {
   .project-weave-workbench__content {
     padding: var(--size-4-4);
   }
@@ -611,15 +637,10 @@
 
   .project-weave-workbench__task-filters {
     align-items: stretch;
-    grid-template-columns: 1fr;
   }
 
   .project-weave-workbench__reset-filters {
     justify-self: start;
-  }
-
-  .project-weave-workbench__task-filter-details {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -717,4 +738,19 @@
 .project-weave-task-preview__recovery {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
+}
+
+.project-weave-task-preview__status-text {
+  font-size: var(--font-ui-small);
+  margin: 0;
+}
+
+.project-weave-task-preview__status-text--error {
+  color: var(--text-error);
+}
+
+.project-weave-workbench__project-actions {
+  display: flex;
+  gap: var(--size-4-2);
+  justify-content: flex-start;
 }

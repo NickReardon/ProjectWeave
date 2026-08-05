@@ -1,10 +1,13 @@
-import { Modal, Setting } from 'obsidian';
+import { Modal, Notice, Setting } from 'obsidian';
+import type { ButtonComponent } from 'obsidian';
 import type { App } from 'obsidian';
 
 import type {
   TaskCreationPreviewRequest,
   TaskCreationPreviewResult,
 } from '../application/task-creation-preview';
+import type { TaskCreationCommitResult } from '../application/task-creation-commit';
+import type { TaskCreationProposal } from '../application/task-creation-proposal';
 import type { Diagnostic } from '../domain/model';
 
 /** Pause after typing before a preview runs. */
@@ -15,10 +18,18 @@ export type TaskCreationPreviewRunner = (
   request: Omit<TaskCreationPreviewRequest, 'projectPath' | 'clock'>,
 ) => Promise<TaskCreationPreviewResult>;
 
+/** Commits a previewed proposal; resolves to the created path or an error. */
+export type TaskCreationCommitRunner = (
+  proposal: TaskCreationProposal,
+) => Promise<TaskCreationCommitResult>;
+
 export interface TaskCreationPreviewContext {
   readonly projectTitle: string;
   readonly projectPath: string;
   readonly run: TaskCreationPreviewRunner;
+  readonly commit: TaskCreationCommitRunner;
+  /** Opens the created note; called only when the user asked for it. */
+  readonly openNote: (path: string) => Promise<void>;
 }
 
 /**
@@ -26,10 +37,11 @@ export interface TaskCreationPreviewContext {
  * rank, the resolved template, the preconditions that must hold, the rendered
  * bytes, and the expected postconditions.
  *
- * The modal cannot create anything. Project Weave has no write coordinator, so
- * there is deliberately no confirm action here — offering one that silently did
- * nothing, or that wrote without commit-time staleness checks, would be worse
- * than offering none.
+ * Creation is a separate, explicit action. The confirm button names what it
+ * will do and is disabled until a valid proposal exists, so nothing is written
+ * by dismissing the modal or by pressing an unlabelled control. The commit
+ * re-checks its inputs before writing, so a proposal that went stale while the
+ * modal sat open is refused rather than silently written.
  */
 export class TaskCreationPreviewModal extends Modal {
   readonly #context: TaskCreationPreviewContext;
@@ -37,10 +49,14 @@ export class TaskCreationPreviewModal extends Modal {
   #title = '';
   #subfolder = '';
   #createOnBoard = false;
+  #openAfterCreate = false;
   #result: TaskCreationPreviewResult | null = null;
   #pending = 0;
   #debounce: number | null = null;
+  #committing = false;
   #outputEl: HTMLElement | null = null;
+  #createButton: ButtonComponent | null = null;
+  #statusEl: HTMLElement | null = null;
 
   public constructor(app: App, context: TaskCreationPreviewContext) {
     super(app);
@@ -48,13 +64,13 @@ export class TaskCreationPreviewModal extends Modal {
   }
 
   public override onOpen(): void {
-    this.setTitle('Project Weave — Preview task creation');
+    this.setTitle('Project Weave — Create task');
     this.contentEl.empty();
     this.contentEl.addClass('project-weave-task-preview');
 
     this.contentEl.createEl('p', {
       cls: 'project-weave-task-preview__summary',
-      text: `Previewing a new task in ${this.#context.projectTitle}. Nothing is written.`,
+      text: `New task in ${this.#context.projectTitle}. Nothing is written until you choose Create task.`,
     });
 
     new Setting(this.contentEl)
@@ -90,9 +106,35 @@ export class TaskCreationPreviewModal extends Modal {
         });
       });
 
+    new Setting(this.contentEl)
+      .setName('Open the note after creating it')
+      .setDesc('Otherwise the note is created without changing your view.')
+      .addToggle((toggle) => {
+        toggle.setValue(false).onChange((value) => {
+          this.#openAfterCreate = value;
+        });
+      });
+
     this.#outputEl = this.contentEl.createDiv({
       cls: 'project-weave-task-preview__output',
     });
+
+    new Setting(this.contentEl).addButton((button) => {
+      button
+        .setButtonText('Create task')
+        .setCta()
+        .onClick(() => {
+          void this.#create();
+        });
+      // Keep the component, not its element. Driving the disabled state
+      // through Obsidian's own API in both directions avoids a button that is
+      // disabled by the component but re-enabled only on the raw element.
+      this.#createButton = button;
+    });
+    this.#statusEl = this.contentEl.createDiv({
+      cls: 'project-weave-task-preview__status',
+    });
+
     this.#renderOutput();
   }
 
@@ -100,6 +142,9 @@ export class TaskCreationPreviewModal extends Modal {
     // Abandons any in-flight preview: a later response must not repopulate a
     // closed modal, and an uncommitted draft is never authorization to write.
     this.#pending += 1;
+    this.#committing = false;
+    this.#createButton = null;
+    this.#statusEl = null;
     if (this.#debounce !== null) {
       window.clearTimeout(this.#debounce);
       this.#debounce = null;
@@ -152,7 +197,109 @@ export class TaskCreationPreviewModal extends Modal {
       });
   }
 
+  /**
+   * Commit the currently previewed proposal.
+   *
+   * Guarded against a double submit, and it never reuses a stale proposal
+   * silently: the commit service re-checks the read set and target, and any
+   * refusal is surfaced here with the vault untouched.
+   */
+  async #create(): Promise<void> {
+    const result = this.#result;
+    if (this.#committing) {
+      return;
+    }
+    // Never return silently: a click that does nothing is indistinguishable
+    // from a broken button.
+    if (result === null) {
+      this.#setStatus(
+        this.#title.trim() === ''
+          ? 'Enter a title first.'
+          : 'Still preparing the preview — try again in a moment.',
+        'error',
+      );
+      return;
+    }
+    if (!result.ok) {
+      this.#setStatus(
+        result.diagnostics[0]?.message ??
+          'This task cannot be created as previewed.',
+        'error',
+      );
+      return;
+    }
+    this.#committing = true;
+    this.#syncCreateButton();
+    this.#setStatus('Creating…');
+
+    try {
+      const outcome = await this.#context.commit(result.proposal);
+      if (!outcome.ok) {
+        this.#setStatus(
+          outcome.diagnostics[0]?.message ?? 'The task was not created.',
+          'error',
+        );
+        // Re-preview so the user sees the current situation, not the stale one.
+        this.#schedulePreview();
+        return;
+      }
+
+      const created = outcome.created_path;
+      this.close();
+      new Notice('Created ' + created);
+      if (this.#openAfterCreate) {
+        await this.#context.openNote(created);
+      }
+    } catch (error) {
+      console.error('Project Weave could not create the task', error);
+      this.#setStatus(
+        'Project Weave could not create the task. Nothing was written.',
+        'error',
+      );
+    } finally {
+      this.#committing = false;
+      this.#syncCreateButton();
+    }
+  }
+
+  #syncCreateButton(): void {
+    const button = this.#createButton;
+    if (button === null) {
+      return;
+    }
+    const ready = this.#result?.ok === true && !this.#committing;
+    button.setDisabled(!ready);
+    button.setButtonText(this.#committing ? 'Creating…' : 'Create task');
+    // A disabled control that looks enabled reads as a broken button, so say
+    // why it cannot run rather than silently ignoring the click.
+    button.buttonEl.title = ready
+      ? 'Create this note'
+      : this.#title.trim() === ''
+        ? 'Enter a title first'
+        : 'This task cannot be created yet — see the diagnostics above';
+  }
+
+  #setStatus(text: string, tone: 'error' | 'info' = 'info'): void {
+    const status = this.#statusEl;
+    if (status === null) {
+      return;
+    }
+    status.empty();
+    if (text.length === 0) {
+      return;
+    }
+    status.createEl('p', {
+      cls:
+        'project-weave-task-preview__status-text' +
+        (tone === 'error'
+          ? ' project-weave-task-preview__status-text--error'
+          : ''),
+      text,
+    });
+  }
+
   #renderOutput(): void {
+    this.#syncCreateButton();
     const container = this.#outputEl;
     if (container === null) {
       return;
@@ -237,7 +384,7 @@ export class TaskCreationPreviewModal extends Modal {
 
     container.createEl('p', {
       cls: 'project-weave-task-preview__notice',
-      text: 'Project Weave cannot create this note yet. Task creation lands with the write coordinator.',
+      text: 'Creating writes exactly these bytes to that path. Existing notes are never modified or overwritten.',
     });
   }
 

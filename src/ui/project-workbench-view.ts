@@ -44,6 +44,8 @@ const WORKBENCH_STATE_VERSION = 1;
 
 export interface ProjectWorkbenchActions {
   rebuildIndex(): Promise<void>;
+  /** Opens the create-task flow for an already-resolved project. */
+  createTask(projectPath: string): void;
 }
 
 /** What must survive a full re-render so typing is not disrupted. */
@@ -127,6 +129,15 @@ export class ProjectWorkbenchView extends ItemView {
 
   public override getIcon(): string {
     return 'layout-dashboard';
+  }
+
+  /**
+   * The project this workbench is showing, if any. Lets a command act on the
+   * dashboard's own selection instead of inferring from the active file —
+   * there is no active file when the workbench itself has focus.
+   */
+  public get selectedProjectPath(): string | null {
+    return this.#selectedProjectPath;
   }
 
   public override getState(): Record<string, unknown> {
@@ -507,6 +518,24 @@ export class ProjectWorkbenchView extends ItemView {
     root: HTMLElement,
     model: Extract<ProjectWorkbenchModel, { state: 'project' }>,
   ): void {
+    const actions = root.createDiv({
+      cls: 'project-weave-workbench__project-actions',
+    });
+    const newTask = actions.createEl('button', {
+      cls: 'project-weave-workbench__new-task mod-cta',
+      text: 'New task',
+      attr: {
+        type: 'button',
+        title: 'Create a task in ' + model.project.title,
+        'data-workbench-focus-key': 'new-task',
+      },
+    });
+    newTask.addEventListener('click', () => {
+      // The workbench already knows which project is selected, so the flow
+      // never has to infer one from whichever note happens to be active.
+      this.#actions.createTask(model.project.path);
+    });
+
     const metrics = root.createEl('section', {
       cls: 'project-weave-workbench__metrics',
       attr: { 'aria-label': 'Project summary' },
@@ -695,6 +724,34 @@ export class ProjectWorkbenchView extends ItemView {
       search.value = this.#taskSearch;
     });
 
+    const reset = filters.createEl('button', {
+      cls: 'project-weave-workbench__reset-filters',
+      text: 'Reset filters',
+      attr: {
+        type: 'button',
+        'data-workbench-focus-key': 'task-filter-reset',
+      },
+    });
+
+    reset.addEventListener('click', () => {
+      this.#taskStatuses = new Set<TaskStatus>(
+        DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
+      );
+      this.#taskSearch = '';
+      this.#taskPriority = null;
+      this.#taskEpicPath = null;
+      this.#taskMilestonePath = null;
+      this.#taskOwner = null;
+      this.#taskDueState = null;
+      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+      // The controls are no longer rebuilt, so reset must push the cleared
+      // state back into them explicitly.
+      for (const sync of this.#taskFilterSyncs) {
+        sync();
+      }
+      this.#refreshTasks();
+    });
+
     const statusFilters = filters.createEl('fieldset', {
       cls: 'project-weave-workbench__status-filters',
     });
@@ -725,34 +782,6 @@ export class ProjectWorkbenchView extends ItemView {
       });
       label.createSpan({ text: taskStatusLabel(status) });
     }
-
-    const reset = filters.createEl('button', {
-      cls: 'project-weave-workbench__reset-filters',
-      text: 'Reset filters',
-      attr: {
-        type: 'button',
-        'data-workbench-focus-key': 'task-filter-reset',
-      },
-    });
-
-    reset.addEventListener('click', () => {
-      this.#taskStatuses = new Set<TaskStatus>(
-        DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
-      );
-      this.#taskSearch = '';
-      this.#taskPriority = null;
-      this.#taskEpicPath = null;
-      this.#taskMilestonePath = null;
-      this.#taskOwner = null;
-      this.#taskDueState = null;
-      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
-      // The controls are no longer rebuilt, so reset must push the cleared
-      // state back into them explicitly.
-      for (const sync of this.#taskFilterSyncs) {
-        sync();
-      }
-      this.#refreshTasks();
-    });
 
     const details = filters.createDiv({
       cls: 'project-weave-workbench__task-filter-details',

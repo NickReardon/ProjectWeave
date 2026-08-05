@@ -1,12 +1,14 @@
 import { Notice, Plugin, TFile } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 
+import { ObsidianNoteWriter } from './adapters/obsidian/obsidian-note-writer';
 import {
   ObsidianLinkResolver,
   ObsidianVaultReader,
 } from './adapters/obsidian/obsidian-vault-reader';
 import { buildProjectWorkbenchModel } from './application/project-workbench-model';
 import { ProjectWeaveReadSource } from './application/project-weave-read-source';
+import { TaskCreationCommitService } from './application/task-creation-commit';
 import { TaskCreationPreviewService } from './application/task-creation-preview';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
@@ -53,6 +55,9 @@ export default class ProjectWeavePlugin extends Plugin {
       (leaf: WorkspaceLeaf) =>
         new ProjectWorkbenchView(leaf, this.#readSource, {
           rebuildIndex: () => this.rebuildIndex(false),
+          createTask: (projectPath) => {
+            this.#openTaskCreationPreview(projectPath);
+          },
         }),
     );
     this.addSettingTab(new ProjectWeaveSettingTab(this.app, this));
@@ -95,8 +100,8 @@ export default class ProjectWeavePlugin extends Plugin {
       },
     });
     this.addCommand({
-      id: 'preview-task-creation',
-      name: 'Preview task creation',
+      id: 'create-task',
+      name: 'Create task',
       callback: () => {
         this.#openTaskCreationPreview();
       },
@@ -317,7 +322,12 @@ export default class ProjectWeavePlugin extends Plugin {
     new ReadyNowModal(this.app, result).open();
   }
 
-  #openTaskCreationPreview(): void {
+  /**
+   * Opens the create-task flow. A caller that already knows the project — the
+   * workbench does — passes it, so the flow never guesses from the active
+   * note and never refuses because no project note happens to be open.
+   */
+  #openTaskCreationPreview(requestedProjectPath?: string): void {
     const runtime = this.#runtime;
     if (runtime === null) {
       new Notice('Project Weave is not loaded.');
@@ -329,14 +339,26 @@ export default class ProjectWeavePlugin extends Plugin {
       return;
     }
 
+    // Prefer an explicit project, then whatever the workbench is showing, and
+    // only then the active file. The workbench is not a file view, so with the
+    // dashboard focused there is no active file to infer from at all.
+    const selectedProjectPath =
+      requestedProjectPath ?? this.#workbenchProjectPath();
     const projectModel = buildProjectWorkbenchModel({
       publication,
-      selectedProjectPath: null,
-      activePath: this.app.workspace.getActiveFile()?.path ?? null,
+      selectedProjectPath,
+      activePath:
+        selectedProjectPath === null
+          ? (this.app.workspace.getActiveFile()?.path ?? null)
+          : null,
       readyDisplayLimit: 1,
     });
     if (projectModel.state !== 'project') {
-      new Notice('Open a project or task note before previewing a new task.');
+      new Notice(
+        selectedProjectPath === null
+          ? 'Select a project in the workbench, or open a project or task note, before creating a task.'
+          : 'That project is no longer available. Rebuilding the index may help.',
+      );
       return;
     }
     const { project } = projectModel;
@@ -356,6 +378,14 @@ export default class ProjectWeavePlugin extends Plugin {
       ),
     );
 
+    // The writer is scoped to the same project roots the reader indexes, so a
+    // path outside them is refused by the adapter regardless of what asks.
+    const commits = new TaskCreationCommitService(
+      () => this.#readSource.current.snapshot,
+      runtime.reader,
+      new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),
+    );
+
     new TaskCreationPreviewModal(this.app, {
       projectTitle: project.title,
       projectPath: project.path,
@@ -365,7 +395,41 @@ export default class ProjectWeavePlugin extends Plugin {
           projectPath: project.path,
           clock: templateClockFromLocalDate(new Date()),
         }),
+      commit: (proposal) => commits.commit(proposal),
+      openNote: (path) => this.#openCreatedNote(path),
     }).open();
+  }
+
+  /** The project an open workbench is showing, or null when none is. */
+  #workbenchProjectPath(): string | null {
+    for (const leaf of this.app.workspace.getLeavesOfType(
+      PROJECT_WORKBENCH_VIEW_TYPE,
+    )) {
+      const { view } = leaf;
+      if (view instanceof ProjectWorkbenchView) {
+        const selected = view.selectedProjectPath;
+        if (selected !== null) {
+          return selected;
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Opens a just-created note in a new tab, leaving the workbench in place. */
+  async #openCreatedNote(path: string): Promise<void> {
+    const file = this.app.vault.getFileByPath(path);
+    if (file === null) {
+      // The vault event for a brand-new file may not have landed yet.
+      new Notice('Created ' + path + '. Open it from the workbench.');
+      return;
+    }
+    try {
+      await this.app.workspace.getLeaf('tab').openFile(file, { active: true });
+    } catch (error) {
+      console.error('Project Weave could not open the created note', error);
+      new Notice('Created ' + path + ', but it could not be opened.');
+    }
   }
 
   #showIndexStatus(): void {
