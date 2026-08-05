@@ -23,18 +23,17 @@ ends, or the next decision changes — not for every code change.
   template resolution, proposal, preview, and commit — pass the complete
   automated gate.
 - Version 0.3.0 was exported and installed into the configured disposable test
-  vault. Four of the focused manual Obsidian checks below have passed against
-  that build; the rest are outstanding, so the workbench is not yet manually
-  accepted.
+  vault. Some of the focused manual Obsidian checks below have passed against
+  that build; each records its own status, and the ones still outstanding mean
+  the workbench as a whole is not yet manually accepted.
 - **Project Weave now writes to the vault.** Confirming **Create task** in the
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
   and the write path cannot modify, move, or delete an existing note.
-- Creating a task has been exercised against a real vault. Folder and
-  subfolder creation, the suffixed name on a duplicate title, and refusing a
-  commit whose project note changed mid-modal all behave as designed. Only the
-  byte-for-byte comparison of the written note against its preview is still
-  proven solely against test doubles.
+- Task creation is manually accepted. Against a real vault it creates the
+  folders it needs, suffixes a colliding name rather than overwriting, refuses
+  a commit whose project note changed while the modal was open, and writes a
+  note matching its preview byte for byte.
 - Task target paths and backlog ranks are now allocated by pure application
   code. ADR 0008 settles the folder convention, filename derivation, collision
   policy, and rank rule that `docs/design/README.md` had left open.
@@ -138,12 +137,16 @@ verify:
     changed-note message and create nothing. No existing note is modified at
     any point.
 
-Check 13 is largely confirmed against a real vault: creating from the
-workbench works, the task folder and requested subfolders are created, a
-duplicate title yields a suffixed name rather than an overwrite, and editing
-the project note while the modal is open makes the commit refuse. Comparing
-the written bytes against the preview character for character has not been
-done separately.
+**Check 13 passed** against a real vault: creating from the workbench works,
+the task folder and requested subfolders are created, a duplicate title yields
+a suffixed name rather than an overwrite, editing the project note while the
+modal is open makes the commit refuse, and the written note matches its
+preview byte for byte. Creating from the command palette was fixed during this
+check, having previously refused whenever the workbench itself had focus.
+
+Check 12 was exercised only incidentally while running 13, which covered
+subfolder nesting and the collision suffix. Its rank derivation and the
+diagnostic for an unusable title were not confirmed separately.
 
 **Status as of 2026-08-03: partially complete.** Checks 2, 8, 9, and 10 were
 run against the installed 0.3.0 build and passed, with no defects observed:
@@ -158,11 +161,11 @@ check 9: the diagnostic appeared and cleared as expected, but the workbench
 listing's recovery guidance and exact-note navigation were not confirmed
 separately. Treat it as outstanding.
 
-Checks 1, 3, 4, 5, 6, 11, 12, and 13 remain outstanding. Record their results here
-before treating the workbench as manually accepted. Check 12 is new and has not
-been run at all, and check 13 covers the first vault write this project has
-ever performed. Neither can be accepted on automated evidence: the commit path
-is proven only against test doubles, never against Obsidian's Vault API.
+Checks 1, 3, 4, 5, 6, 11, and 12 remain outstanding. Record their results here
+before treating the workbench as manually accepted. Check 11 is the one nobody
+has touched, and it covers the degenerate states — stale-last-good, an
+unavailable restored selection, zero filter matches, 200-result truncation,
+narrow layouts, and a mobile-compatible environment.
 
 Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems,
 which bears on checks 1 and 3 through 6 in particular. That is supporting
