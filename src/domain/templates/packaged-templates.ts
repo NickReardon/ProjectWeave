@@ -69,3 +69,63 @@ created: "{{date}}"
 
 /** The packaged minimal template source file, relative to the repository. */
 export const PACKAGED_MINIMAL_TASK_TEMPLATE_FILE = 'templates/default/task.md';
+
+/**
+ * The packaged minimal project template, on the same terms as the task one: an
+ * immutable plugin asset, embedded rather than read at runtime, and kept
+ * byte-identical to `templates/default/project.md` by
+ * `tests/unit/packaged-templates.test.ts`.
+ *
+ * A project note is what every other kind hangs off, so this is the one
+ * template a vault with nothing in it still needs.
+ */
+export const PACKAGED_MINIMAL_PROJECT_TEMPLATE: TemplateSource = {
+  path: `${PACKAGED_MINIMAL_TEMPLATE_ID}/project`,
+  content: `---
+weave_template: true
+template_schema: 1
+template_for: project
+template_name: default
+template_description: Minimal long-running project
+template_inputs:
+  summary:
+    type: markdown
+    required: false
+type: project
+title: "{{title}}"
+status: planned
+created: "{{date}}"
+---
+# {{title}}
+
+{{#if summary}}
+## Summary
+
+{{summary}}
+{{/if}}
+
+## Goal
+
+
+## Scope
+
+### In scope
+
+-
+
+### Out of scope
+
+-
+
+## Current focus
+
+
+## Design index
+
+-
+`,
+};
+
+/** The packaged minimal project template source file, relative to the repository. */
+export const PACKAGED_MINIMAL_PROJECT_TEMPLATE_FILE =
+  'templates/default/project.md';

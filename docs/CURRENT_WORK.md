@@ -205,6 +205,12 @@ Verified against the committed tree; none blocks the manual checks:
   coordinator all have a runtime caller through the preview command.
 - Only task creation is writable. Editing an existing note, rank rebalancing,
   and further note kinds have no write path, by design.
+- The project kind has a renderer and a path allocator but no proposal,
+  preview, commit, or UI, so nothing can create a project note yet. Both are
+  pure and tested; `dist/main.js` contains neither, so the running plugin is
+  unchanged apart from the packaged project template, which the bundle now
+  carries at a cost of 479 bytes. ADR 0012 settles where a created project note
+  lands and why its collision unit is the folder rather than the note.
 - The commit coordinator handles exactly one created file. Multi-file
   proposals, and the partial-success reporting design 10 requires for them,
   are not implemented.
@@ -258,8 +264,9 @@ Verified against the committed tree; none blocks the manual checks:
   expects to date is no longer in the fixture.
 - `templateClockFromLocalDate` exists for a future caller. Nothing calls it
   yet.
-- Only `templates/default/task.md` has a consumer. The other packaged starter
-  templates remain inputs for later kinds.
+- `templates/default/task.md` has a runtime consumer; `templates/default/project.md`
+  is embedded and rendered by the project renderer but reaches no user yet. The
+  other five packaged starter templates remain inputs for later kinds.
 - The renderer normalizes CRLF template bodies to LF so identical requests
   render identical bytes.
 - A static frontmatter property whose template value is explicitly empty
@@ -272,9 +279,12 @@ Verified against the committed tree; none blocks the manual checks:
 
 ## Next decision point
 
-1. Run the four outstanding items above in one session against the installed
+1. Run the three outstanding items above in one session against the installed
    0.4.0 build, and record what was observed — including any defect — before
    treating the workbench as accepted.
-2. Keep further note kinds and any edit path behind a manually accepted task
-   creation flow. Multi-file proposals need the partial-success reporting
-   design 10 requires before any bulk operation ships.
+2. Finish the project kind: proposal, preview, commit, and the UI that picks a
+   root when settings name more than one. The renderer and allocator are in
+   place and unreachable until then.
+3. Keep any edit path behind the accepted creation flow. Multi-file proposals
+   need the partial-success reporting design 10 requires before any bulk
+   operation ships.
