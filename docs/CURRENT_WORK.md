@@ -150,8 +150,8 @@ numbering; this file remains authoritative for whether a check has passed.
 10. Changing indexed project roots replaces the runtime, shows a rebuilding
     state, and does not publish callbacks from the retired runtime.
 11. Multiple-project selection, unavailable restored selection, empty scope,
-    stale-last-good state, zero filter matches, 200-result truncation, narrow
-    layouts, and a mobile-compatible Obsidian environment remain usable.
+    stale-last-good state, zero filter matches, 200-result truncation, and
+    narrow layouts remain usable.
 12. **Create task** previews a target path under the project's task
     folder, a rank one gap past the largest existing rank, and rendered bytes
     matching both. A subfolder nests, a colliding title yields a numbered
@@ -164,6 +164,13 @@ numbering; this file remains authoritative for whether a check has passed.
     project note while the modal is open makes the commit refuse with a
     changed-note message and create nothing. No existing note is modified at
     any point.
+14. The same states as check 11 remain usable in a mobile-compatible Obsidian
+    environment. Deferred; see below.
+
+Checks 12 and 13 predate ADR 0010, which changes the frontmatter of every
+created task. Both passed on preview and written bytes agreeing, so both need
+re-running against a build that includes it before task creation counts as
+manually accepted again.
 
 **Check 13 passed** against a real vault: creating from the workbench works,
 the task folder and requested subfolders are created, a duplicate title yields
@@ -172,11 +179,7 @@ modal is open makes the commit refuse, and the written note matches its
 preview byte for byte. Creating from the command palette was fixed during this
 check, having previously refused whenever the workbench itself had focus.
 
-Check 12 was exercised only incidentally while running 13, which covered
-subfolder nesting and the collision suffix. Its rank derivation and the
-diagnostic for an unusable title were not confirmed separately.
-
-**Status as of 2026-08-03: partially complete.** Checks 2, 8, 9, and 10 were
+**Status: partially complete.** Checks 2, 8, 9, and 10 were
 run against the installed 0.3.0 build and passed, with no defects observed:
 workspace restoration kept the workbench and selected project while resetting
 transient filters, a task with no usable project relationship appeared under
@@ -184,30 +187,50 @@ transient filters, a task with no usable project relationship appeared under
 reading modes and cleared after correction, and a project-root change rebuilt
 without publishing from the retired runtime.
 
-Check 7 was exercised only incidentally, while making a note invalid to set up
-check 9: the diagnostic appeared and cleared as expected, but the workbench
-listing's recovery guidance and exact-note navigation were not confirmed
-separately. Treat it as outstanding.
+**Checks 1, 3, 4, 6, 7, and 12 passed** in a session on 2026-08-05, with two
+cosmetic defects recorded below. Check 7 is now confirmed in full, including the
+workbench listing's recovery guidance and exact-note navigation; the earlier
+incidental result is superseded. Check 12's appearance in the app agrees with
+the modal tests.
 
-Checks 1, 3, 4, 5, 6, 11, and 12 remain outstanding. Record their results here
-before treating the workbench as manually accepted. Check 11 is the one nobody
-has run in Obsidian, and it covers the degenerate states — stale-last-good, an
-unavailable restored selection, zero filter matches, 200-result truncation,
-narrow layouts, and a mobile-compatible environment. Its rendering is now
-automated apart from narrow layouts and mobile, which no harness here reaches;
-a disagreement between the automated result and the app is a defect in the test
-double and should be recorded as one.
+**Check 5 is partially complete.** Search and the filters behaved correctly, but
+the due-state filters were not exercised: no fixture task carries a `due_date`,
+and the check's setup step requires adding one. Obsidian's property picker does
+not suggest `due_date`, because nothing in `tests/fixtures/vault/` or
+`templates/default/` mentions it, so the field has to be typed by hand to exist
+at all. `due_date` is a real optional task field — `src/domain/markdown-parser.ts`
+parses it and reports `task.due_date.invalid` — so this is a fixture and
+template gap, not a product defect. Treat check 5 as outstanding until the
+due-state filters, including **Due today** against the local calendar date, are
+confirmed.
 
-Check 12 is now automated apart from its appearance and feel in Obsidian: the
-modal tests assert the previewed path, rank, subfolder nesting, collision
-notice, and diagnostic. Run it once to confirm the app agrees.
+**Check 11 is partially complete.** 11a (multiple projects) passed. 11d
+(stale last good) was not reached; it needs an index rebuild that throws, which
+ordinary use does not produce. 11b, 11c, 11e, 11f, and 11g were not recorded.
+Check 11's rendering is automated apart from narrow layouts, which no harness
+here reaches; a disagreement between the automated result and the app is a
+defect in the test double and should be recorded as one.
 
-Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems,
-which bears on checks 1 and 3 through 6 in particular. That is supporting
-evidence, not a substitute for the list above: the states still unreached by
-either ordinary use or the checks run so far are stale-last-good, an
-unavailable restored selection, zero filter matches, 200-result truncation,
-narrow layouts, and a mobile-compatible environment.
+Check 14 — the same states in a mobile-compatible Obsidian environment — is
+deferred until a mobile device or emulator is available, and is not required
+for desktop manual acceptance. Nothing in the workbench is known to be
+desktop-only; the check is unrun, not waived. Run it before any release that
+claims mobile support.
+
+Two cosmetic defects observed, neither affecting behavior:
+
+- A status checkbox keeps a highlighted, hovered-looking appearance after being
+  unchecked, and the **New task** button keeps a held-looking appearance after
+  the preview modal closes. Both are the same cause: `styles.css` defines no
+  focus styling, so these are Obsidian's default focus styles persisting after
+  a mouse click, and the button additionally receives focus back when the modal
+  closes. Returning focus to the trigger is correct for keyboard users, so the
+  fix is to style `:focus-visible` rather than to blur on click.
+
+What remains for desktop acceptance is check 5's due-state filters and the
+unreached parts of check 11: stale last good, an unavailable restored
+selection, an empty scope, zero filter matches, 200-result truncation, and
+narrow layouts.
 
 ## Known loose ends
 
@@ -244,6 +267,10 @@ Verified against the committed tree; none blocks the manual checks:
   and its DOM helpers throw on an unimplemented `createEl` option rather than
   guessing. Extending it is expected as more UI gains coverage; it models
   Obsidian's API, never Obsidian's behavior.
+- No fixture task in `tests/fixtures/vault/` sets the planning properties, so a
+  vault seeded from the fixture alone still does not teach Obsidian
+  `due_date`. Creating one task through the plugin now does. Check 5's setup
+  step still adds the fields by hand.
 - `templateClockFromLocalDate` exists for a future caller. Nothing calls it
   yet.
 - Only `templates/default/task.md` has a consumer. The other packaged starter
@@ -252,6 +279,11 @@ Verified against the committed tree; none blocks the manual checks:
   render identical bytes.
 - A static frontmatter property whose template value is explicitly empty
   renders as `key: null`. Omission is reserved for unset optional placeholders.
+  ADR 0010 uses this deliberately: the packaged task template declares its
+  seven planning properties as empty statics, so a created task carries
+  `epic`, `milestone`, `sprint`, `owner`, `priority`, `points`, and `due_date`
+  even when unset. `rank`, `depends_on`, and `origin` remain placeholders and
+  are still omitted when unset.
 
 ## Next decision point
 
