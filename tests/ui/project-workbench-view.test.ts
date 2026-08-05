@@ -224,25 +224,37 @@ describe('Project Workbench view rendering', () => {
       selectedProjectPath: project,
     });
 
-    // Both sections start at their initial page and grow through Show more.
-    for (let guard = 0; guard < 40; guard += 1) {
-      const loadMore = harness.content.querySelectorAll<HTMLButtonElement>(
-        '.project-weave-workbench__load-more',
-      );
-      if (loadMore.length === 0) {
-        break;
-      }
-      for (const button of loadMore) {
-        button.click();
-      }
-    }
-
-    expect(harness.text()).toContain('Showing the first 200 ready tasks.');
-    expect(harness.text()).toContain('Showing the first 200 of 250');
+    // Each section opens on its first page and says where that page sits.
+    expect(harness.text()).toContain('1–10 of 250 ready tasks');
+    expect(harness.text()).toContain('1–25 of 250 matching tasks');
     expect(
       harness.content.querySelectorAll('.project-weave-workbench__ready-item')
         .length,
-    ).toBe(200);
+    ).toBe(10);
+
+    const pageSize = harness.content.querySelector<HTMLSelectElement>(
+      '[data-workbench-focus-key="all-tasks-page-size"]',
+    );
+    pageSize!.value = '200';
+    pageSize!.dispatchEvent(new Event('change'));
+    expect(harness.text()).toContain('1–200 of 250 matching tasks');
+
+    // The 200 bound still holds per request; paging is how the rest is
+    // reached, so the tail past 200 is no longer stranded.
+    const next = () =>
+      harness.content.querySelector<HTMLButtonElement>(
+        '[data-workbench-focus-key="all-tasks-page-next"]',
+      );
+    next()!.click();
+    expect(harness.text()).toContain('201–250 of 250 matching tasks');
+    expect(harness.text()).toContain('Task 250');
+    expect(next()!.disabled).toBe(true);
+
+    const previous = harness.content.querySelector<HTMLButtonElement>(
+      '[data-workbench-focus-key="all-tasks-page-previous"]',
+    );
+    previous!.click();
+    expect(harness.text()).toContain('1–200 of 250 matching tasks');
   });
 
   it('marks a stale last-good index as an alert without hiding its results', async () => {

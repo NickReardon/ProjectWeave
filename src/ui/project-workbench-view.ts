@@ -31,12 +31,11 @@ import {
 
 export const PROJECT_WORKBENCH_VIEW_TYPE = 'project-weave-workbench';
 
-const INITIAL_READY_DISPLAY_LIMIT = 10;
-const READY_DISPLAY_INCREMENT = 25;
-const MAX_READY_DISPLAY_LIMIT = 200;
-const INITIAL_TASK_DISPLAY_LIMIT = 25;
-const TASK_DISPLAY_INCREMENT = 25;
-const MAX_TASK_DISPLAY_LIMIT = 200;
+// Page sizes the user can choose. The largest is the bound the projection
+// enforces anyway, so no choice here can ask for an unbounded result.
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
+const DEFAULT_READY_PAGE_SIZE = 10;
+const DEFAULT_TASK_PAGE_SIZE = 25;
 const INITIAL_DIAGNOSTIC_DISPLAY_LIMIT = 10;
 const DIAGNOSTIC_DISPLAY_INCREMENT = 25;
 const MAX_DIAGNOSTIC_DISPLAY_LIMIT = 200;
@@ -52,6 +51,19 @@ export interface ProjectWorkbenchActions {
 interface WorkbenchFocusState {
   readonly key: string;
   readonly selection: TextSelection | null;
+}
+
+interface PagerOptions {
+  readonly focusPrefix: 'ready' | 'all-tasks';
+  /** Plural noun for the position readout, such as "matching tasks". */
+  readonly noun: string;
+  readonly total: number;
+  readonly offset: number;
+  readonly pageSize: number;
+  readonly displayed: number;
+  readonly setPageSize: (size: number) => void;
+  readonly setOffset: (offset: number) => void;
+  readonly refresh: () => void;
 }
 
 interface DiagnosticSectionOptions {
@@ -72,8 +84,10 @@ export class ProjectWorkbenchView extends ItemView {
   #publication: ProjectWeaveReadPublication;
   #selectedProjectPath: string | null = null;
   #activePathHint: string | null = null;
-  #readyDisplayLimit = INITIAL_READY_DISPLAY_LIMIT;
-  #taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+  #readyPageSize: number = DEFAULT_READY_PAGE_SIZE;
+  #readyOffset = 0;
+  #taskPageSize: number = DEFAULT_TASK_PAGE_SIZE;
+  #taskOffset = 0;
   #taskStatuses = new Set<TaskStatus>(DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES);
   #taskSearch = '';
   #taskPriority: TaskPriority | null = null;
@@ -153,8 +167,10 @@ export class ProjectWorkbenchView extends ItemView {
     }
     this.#selectedProjectPath = projectPath;
     this.#activePathHint = null;
-    this.#readyDisplayLimit = INITIAL_READY_DISPLAY_LIMIT;
-    this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+    this.#readyPageSize = DEFAULT_READY_PAGE_SIZE;
+    this.#readyOffset = 0;
+    this.#taskPageSize = DEFAULT_TASK_PAGE_SIZE;
+    this.#taskOffset = 0;
     this.#taskStatuses = new Set<TaskStatus>(
       DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
     );
@@ -178,8 +194,10 @@ export class ProjectWorkbenchView extends ItemView {
   ): Promise<void> {
     this.#selectedProjectPath = selectedProjectPathFromState(state);
     this.#activePathHint = null;
-    this.#readyDisplayLimit = INITIAL_READY_DISPLAY_LIMIT;
-    this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+    this.#readyPageSize = DEFAULT_READY_PAGE_SIZE;
+    this.#readyOffset = 0;
+    this.#taskPageSize = DEFAULT_TASK_PAGE_SIZE;
+    this.#taskOffset = 0;
     this.#taskStatuses = new Set<TaskStatus>(
       DEFAULT_PROJECT_WORKBENCH_TASK_STATUSES,
     );
@@ -209,8 +227,6 @@ export class ProjectWorkbenchView extends ItemView {
         publication.publicationId !== this.#publication.publicationId;
       this.#publication = publication;
       if (isNewPublication) {
-        this.#readyDisplayLimit = INITIAL_READY_DISPLAY_LIMIT;
-        this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
         this.#diagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
         this.#unassignedDiagnosticDisplayLimit =
           INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
@@ -298,8 +314,10 @@ export class ProjectWorkbenchView extends ItemView {
       publication: this.#publication,
       selectedProjectPath: this.#selectedProjectPath,
       activePath: this.#activePathHint,
-      readyDisplayLimit: this.#readyDisplayLimit,
-      taskDisplayLimit: this.#taskDisplayLimit,
+      readyDisplayLimit: this.#readyPageSize,
+      readyOffset: this.#readyOffset,
+      taskDisplayLimit: this.#taskPageSize,
+      taskOffset: this.#taskOffset,
       taskStatuses: [...this.#taskStatuses],
       taskSearch: this.#taskSearch,
       taskPriority: this.#taskPriority,
@@ -652,30 +670,24 @@ export class ProjectWorkbenchView extends ItemView {
       }
     }
 
-    if (model.ready.truncated) {
-      if (this.#readyDisplayLimit < MAX_READY_DISPLAY_LIMIT) {
-        const loadMore = readySection.createEl('button', {
-          cls: 'project-weave-workbench__load-more',
-          text: 'Show more',
-          attr: {
-            type: 'button',
-            'data-workbench-focus-key': 'load-more',
-          },
-        });
-        loadMore.addEventListener('click', () => {
-          this.#readyDisplayLimit = Math.min(
-            MAX_READY_DISPLAY_LIMIT,
-            this.#readyDisplayLimit + READY_DISPLAY_INCREMENT,
-          );
-          this.#refreshReady();
-        });
-      } else {
-        readySection.createEl('p', {
-          cls: 'project-weave-workbench__limit-note',
-          text: 'Showing the first 200 ready tasks.',
-        });
-      }
-    }
+    this.#renderPager(readySection, {
+      focusPrefix: 'ready',
+      noun: 'ready tasks',
+      total: model.ready.total,
+      offset: model.ready.offset,
+      pageSize: model.ready.pageSize,
+      displayed: model.ready.displayed,
+      setPageSize: (size) => {
+        this.#readyPageSize = size;
+        this.#readyOffset = 0;
+      },
+      setOffset: (offset) => {
+        this.#readyOffset = offset;
+      },
+      refresh: () => {
+        this.#refreshReady();
+      },
+    });
   }
 
   #renderAllTasks(
@@ -717,7 +729,7 @@ export class ProjectWorkbenchView extends ItemView {
     });
     search.addEventListener('input', () => {
       this.#taskSearch = search.value;
-      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+      this.#taskOffset = 0;
       this.#refreshTasks();
     });
     this.#taskFilterSyncs.push(() => {
@@ -743,7 +755,7 @@ export class ProjectWorkbenchView extends ItemView {
       this.#taskMilestonePath = null;
       this.#taskOwner = null;
       this.#taskDueState = null;
-      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+      this.#taskOffset = 0;
       // The controls are no longer rebuilt, so reset must push the cleared
       // state back into them explicitly.
       for (const sync of this.#taskFilterSyncs) {
@@ -774,7 +786,7 @@ export class ProjectWorkbenchView extends ItemView {
         } else {
           this.#taskStatuses.delete(status);
         }
-        this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+        this.#taskOffset = 0;
         this.#refreshTasks();
       });
       this.#taskFilterSyncs.push(() => {
@@ -930,33 +942,112 @@ export class ProjectWorkbenchView extends ItemView {
       }
     }
 
-    if (model.allTasks.truncated) {
-      if (this.#taskDisplayLimit < MAX_TASK_DISPLAY_LIMIT) {
-        const loadMore = section.createEl('button', {
-          cls: 'project-weave-workbench__load-more',
-          text: 'Show more tasks',
-          attr: {
-            type: 'button',
-            'data-workbench-focus-key': 'all-tasks-load-more',
-          },
-        });
-        loadMore.addEventListener('click', () => {
-          this.#taskDisplayLimit = Math.min(
-            MAX_TASK_DISPLAY_LIMIT,
-            this.#taskDisplayLimit + TASK_DISPLAY_INCREMENT,
-          );
-          this.#refreshTasks();
-        });
-      } else {
-        section.createEl('p', {
-          cls: 'project-weave-workbench__limit-note',
-          text:
-            'Showing the first 200 of ' +
-            String(model.allTasks.total) +
-            ' matching tasks.',
-        });
-      }
+    this.#renderPager(section, {
+      focusPrefix: 'all-tasks',
+      noun: 'matching tasks',
+      total: model.allTasks.total,
+      offset: model.allTasks.offset,
+      pageSize: model.allTasks.pageSize,
+      displayed: model.allTasks.displayed,
+      setPageSize: (size) => {
+        this.#taskPageSize = size;
+        this.#taskOffset = 0;
+      },
+      setOffset: (offset) => {
+        this.#taskOffset = offset;
+      },
+      refresh: () => {
+        this.#refreshTasks();
+      },
+    });
+  }
+
+  /**
+   * Page-size chooser and page controls for one bounded section.
+   *
+   * Rendered whenever the section has results, so the page size stays reachable
+   * rather than appearing only once a list overflows. The controls describe the
+   * window in absolute terms — "26–50 of 500" — because a page number alone
+   * does not say how much is behind it.
+   */
+  #renderPager(section: HTMLElement, options: PagerOptions): void {
+    if (options.total === 0) {
+      return;
     }
+
+    const pager = section.createDiv({
+      cls: 'project-weave-workbench__pager',
+    });
+
+    const sizeLabel = pager.createEl('label', {
+      cls: 'project-weave-workbench__page-size',
+    });
+    sizeLabel.createSpan({ text: 'Per page' });
+    const sizeSelect = sizeLabel.createEl('select', {
+      attr: {
+        'data-workbench-focus-key': options.focusPrefix + '-page-size',
+      },
+    });
+    for (const size of PAGE_SIZE_OPTIONS) {
+      sizeSelect.createEl('option', {
+        text: String(size),
+        value: String(size),
+      });
+    }
+    sizeSelect.value = String(options.pageSize);
+    sizeSelect.addEventListener('change', () => {
+      const size = Number.parseInt(sizeSelect.value, 10);
+      if (Number.isNaN(size)) {
+        return;
+      }
+      options.setPageSize(size);
+      options.refresh();
+    });
+
+    // An empty page still reports its own bounds rather than "0–0": the
+    // projection clamps the offset, so displayed is only 0 when total is 0,
+    // and that case returned above.
+    const first = options.offset + 1;
+    const last = options.offset + options.displayed;
+    pager.createSpan({
+      cls: 'project-weave-workbench__page-status',
+      text:
+        String(first) +
+        '–' +
+        String(last) +
+        ' of ' +
+        String(options.total) +
+        ' ' +
+        options.noun,
+    });
+
+    const previous = pager.createEl('button', {
+      cls: 'project-weave-workbench__page-button',
+      text: 'Previous',
+      attr: {
+        type: 'button',
+        'data-workbench-focus-key': options.focusPrefix + '-page-previous',
+      },
+    });
+    previous.disabled = options.offset === 0;
+    previous.addEventListener('click', () => {
+      options.setOffset(Math.max(0, options.offset - options.pageSize));
+      options.refresh();
+    });
+
+    const next = pager.createEl('button', {
+      cls: 'project-weave-workbench__page-button',
+      text: 'Next',
+      attr: {
+        type: 'button',
+        'data-workbench-focus-key': options.focusPrefix + '-page-next',
+      },
+    });
+    next.disabled = last >= options.total;
+    next.addEventListener('click', () => {
+      options.setOffset(options.offset + options.pageSize);
+      options.refresh();
+    });
   }
   #renderTaskFilterSelect(
     container: HTMLElement,
@@ -996,7 +1087,7 @@ export class ProjectWorkbenchView extends ItemView {
     select.value = selectedValue ?? '';
     select.addEventListener('change', () => {
       onChange(select.value.length === 0 ? null : select.value);
-      this.#taskDisplayLimit = INITIAL_TASK_DISPLAY_LIMIT;
+      this.#taskOffset = 0;
       this.#refreshTasks();
     });
     this.#taskFilterSyncs.push(() => {
@@ -1294,13 +1385,13 @@ export class ProjectWorkbenchView extends ItemView {
       return;
     }
     if (
-      (focusKey === 'load-more' || focusKey.startsWith('task:')) &&
+      (focusKey.startsWith('ready-page-') || focusKey.startsWith('task:')) &&
       this.#focusByKey('ready-heading')
     ) {
       return;
     }
     if (
-      (focusKey === 'all-tasks-load-more' ||
+      (focusKey.startsWith('all-tasks-page-') ||
         focusKey.startsWith('all-task:')) &&
       this.#focusByKey('all-tasks-heading')
     ) {
@@ -1337,7 +1428,13 @@ export class ProjectWorkbenchView extends ItemView {
       (element) =>
         element.getAttribute('data-workbench-focus-key') === focusKey,
     );
-    if (focusTarget === undefined) {
+    // A disabled control cannot take focus, so treat it as absent and let the
+    // caller fall back. Paging to the last page disables Next under the very
+    // finger that just clicked it.
+    if (
+      focusTarget === undefined ||
+      (focusTarget as Partial<HTMLButtonElement>).disabled === true
+    ) {
       return false;
     }
     focusTarget.focus({ preventScroll: true });

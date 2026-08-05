@@ -484,13 +484,18 @@
 
 .project-weave-workbench__task-link {
   background: transparent;
+  border-radius: var(--radius-s);
   box-shadow: none;
   color: var(--text-normal);
   display: block;
   font-size: var(--font-ui-medium);
   font-weight: var(--font-semibold);
   height: auto;
-  padding: 0;
+  /* Padding rather than a bare label so the hit area has room around the
+     title. The matching negative inline margin keeps the text aligned with
+     the rest of the card, so the target grows without the layout shifting. */
+  margin-inline: calc(-1 * var(--size-4-2));
+  padding: var(--size-4-1) var(--size-4-2);
   text-align: left;
   white-space: normal;
   width: 100%;
@@ -508,6 +513,54 @@
 
 .project-weave-workbench__load-more {
   align-self: flex-start;
+}
+
+.project-weave-workbench__pager {
+  /* Wraps rather than overflows: in a narrow pane the readout drops below the
+     controls instead of clipping. */
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+  margin-top: var(--size-4-3);
+}
+
+.project-weave-workbench__page-size {
+  align-items: center;
+  display: flex;
+  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-1);
+}
+
+.project-weave-workbench__page-size select {
+  font-size: var(--font-ui-smaller);
+  height: auto;
+  padding: var(--size-4-1) var(--size-4-2);
+  width: auto;
+}
+
+.project-weave-workbench__page-status {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  /* Takes the slack so the buttons sit together at the trailing edge. */
+  flex: 1 1 auto;
+}
+
+.project-weave-workbench__page-button {
+  font-size: var(--font-ui-smaller);
+  height: auto;
+  padding: var(--size-4-1) var(--size-4-2);
+  white-space: nowrap;
+  width: auto;
+}
+
+.project-weave-workbench__page-button:disabled {
+  opacity: 0.5;
+}
+
+.project-weave-workbench__page-button:focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
 }
 
 .project-weave-workbench__empty {

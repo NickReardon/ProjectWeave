@@ -150,8 +150,8 @@ numbering; this file remains authoritative for whether a check has passed.
 10. Changing indexed project roots replaces the runtime, shows a rebuilding
     state, and does not publish callbacks from the retired runtime.
 11. Multiple-project selection, unavailable restored selection, empty scope,
-    stale-last-good state, zero filter matches, 200-result truncation, and
-    narrow layouts remain usable.
+    stale-last-good state, zero filter matches, paging a project larger than
+    the 200-result bound, and narrow layouts remain usable.
 12. **Create task** previews a target path under the project's task
     folder, a rank one gap past the largest existing rank, and rendered bytes
     matching both. A subfolder nests, a colliding title yields a numbered
@@ -207,6 +207,8 @@ confirmed.
 **Check 11 is partially complete.** 11a (multiple projects) passed. 11d
 (stale last good) was not reached; it needs an index rebuild that throws, which
 ordinary use does not produce. 11b, 11c, 11e, 11f, and 11g were not recorded.
+11f now covers paging rather than truncation, so it is outstanding on its new
+terms regardless of the earlier session.
 Check 11's rendering is automated apart from narrow layouts, which no harness
 here reaches; a disagreement between the automated result and the app is a
 defect in the test double and should be recorded as one.
@@ -245,6 +247,10 @@ Verified against the committed tree; none blocks the manual checks:
 - The commit coordinator handles exactly one created file. Multi-file
   proposals, and the partial-success reporting design 10 requires for them,
   are not implemented.
+- Ready Now and All Tasks page within the 200-result bound per ADR 0011; the
+  diagnostics sections still grow through **Show more** and stop at 200. Paging
+  them was not needed by any caller. There is no jump-to-page control, so
+  reaching a task deep in a large project takes several clicks.
 - The whitespace-token and subsequence task-search strategies are implemented
   and tested but have no runtime caller; the workbench always uses the
   substring default. Reaching them needs either a changed default or a

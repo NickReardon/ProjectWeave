@@ -325,16 +325,18 @@ record it as unreached rather than passed.
 **No tasks in this project**. Confirm you get the second message by selecting a
 project with no tasks at all.
 
-**11f — 200-result truncation.** Seed more than 200 tasks in one project:
+**11f — paging a large project.** Seed more than 200 tasks in one project:
 
 ```shell
 npm run test-vault:reset -- --scale 250
 ```
 
-Expect **Showing the first 200 of &lt;total&gt;** in All Tasks, and
-**Showing the first 200 ready tasks** in Ready Now. Diagnostics truncate the
-same way at 200. A plain `npm run test-vault:reset` removes the bulk tasks
-again.
+All Tasks opens on **1–25 of 250 matching tasks** and Ready Now on its first
+ten. Confirm that **Previous** is disabled on the first page, that **Next**
+reaches the end, and that the last page is short rather than padded. Set
+**Per page** to 200 and confirm the tail past 200 is reachable — that is the
+range ADR 0011 exists for. Diagnostics still truncate at 200 and do not page.
+A plain `npm run test-vault:reset` removes the bulk tasks again.
 
 **11g — narrow layouts.** Drag the workbench pane as narrow as it goes, and
 also try it in a right sidebar. The filter controls should stack rather than

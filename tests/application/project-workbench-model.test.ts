@@ -444,6 +444,46 @@ describe('Project Workbench model', () => {
     );
   });
 
+  it('pages past the 200 bound and clamps an offset the results no longer reach', () => {
+    const generatedTasks = Array.from({ length: 205 }, (_, index) =>
+      task(
+        'Projects/Large/Tasks/Task ' + String(index).padStart(3, '0') + '.md',
+        'Projects/Large/Project',
+        'backlog',
+      ),
+    );
+    const pageAt = (taskOffset: number) =>
+      project(
+        buildProjectWorkbenchModel({
+          publication: publication([
+            sourceNote('Projects/Large/Project.md', 'type: project'),
+            ...generatedTasks,
+          ]),
+          selectedProjectPath: 'Projects/Large/Project.md',
+          readyDisplayLimit: 5,
+          taskDisplayLimit: 200,
+          taskOffset,
+          taskStatuses: ['backlog'],
+        }),
+      ).allTasks;
+
+    // The tail past the per-request bound is reachable, and the last page is
+    // short rather than padded.
+    const second = pageAt(200);
+    expect(second).toMatchObject({
+      total: 205,
+      displayed: 5,
+      offset: 200,
+      truncated: false,
+    });
+    expect(second.items[0]?.path).toBe('Projects/Large/Tasks/Task 200.md');
+
+    // An offset past the end lands on the last page, not on an empty one.
+    expect(pageAt(4000).offset).toBe(200);
+    // A ragged offset snaps back onto a page boundary.
+    expect(pageAt(137).offset).toBe(0);
+  });
+
   it('filters by priority, epic, milestone, owner, and due state while exposing deterministic options', () => {
     const notes = [
       sourceNote('Projects/Filters/Project.md', 'type: project'),
