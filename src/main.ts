@@ -9,6 +9,8 @@ import {
 import { buildProjectWorkbenchModel } from './application/project-workbench-model';
 import { ProjectWeaveReadSource } from './application/project-weave-read-source';
 import { NoteCreationCommitService } from './application/note-creation-commit';
+import { ProjectCreationPreviewService } from './application/project-creation-preview';
+import { ProjectCreationProposalService } from './application/project-creation-proposal';
 import { TaskCreationPreviewService } from './application/task-creation-preview';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
@@ -29,6 +31,7 @@ import {
 import { NoteDiagnosticBannerController } from './ui/note-diagnostic-banner';
 import { ReadyNowModal } from './ui/ready-now-modal';
 import { ProjectWeaveSettingTab } from './ui/settings-tab';
+import { ProjectCreationPreviewModal } from './ui/project-creation-preview-modal';
 import { TaskCreationPreviewModal } from './ui/task-creation-preview-modal';
 
 interface ProjectWeaveRuntime {
@@ -61,6 +64,9 @@ export default class ProjectWeavePlugin extends Plugin {
           rebuildIndex: () => this.rebuildIndex(false),
           createTask: (projectPath) => {
             this.#openTaskCreationPreview(projectPath);
+          },
+          createProject: () => {
+            this.#openProjectCreationPreview();
           },
         }),
     );
@@ -108,6 +114,13 @@ export default class ProjectWeavePlugin extends Plugin {
       name: 'Create task',
       callback: () => {
         this.#openTaskCreationPreview();
+      },
+    });
+    this.addCommand({
+      id: 'create-project',
+      name: 'Create project',
+      callback: () => {
+        this.#openProjectCreationPreview();
       },
     });
     this.addCommand({
@@ -397,6 +410,56 @@ export default class ProjectWeavePlugin extends Plugin {
         previews.preview({
           ...request,
           projectPath: project.path,
+          clock: templateClockFromLocalDate(new Date()),
+        }),
+      commit: (proposal) => commits.commit(proposal),
+      openNote: (path) => this.#openCreatedNote(path),
+    }).open();
+  }
+
+  /**
+   * Opens the create-project flow.
+   *
+   * Unlike task creation, this needs no project to be selected — creating one
+   * is the point, and the state it is most useful from is a vault with none.
+   */
+  #openProjectCreationPreview(): void {
+    const runtime = this.#runtime;
+    if (runtime === null) {
+      new Notice('Project Weave is not loaded.');
+      return;
+    }
+    if (this.#readSource.current.snapshot.revision === 0) {
+      new Notice('Project Weave is still indexing the vault.');
+      return;
+    }
+    const roots = this.settings.projectRoots;
+    if (roots.length === 0) {
+      new Notice(
+        'Set an indexed project folder in Settings → Community plugins → Project Weave first.',
+      );
+      return;
+    }
+
+    const previews = new ProjectCreationPreviewService(
+      () => this.#readSource.current.snapshot,
+      runtime.reader,
+      new ProjectCreationProposalService(
+        () => this.#readSource.current.snapshot,
+        runtime.reader,
+      ),
+    );
+    const commits = new NoteCreationCommitService(
+      () => this.#readSource.current.snapshot,
+      runtime.reader,
+      new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),
+    );
+
+    new ProjectCreationPreviewModal(this.app, {
+      roots,
+      run: (request) =>
+        previews.preview({
+          ...request,
           clock: templateClockFromLocalDate(new Date()),
         }),
       commit: (proposal) => commits.commit(proposal),

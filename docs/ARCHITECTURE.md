@@ -104,7 +104,7 @@ import Obsidian, Node, Electron, views, or future MCP code.
   src/application/project-creation-allocator does the same for a project note,
   which lands at `<root>/<Title>/Project.md` per ADR 0012. Its collision unit is
   the folder rather than the note, because ADR 0008 derives a project's task
-  folder from where its project note sits. It has no runtime caller yet.
+  folder from where its project note sits.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another
@@ -117,7 +117,7 @@ import Obsidian, Node, Electron, views, or future MCP code.
   `TaskSearchCandidate` carries, so
   matching note bodies would be a snapshot decision rather than a matcher
   change — indexing discards content after parsing.
-- **Creation commit:** TaskCreationCommitService is the only path to a vault
+- **Creation commit:** NoteCreationCommitService is the only path to a vault
   write. It re-reads the proposal's read set and compares fingerprints,
   re-checks target absence, re-validates the produced note in memory, then
   writes once, per the single-file sequence in design 10. It writes the

@@ -45,6 +45,8 @@ export interface ProjectWorkbenchActions {
   rebuildIndex(): Promise<void>;
   /** Opens the create-task flow for an already-resolved project. */
   createTask(projectPath: string): void;
+  /** Opens the create-project flow. */
+  createProject(): void;
 }
 
 /** What must survive a full re-render so typing is not disrupted. */
@@ -280,10 +282,14 @@ export class ProjectWorkbenchView extends ItemView {
         );
         break;
       case 'no_projects':
+        // The one empty state a user can act on from here: with nothing
+        // indexed, checking frontmatter is advice, and creating the first
+        // project is a way out.
         this.#renderMessage(
           root,
           'No projects are indexed',
           'No valid non-archived project notes were found. Check project frontmatter and indexed folders in Settings → Community plugins → Project Weave.',
+          { label: 'New project', run: () => this.#actions.createProject() },
         );
         break;
       case 'choose_project':
@@ -532,12 +538,29 @@ export class ProjectWorkbenchView extends ItemView {
     });
   }
 
-  #renderMessage(root: HTMLElement, title: string, description: string): void {
+  #renderMessage(
+    root: HTMLElement,
+    title: string,
+    description: string,
+    action?: { readonly label: string; readonly run: () => void },
+  ): void {
     const empty = root.createDiv({
       cls: 'project-weave-workbench__empty',
     });
     empty.createEl('h2', { text: title });
     empty.createEl('p', { text: description });
+    if (action === undefined) {
+      return;
+    }
+    const button = empty.createEl('button', {
+      cls: 'project-weave-workbench__new-project mod-cta',
+      text: action.label,
+      attr: {
+        type: 'button',
+        'data-workbench-focus-key': 'new-project',
+      },
+    });
+    button.addEventListener('click', action.run);
   }
 
   #renderProject(

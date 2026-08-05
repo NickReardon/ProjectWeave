@@ -183,8 +183,18 @@ Outstanding, all runnable against the installed 0.4.0 build:
   those two controls, leaving the keyboard focus ring intact. No automated
   check covers how Obsidian draws focus, so confirm both in the app.
 
-Those three are what desktop acceptance is waiting on. Task creation is
+Those three, and check 15 below, are what desktop acceptance is waiting on. Task creation is
 manually accepted, so the write path is no longer gated behind it.
+
+**Check 15 — create project — is new and unrun.** Project creation reaches the
+vault through the same commit path task creation does, and its preview and
+modal have automated coverage, but nothing has exercised it in Obsidian. Run
+it in a disposable vault: the target path under an indexed folder, a title
+matching an existing folder yielding a numbered folder with a notice, an
+unusable title yielding a diagnostic, the created project appearing in the
+workbench picker after the index refreshes, a task created in it landing under
+its own `Tasks` folder, and the **New project** button on an empty vault's
+workbench.
 
 **Check 14 — mobile** is deferred until a mobile device or emulator is
 available, and is not required for desktop acceptance. Nothing in the workbench
@@ -203,14 +213,22 @@ Verified against the committed tree; none blocks the manual checks:
   replacement runtime in `src/main.ts` instead of mutating the reader.
 - The template resolver, proposal service, allocator, renderer, and commit
   coordinator all have a runtime caller through the preview command.
-- Only task creation is writable. Editing an existing note, rank rebalancing,
-  and further note kinds have no write path, by design.
-- The project kind has a renderer and a path allocator but no proposal,
-  preview, commit, or UI, so nothing can create a project note yet. Both are
-  pure and tested; `dist/main.js` contains neither, so the running plugin is
-  unchanged apart from the packaged project template, which the bundle now
-  carries at a cost of 479 bytes. ADR 0012 settles where a created project note
-  lands and why its collision unit is the folder rather than the note.
+- Only creation is writable, and only of tasks and projects. Editing an
+  existing note, rank rebalancing, and the remaining note kinds have no write
+  path, by design.
+- Project creation is complete through the UI: a **Create project** command,
+  and a **New project** button on the workbench's empty state. It uses the one
+  write path, which now takes its expected kind from the proposal rather than
+  assuming a task. ADR 0012 settles where a created project note lands and why
+  its collision unit is the folder rather than the note. Unlike task creation,
+  it is unverified in Obsidian itself — see check 15 below.
+- A created project can only use the packaged project template. A
+  project-owned template mapping lives in the project note, so the note being
+  created cannot name its own template; a vault-wide default would be a new
+  setting and a compatibility surface.
+- Project creation offers no status field. The packaged template ships
+  `status: planned`, and the renderer accepts a status the caller chooses, but
+  no caller chooses one.
 - The commit coordinator handles exactly one created file. Multi-file
   proposals, and the partial-success reporting design 10 requires for them,
   are not implemented.
@@ -264,9 +282,9 @@ Verified against the committed tree; none blocks the manual checks:
   expects to date is no longer in the fixture.
 - `templateClockFromLocalDate` exists for a future caller. Nothing calls it
   yet.
-- `templates/default/task.md` has a runtime consumer; `templates/default/project.md`
-  is embedded and rendered by the project renderer but reaches no user yet. The
-  other five packaged starter templates remain inputs for later kinds.
+- `templates/default/task.md` and `templates/default/project.md` both have
+  runtime consumers. The other five packaged starter templates remain inputs
+  for later kinds.
 - The renderer normalizes CRLF template bodies to LF so identical requests
   render identical bytes.
 - A static frontmatter property whose template value is explicitly empty
@@ -282,9 +300,9 @@ Verified against the committed tree; none blocks the manual checks:
 1. Run the three outstanding items above in one session against the installed
    0.4.0 build, and record what was observed — including any defect — before
    treating the workbench as accepted.
-2. Finish the project kind: proposal, preview, commit, and the UI that picks a
-   root when settings name more than one. The renderer and allocator are in
-   place and unreachable until then.
+2. Run check 15 against a disposable vault before treating project creation as
+   accepted. It is the first write path that has never been exercised in
+   Obsidian itself.
 3. Keep any edit path behind the accepted creation flow. Multi-file proposals
    need the partial-success reporting design 10 requires before any bulk
    operation ships.

@@ -57,6 +57,9 @@ The implemented slices are:
 - a **Create task** command and modal showing the allocated path and
   rank, resolved template, preconditions, read set, expected postconditions,
   and exact rendered bytes, with an explicit **Create task** action;
+- a **Create project** command and modal on the same terms, allocating a
+  folder of the project's own and offering a chooser when settings name more
+  than one indexed folder;
 - a commit coordinator that re-reads the proposal's inputs, compares
   fingerprints, re-checks target absence, and re-validates the produced note
   before writing it once;
@@ -79,9 +82,9 @@ rather than overwritten. If the project note or template changes between
 preview and confirmation, the commit aborts and asks you to preview again,
 rather than writing something you did not see.
 
-Editing existing tasks, rank rebalancing and reorder, further note kinds, full
-Plan/Board/My Work perspectives, portfolio views, and agent/MCP transport
-remain later slices.
+Editing existing notes, rank rebalancing and reorder, the remaining note
+kinds, full Plan/Board/My Work perspectives, portfolio views, and agent/MCP
+transport remain later slices.
 
 New task notes are placed in a `Tasks` folder beside the project note, so
 `Projects/Game/Project.md` gives `Projects/Game/Tasks/`. A caller may pass a
@@ -90,6 +93,19 @@ path-hostile and link-hostile characters replaced; a colliding name gets a
 numeric suffix as a visible suggestion, never as a silent overwrite.
 [ADR 0008](docs/decisions/0008-derive-task-paths-and-allocate-spaced-ranks.md)
 records these rules.
+
+A created project takes a folder of its own inside an indexed project folder:
+`Projects/Travel Planner/Project.md`. The folder is the project's identity, so
+its tasks land in `Projects/Travel Planner/Tasks/` under the rule above, and a
+folder already in use yields a numbered folder rather than a shared one — two
+projects in one folder would mingle their tasks.
+[ADR 0012](docs/decisions/0012-give-each-project-its-own-folder.md) records
+that decision. Project notes use the packaged project template: a
+project-owned template mapping lives in the project note, which is the note
+being created.
+
+With nothing indexed yet, the workbench's empty state offers **New project**,
+so a fresh vault does not have to be bootstrapped by hand.
 
 ## Note templates
 
@@ -216,6 +232,12 @@ creating the `Tasks` folder if it was missing, and that the new task appears
 in the dashboard after the index refreshes. With the modal open, edit the
 project note in another tab, then confirm: the commit must refuse with a
 message about the note having changed, and create nothing.
+
+Run **Project Weave: Create project** for the project kind. Confirm the target
+path is `Projects/<Title>/Project.md`, that a title matching an existing
+folder yields a numbered folder with an explicit notice, and that the created
+project appears in the workbench picker after the index refreshes. Creating a
+task in it should then land under its own `Tasks` folder.
 
 ## Versioning and exports
 

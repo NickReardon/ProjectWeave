@@ -436,6 +436,39 @@ release blocker.
 
 ---
 
+### 15. Create project — unrun
+
+**This check writes to the vault.** Use the disposable vault.
+
+**Why:** project creation goes through the same commit path task creation
+does, and its preview and modal have automated coverage, but nothing has
+exercised it in Obsidian itself.
+
+1. Run **Project Weave: Create project** from the command palette. Type
+   `Travel Planner`.
+2. Read the previewed target path, project folder, and rendered bytes. Close
+   the modal without confirming, and confirm nothing was created.
+3. Reopen it, enter `Game` — the fixture project's title — and read the notice.
+4. Enter `///` and read the diagnostic.
+5. Enter `Travel Planner` again and confirm.
+6. Select the new project in the workbench, press **New task**, and create one.
+7. Empty the vault of project notes, or point the plugin at an empty indexed
+   folder, and open the workbench.
+
+**Pass:** the preview shows `Projects/Travel Planner/Project.md` under the
+project folder of the same name; closing creates nothing; `Game` yields
+`Projects/Game 2/Project.md` with a notice that a numbered folder is
+suggested; `///` yields a diagnostic instead of a folder name; confirming
+writes exactly the previewed bytes; the project appears in the workbench
+picker after the index refreshes; the task created in it lands under
+`Projects/Travel Planner/Tasks/`; and the workbench's empty state offers a
+**New project** button that opens the same modal.
+
+**Note:** with one indexed folder there is no folder chooser, by design. To see
+it, add a second indexed project folder in settings first.
+
+---
+
 ## Recording results
 
 After a session, update `docs/CURRENT_WORK.md`:
