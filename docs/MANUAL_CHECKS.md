@@ -356,7 +356,7 @@ Known and accepted: the create-task modal is cramped at narrow widths.
 
 ---
 
-### 12. Create-task preview — re-run required
+### 12. Create-task preview ✅ passed
 
 **Note:** `tests/ui/task-creation-preview-modal.test.ts` now drives the real
 preview service through the modal and asserts what it shows: the allocated
@@ -394,7 +394,7 @@ untouched.
 
 ---
 
-### 13. Create-task commit — re-run required
+### 13. Create-task commit ✅ passed
 
 **This check writes to the vault.**
 
