@@ -335,8 +335,11 @@ All Tasks opens on **1–25 of 250 matching tasks** and Ready Now on its first
 ten. Confirm that **Previous** is disabled on the first page, that **Next**
 reaches the end, and that the last page is short rather than padded. Set
 **Per page** to 200 and confirm the tail past 200 is reachable — that is the
-range ADR 0011 exists for. Diagnostics still truncate at 200 and do not page.
-A plain `npm run test-vault:reset` removes the bulk tasks again.
+range ADR 0011 exists for. Then use the **Page** field: type a page in the
+middle, press Enter, and confirm the list moves there in one step; type a page
+past the end and confirm it lands on the last page rather than refusing.
+Diagnostics still truncate at 200 and do not page. A plain
+`npm run test-vault:reset` removes the bulk tasks again.
 
 **11g — narrow layouts.** Drag the workbench pane as narrow as it goes, and
 also try it in a right sidebar. The filter controls should stack rather than

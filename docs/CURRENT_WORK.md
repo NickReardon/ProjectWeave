@@ -101,8 +101,8 @@ counted as this tree's result.
 Automated validation does not replace the manual Obsidian checks below. The
 workbench view now has DOM coverage for the states ordinary use does not reach
 — an empty scope, an unavailable restored selection and its recovery, no tasks
-versus no filter matches, the 200-result cap in both task sections, and the
-stale-last-good banner. The create-task modal has coverage for what it shows
+versus no filter matches, the 200-result cap in both task sections, paging past
+it by page number, and the stale-last-good banner. The create-task modal has coverage for what it shows
 before anything is written — the allocated path and rank, subfolder nesting,
 the collision notice, a diagnostic instead of a filename — and for closing on a
 successful commit against staying open and explaining a refusal. Those tests
@@ -249,8 +249,9 @@ Verified against the committed tree; none blocks the manual checks:
   are not implemented.
 - Ready Now and All Tasks page within the 200-result bound per ADR 0011; the
   diagnostics sections still grow through **Show more** and stop at 200. Paging
-  them was not needed by any caller. There is no jump-to-page control, so
-  reaching a task deep in a large project takes several clicks.
+  them was not needed by any caller. Both task sections now offer a **Page**
+  field alongside Previous and Next, so a task deep in a large project is one
+  jump away; it appears only when there is more than one page.
 - The whitespace-token and subsequence task-search strategies are implemented
   and tested but have no runtime caller; the workbench always uses the
   substring default. Reaching them needs either a changed default or a

@@ -1056,6 +1056,67 @@ export class ProjectWorkbenchView extends ItemView {
       options.setOffset(options.offset + options.pageSize);
       options.refresh();
     });
+
+    this.#renderPageJump(pager, options);
+  }
+
+  /**
+   * Direct access to a page, for the case Previous and Next serve badly: a
+   * project large enough that the task you want is tens of clicks away.
+   *
+   * A number field rather than a list of pages, because the page count follows
+   * the project's size and the chosen page size — a large project would
+   * otherwise render hundreds of options on every refresh. It appears only when
+   * there is somewhere to jump to.
+   */
+  #renderPageJump(pager: HTMLElement, options: PagerOptions): void {
+    const pageCount = Math.ceil(options.total / options.pageSize);
+    if (pageCount <= 1) {
+      return;
+    }
+    const currentPage = Math.floor(options.offset / options.pageSize) + 1;
+
+    const jumpLabel = pager.createEl('label', {
+      cls: 'project-weave-workbench__page-jump',
+    });
+    jumpLabel.createSpan({ text: 'Page' });
+    const field = jumpLabel.createEl('input', {
+      cls: 'project-weave-workbench__page-jump-input',
+      attr: {
+        type: 'number',
+        min: '1',
+        max: String(pageCount),
+        step: '1',
+        'aria-label': options.noun + ': go to page',
+        'data-workbench-focus-key': options.focusPrefix + '-page-jump',
+      },
+    });
+    field.value = String(currentPage);
+    jumpLabel.createSpan({ text: 'of ' + String(pageCount) });
+
+    // A page out of range is clamped rather than refused: the field is a way
+    // to get somewhere, and the ends are the nearest somewhere.
+    const jump = (): void => {
+      const requested = Number.parseInt(field.value, 10);
+      if (Number.isNaN(requested)) {
+        field.value = String(currentPage);
+        return;
+      }
+      const page = Math.min(Math.max(requested, 1), pageCount);
+      if (page === currentPage) {
+        field.value = String(currentPage);
+        return;
+      }
+      options.setOffset((page - 1) * options.pageSize);
+      options.refresh();
+    };
+    field.addEventListener('change', jump);
+    field.addEventListener('keydown', (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        jump();
+      }
+    });
   }
   #renderTaskFilterSelect(
     container: HTMLElement,
