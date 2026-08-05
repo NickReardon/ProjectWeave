@@ -139,14 +139,27 @@ pass criteria for each numbered check; this file remains authoritative for
 whether one has passed. Run them against a disposable vault seeded from
 `tests/fixtures/vault/`.
 
-**Checks 1, 2, 3, 4, 6, 7, 8, 9, and 10 have passed** and are not restated
-here — entry points and tab reuse, workspace restoration, Ready Now, the
-default status scope, live refresh, the invalid-status diagnostic, unassigned
-diagnostics, the note banner, and changing indexed project roots. Checks 2, 8,
+**Checks 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, and 13 have passed.** The first nine
+are not restated here — entry points and tab reuse, workspace restoration,
+Ready Now, the default status scope, live refresh, the invalid-status
+diagnostic, unassigned diagnostics, the note banner, and changing indexed
+project roots. Checks 2, 8,
 9, and 10 ran against 0.3.0; the rest in a session on 2026-08-05. Nothing in
 0.4.0 changes what any of them exercises. Two cosmetic defects came out of that
 session, both since fixed and both still to be confirmed. Reopen any of these
 only if a later change touches what it covers.
+
+**Checks 12 and 13 — create task — passed in two parts.** Every branch — preview
+path and rank, subfolder nesting, the collision suggestion, an unusable title,
+the changed-note refusal, a missing `Tasks` folder, both entry points, and
+written bytes matching the preview — passed against 0.3.0, which found and
+fixed a defect worth not losing: creating from the command palette used to
+refuse whenever the workbench itself had focus. ADR 0010 then changed the
+frontmatter of every created task, and ordinary creation was confirmed working
+against the 0.4.0 build that carries it. The branches were not re-walked after
+ADR 0010; the modal tests drive the real preview service through all of them,
+and ADR 0010 changes rendered bytes rather than which branch is taken, so this
+is accepted on that basis rather than re-run.
 
 Outstanding, all runnable against the installed 0.4.0 build:
 
@@ -163,16 +176,6 @@ Outstanding, all runnable against the installed 0.4.0 build:
   outstanding on its new terms regardless. Everything here except narrow
   layouts is automated; a disagreement between the automated result and the app
   is a defect in the test double and should be recorded as one.
-- **Checks 12 and 13 — create task.** Both passed on preview and written bytes
-  agreeing, but predate ADR 0010, which changes the frontmatter of every
-  created task, so both need re-running before task creation counts as
-  manually accepted again. Creating a task the ordinary way against the 0.4.0
-  build was observed to work, which is incidental confirmation that ADR 0010's
-  frontmatter writes correctly and not a pass: the collision, unusable-title,
-  changed-note refusal, missing-`Tasks`-folder, and command-palette branches
-  were not exercised. Check 13 also found and fixed a defect worth not losing:
-  creating from the command palette used to refuse whenever the workbench
-  itself had focus.
 - **The two cosmetic focus defects.** A status checkbox stayed lit after being
   unchecked, and **New task** stayed lit after the preview modal closed. Both
   were Obsidian styling `:focus` on a control clicked with the mouse;
@@ -180,7 +183,8 @@ Outstanding, all runnable against the installed 0.4.0 build:
   those two controls, leaving the keyboard focus ring intact. No automated
   check covers how Obsidian draws focus, so confirm both in the app.
 
-Those four are what desktop acceptance is waiting on.
+Those three are what desktop acceptance is waiting on. Task creation is
+manually accepted, so the write path is no longer gated behind it.
 
 **Check 14 — mobile** is deferred until a mobile device or emulator is
 available, and is not required for desktop acceptance. Nothing in the workbench
