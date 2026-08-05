@@ -248,10 +248,17 @@ the retired runtime appear after the switch.
 
 ---
 
-### 11. Degenerate states — **nothing here has been tested**
+### 11. Degenerate states
 
-This is the highest-risk check: ordinary use never reaches these states. Run
-each sub-case and record it separately.
+Ordinary use never reaches these states. Run each sub-case and record it
+separately.
+
+`tests/ui/project-workbench-view.test.ts` now renders 11b, 11c, 11e, 11f, and
+the 11d banner against a test DOM, so the *drawing* of those states is
+automated and regressions will be caught by `npm run check`. What remains
+manual is whether Obsidian's own behavior — real vault events, real layout,
+real devices — reaches them the same way. Run them anyway; treat a
+contradiction between the test and the app as a defect in the test double.
 
 **11a — multiple projects.** Add a second project note, for example
 `Projects/Tooling/Project.md` with `type: project`. Confirm the project
@@ -306,7 +313,10 @@ is a release blocker.
 ### 12. Create-task preview
 
 **Note:** subfolder nesting and the collision suffix were covered incidentally
-by check 13. Rank derivation and the unusable-title diagnostic are unconfirmed.
+by check 13. The rank rule and the unusable-title outcome are covered by
+`tests/application/task-creation-allocator.test.ts`, so what is unconfirmed is
+narrower than it looks: whether the **modal surfaces** them — the previewed
+rank, and a diagnostic rather than a filename.
 
 Nothing in this check writes — closing the modal must leave the vault
 untouched.

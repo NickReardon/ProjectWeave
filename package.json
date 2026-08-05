@@ -45,6 +45,7 @@
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "globals": "^17.8.0",
+    "happy-dom": "^20.11.1",
     "obsidian": "^1.13.1",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
