@@ -166,9 +166,13 @@ Outstanding, all runnable against the installed 0.4.0 build:
 - **Checks 12 and 13 — create task.** Both passed on preview and written bytes
   agreeing, but predate ADR 0010, which changes the frontmatter of every
   created task, so both need re-running before task creation counts as
-  manually accepted again. Check 13 also found and fixed a defect worth not
-  losing: creating from the command palette used to refuse whenever the
-  workbench itself had focus.
+  manually accepted again. Creating a task the ordinary way against the 0.4.0
+  build was observed to work, which is incidental confirmation that ADR 0010's
+  frontmatter writes correctly and not a pass: the collision, unusable-title,
+  changed-note refusal, missing-`Tasks`-folder, and command-palette branches
+  were not exercised. Check 13 also found and fixed a defect worth not losing:
+  creating from the command palette used to refuse whenever the workbench
+  itself had focus.
 - **The two cosmetic focus defects.** A status checkbox stayed lit after being
   unchecked, and **New task** stayed lit after the preview modal closed. Both
   were Obsidian styling `:focus` on a control clicked with the mouse;
