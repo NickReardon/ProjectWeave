@@ -267,13 +267,16 @@ Verified against the committed tree; none blocks the manual checks:
   and its DOM helpers throw on an unimplemented `createEl` option rather than
   guessing. Extending it is expected as more UI gains coverage; it models
   Obsidian's API, never Obsidian's behavior.
-- A property rendered as `null` gives Obsidian nothing to infer a type from,
-  and Obsidian stores property types in vault config rather than in the note.
-  A vault that meets `due_date` or `points` as null first may register it as
-  Text rather than Date or Number. Project Weave must not write that config, so
-  the user sets the type once per vault. Confirm what Obsidian actually does
-  when checks 12 and 13 are re-run; if it registers the wrong type, weigh that
-  against the discoverability ADR 0010 buys.
+- Obsidian keeps property types in `.obsidian/types.json`, keyed by property
+  name for the whole vault and independent of any note's value. The configured
+  test vault already registers `due_date` as `date` and `points` as `number`,
+  so the nulls ADR 0010 writes render with the right editor there and a null
+  cannot downgrade an existing registration. Project Weave must not write that
+  file, and Obsidian's public API exposes no way to: the 1.13.1 typings have no
+  property-type registration at all. Setting a type stays a one-time user
+  action per vault. Unconfirmed: what a vault that meets `due_date` as null
+  before any real date registers it as. Check that when a clean vault is next
+  seeded.
 - No fixture task in `tests/fixtures/vault/` sets the planning properties, so a
   vault seeded from the fixture alone still does not teach Obsidian
   `due_date`. Creating one task through the plugin now does. Check 5's setup
