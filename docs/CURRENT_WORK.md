@@ -194,15 +194,13 @@ incidental result is superseded. Check 12's appearance in the app agrees with
 the modal tests.
 
 **Check 5 is partially complete.** Search and the filters behaved correctly, but
-the due-state filters were not exercised: no fixture task carries a `due_date`,
-and the check's setup step requires adding one. Obsidian's property picker does
-not suggest `due_date`, because nothing in `tests/fixtures/vault/` or
-`templates/default/` mentions it, so the field has to be typed by hand to exist
-at all. `due_date` is a real optional task field — `src/domain/markdown-parser.ts`
-parses it and reports `task.due_date.invalid` — so this is a fixture and
-template gap, not a product defect. Treat check 5 as outstanding until the
-due-state filters, including **Due today** against the local calendar date, are
-confirmed.
+the due-state filters were not exercised: at the time, no seeded task carried a
+`due_date`, and the check's setup step required adding one by hand. The seeder
+now dates three of the four fixture tasks relative to the day it runs — three
+days ago, today, and a week out — leaving the fourth undated, so all four due
+states have a task and **Due today** means today. Treat check 5 as outstanding
+until the due-state filters, including **Due today** against the local calendar
+date, are confirmed against a freshly seeded vault.
 
 **Check 11 is partially complete.** 11a (multiple projects) passed. 11d
 (stale last good) was not reached; it needs an index rebuild that throws, which
@@ -284,10 +282,17 @@ Verified against the committed tree; none blocks the manual checks:
   action per vault. Unconfirmed: what a vault that meets `due_date` as null
   before any real date registers it as. Check that when a clean vault is next
   seeded.
-- No fixture task in `tests/fixtures/vault/` sets the planning properties, so a
-  vault seeded from the fixture alone still does not teach Obsidian
-  `due_date`. Creating one task through the plugin now does. Check 5's setup
-  step still adds the fields by hand.
+- No fixture task in `tests/fixtures/vault/` sets the planning properties, so
+  the committed fixture alone still does not teach Obsidian `due_date`. The
+  seeder injects due dates into the vault it materializes, which does, and
+  creating one task through the plugin does too. Check 5's setup step still
+  adds `priority`, `owner`, `epic`, and `milestone` by hand; none of those
+  needs to be relative to the day of the check, so none needs seeding.
+- The seeded vault is the committed fixture plus due dates, so it is no longer
+  byte-identical to `tests/fixtures/vault/`. A committed date cannot be
+  today, and **Due today** has to be checkable. The automated tests read the
+  fixture directly and are unaffected; the seeder refuses to run if a note it
+  expects to date is no longer in the fixture.
 - `templateClockFromLocalDate` exists for a future caller. Nothing calls it
   yet.
 - Only `templates/default/task.md` has a consumer. The other packaged starter

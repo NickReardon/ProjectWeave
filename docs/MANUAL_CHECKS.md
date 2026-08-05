@@ -76,13 +76,17 @@ several checks require corrupting notes on purpose.
 
 The seeded vault contains:
 
-| Note | Type | Status | Rank | Depends on |
-| --- | --- | --- | --- | --- |
-| `Projects/Game/Project.md` | project | — | — | — |
-| `Projects/Game/Tasks/Define request.md` | task | `done` | 1000 | — |
-| `Projects/Game/Tasks/Implement request.md` | task | `todo` | 2000 | Define request |
-| `Projects/Game/Tasks/External prerequisite.md` | task | `in-progress` | 3000 | — |
-| `Projects/Game/Tasks/Blocked request.md` | task | `todo` | 4000 | External prerequisite |
+| Note | Type | Status | Rank | Depends on | Due |
+| --- | --- | --- | --- | --- | --- |
+| `Projects/Game/Project.md` | project | — | — | — | — |
+| `Projects/Game/Tasks/Define request.md` | task | `done` | 1000 | — | none |
+| `Projects/Game/Tasks/Implement request.md` | task | `todo` | 2000 | Define request | today |
+| `Projects/Game/Tasks/External prerequisite.md` | task | `in-progress` | 3000 | — | 3 days ago |
+| `Projects/Game/Tasks/Blocked request.md` | task | `todo` | 4000 | External prerequisite | in 7 days |
+
+The due dates are written by the seeder relative to the day you seed, not
+committed with the fixture: a fixed date cannot be **today**. Reset before
+checking due states if the vault was seeded on an earlier day.
 
 Also present: `Projects/Game/Design/Travel.md` and `Templates/Task.md`.
 
@@ -178,15 +182,14 @@ The default scope is `backlog`, `todo`, `in-progress`, `waiting`, and `review`.
 
 ### 5. Search and the advanced filters
 
-**Setup:** temporarily add all five fields to **one** fixture task, for example
-`Blocked request.md`:
+**Setup:** the seeded vault already carries due dates. Add the other four
+fields to **one** fixture task, for example `Blocked request.md`:
 
 ```yaml
 priority: high
 owner: Robin
 epic: '[[Engine]]'
 milestone: '[[Alpha]]'
-due_date: 2026-12-31
 ```
 
 1. Search `external` — confirm case-insensitive title matching. Search a
@@ -194,15 +197,20 @@ due_date: 2026-12-31
    Try mixed case (`ExTeRnAl`).
 2. Open the priority, epic, milestone, and owner selectors and confirm each
    offers the value you just added.
-3. Combine all five filters and confirm they isolate the one edited task.
+3. Combine those four filters and confirm they isolate the one edited task.
 4. Press **Reset filters**.
-5. Change `due_date` to **today's local calendar date**, then filter by **Due
-   today**.
+5. Filter by each due state in turn, with the default status set plus `done`
+   so every task is in scope. Expect **Past due date** to give **External
+   prerequisite**, **Due today** to give **Implement request**, **Future due
+   date** to give **Blocked request**, and **No due date** to give **Define
+   request**.
+   Confirm **Due today** against your machine's local calendar date — if the
+   vault was seeded on an earlier day, reset it first.
 
-**Pass:** each filter narrows as expected; combining them isolates the single
-task; **Reset filters** returns to the non-terminal default status set and
-clears the search and selectors; **Due today** matches against your local
-calendar date, not UTC.
+**Pass:** each filter narrows as expected; combining the four isolates the
+single edited task; each due state matches exactly the task above; **Reset
+filters** returns to the non-terminal default status set and clears the search
+and selectors; **Due today** matches against your local calendar date, not UTC.
 
 **Then:** `npm run test-vault:reset`.
 
