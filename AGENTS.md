@@ -96,6 +96,11 @@ enough that prose documentation does not need to restate it.
   so history never claims something the code does not do.
 - Do not push, merge, release, or change versions unless the user explicitly
   requests it. Committing on a branch does not imply approval for any of these.
+- When a version bump is requested, size it by the change, not the commit
+  count. A completed feature slice, a new user-visible capability, or a change
+  to a compatibility surface takes a minor bump (`0.3.x` → `0.4.0`), not a
+  patch. `README.md` holds the full rule; when in doubt, take the larger
+  increment and say why.
 
 ## Validation
 
@@ -112,5 +117,7 @@ release inventory. Use narrower commands while iterating, but run the complete
 gate before handoff when practical.
 
 Obsidian UI, workspace restoration, responsive behavior, and live vault-event
-behavior still require the focused manual checks documented in `README.md` and
-`docs/CURRENT_WORK.md`. Report automated and manual verification separately.
+behavior still require focused manual checks. `docs/MANUAL_CHECKS.md` is the
+procedure for running them; `docs/CURRENT_WORK.md` records which have passed
+and is authoritative for status. Report automated and manual verification
+separately.

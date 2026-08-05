@@ -230,6 +230,23 @@ npm run version:major
 npm run version:set -- 1.2.3
 ```
 
+Choose the increment by the size of the change, not by how many commits it
+took. Before 1.0 the minor position carries feature weight:
+
+- **patch** (`0.3.0` → `0.3.1`) — bug fixes, documentation, refactoring, and
+  anything a user could not describe as a new capability.
+- **minor** (`0.3.0` → `0.4.0`) — any completed feature slice or new
+  user-visible capability, and any change to a compatibility surface: product
+  terms, frontmatter fields, controlled values, diagnostic codes, or persisted
+  workspace state. Crossing a boundary the plugin did not previously cross —
+  the first vault write, for example — is always at least a minor bump.
+- **major** (`0.4.0` → `1.0.0`) — reserved for the first stable release and,
+  after that, for breaking changes to a compatibility surface.
+
+When in doubt between patch and minor, take the minor. A version that
+undersells a release is worse than one that oversells it, because installed
+builds are identified by version alone.
+
 The operational channel, BRAT preview, stable release, and Community directory
 steps are in [Plugin Release and Testing](docs/PLUGIN_RELEASE_AND_TESTING.md).
 
