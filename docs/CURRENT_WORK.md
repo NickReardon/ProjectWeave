@@ -86,8 +86,9 @@ and the running plugin is unchanged. The proposal service and its seven tests
 were not modified by that slice.
 
 `npm run check` passed in full again after adding rendering coverage for the
-Project Workbench view: 22 Vitest files with 237 tests, 13 Node script tests,
-the production build, and the same three-file release inventory. The `obsidian`
+Project Workbench view and the create-task modal: 23 Vitest files with 244
+tests, 13 Node script tests, the production build, and the same three-file
+release inventory. The `obsidian`
 package ships types only, so the suite aliases it to a test double and installs
 Obsidian's `HTMLElement` helpers into a `happy-dom` environment; `happy-dom` is
 a development dependency and the shipped bundle is unchanged.
@@ -96,10 +97,17 @@ Automated validation does not replace the manual Obsidian checks below. The
 workbench view now has DOM coverage for the states ordinary use does not reach
 — an empty scope, an unavailable restored selection and its recovery, no tasks
 versus no filter matches, the 200-result cap in both task sections, and the
-stale-last-good banner. That covers what the view draws, not how Obsidian
-behaves: tab reuse, workspace restoration, live vault events, layout at width,
-and mobile remain manual by nature. The create-task modal, settings tab, and
-note banner still have no DOM coverage. The pure projection
+stale-last-good banner. The create-task modal has coverage for what it shows
+before anything is written — the allocated path and rank, subfolder nesting,
+the collision notice, a diagnostic instead of a filename — and for closing on a
+successful commit against staying open and explaining a refusal. Those tests
+drive the real preview service, so an allocation that is correct but never
+reaches the user still fails; the commit runner is a double, so nothing writes.
+
+That covers what the UI draws, not how Obsidian behaves: tab reuse, workspace
+restoration, live vault events, layout at width, and mobile remain manual by
+nature. The settings tab and the note diagnostic banner still have no DOM
+coverage. The pure projection
 covers project isolation, default and terminal statuses, blocked-task
 discoverability, case-insensitive title/path search, all planning-metadata
 filters, injected-date due states, deterministic ordering, and the 200-result
@@ -185,8 +193,9 @@ automated apart from narrow layouts and mobile, which no harness here reaches;
 a disagreement between the automated result and the app is a defect in the test
 double and should be recorded as one.
 
-Check 12's rank rule and unusable-title outcome are covered by the allocator
-tests, so what the manual pass adds is whether the modal surfaces them.
+Check 12 is now automated apart from its appearance and feel in Obsidian: the
+modal tests assert the previewed path, rank, subfolder nesting, collision
+notice, and diagnostic. Run it once to confirm the app agrees.
 
 Ordinary use of the installed 0.3.0 build has surfaced no dashboard problems,
 which bears on checks 1 and 3 through 6 in particular. That is supporting

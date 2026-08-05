@@ -312,11 +312,13 @@ is a release blocker.
 
 ### 12. Create-task preview
 
-**Note:** subfolder nesting and the collision suffix were covered incidentally
-by check 13. The rank rule and the unusable-title outcome are covered by
-`tests/application/task-creation-allocator.test.ts`, so what is unconfirmed is
-narrower than it looks: whether the **modal surfaces** them — the previewed
-rank, and a diagnostic rather than a filename.
+**Note:** `tests/ui/task-creation-preview-modal.test.ts` now drives the real
+preview service through the modal and asserts what it shows: the allocated
+path, the rank one gap past the largest, subfolder nesting, the collision
+notice, a diagnostic instead of a filename, and the refusal path. Everything in
+the pass list below is therefore automated **except** how it looks and behaves
+in Obsidian itself. Run it once to confirm the app agrees; a disagreement is a
+defect in the test double.
 
 Nothing in this check writes — closing the modal must leave the vault
 untouched.
