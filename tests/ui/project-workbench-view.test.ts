@@ -79,6 +79,7 @@ async function openWorkbench(
   options: {
     readonly selectedProjectPath?: string;
     readonly activeFilePath?: string;
+    readonly now?: () => number;
   } = {},
 ): Promise<Harness> {
   const app = createStubApp(notes.map((note) => note.path));
@@ -86,7 +87,7 @@ async function openWorkbench(
   const leaf: StubLeaf = createStubLeaf(app);
 
   const runtime = new FakeRuntime(snapshotOf(notes));
-  const source = new ProjectWeaveReadSource();
+  const source = new ProjectWeaveReadSource(undefined, options.now);
   source.bind(runtime);
 
   const actions: ProjectWorkbenchActions = {
@@ -207,7 +208,26 @@ describe('Project Workbench view rendering', () => {
     expect(populated.text()).not.toContain('No tasks in this project');
   });
 
-  it('caps rendering at 200 results and says so rather than truncating silently', async () => {
+  it('reports when the index last updated, keeping the revision as a tooltip', async () => {
+    const project = 'Projects/Game/Project.md';
+    const published = new Date();
+    published.setHours(14, 32, 0, 0);
+
+    const harness = await openWorkbench([projectNote(project)], {
+      selectedProjectPath: project,
+      now: () => published.getTime(),
+    });
+
+    expect(harness.text()).toContain('updated 14:32');
+    expect(harness.text()).not.toContain('revision');
+    expect(
+      harness.content
+        .querySelector('.project-weave-workbench__revision')
+        ?.getAttribute('title'),
+    ).toBe('Index revision 1');
+  });
+
+  it('pages past the 200-result bound rather than stranding the tail', async () => {
     const project = 'Projects/Game/Project.md';
     const notes: SourceNote[] = [projectNote(project)];
     for (let index = 1; index <= 250; index += 1) {

@@ -16,6 +16,7 @@ describe('Project Workbench model', () => {
       publication: {
         publicationId: 4,
         runtimeGeneration: 2,
+        publishedAt: 0,
         snapshot: IndexSnapshot.empty(),
       },
       selectedProjectPath: 'Projects/Game/Project.md',
@@ -848,12 +849,14 @@ function publication(
   options: {
     readonly publicationId?: number;
     readonly runtimeGeneration?: number;
+    readonly publishedAt?: number;
     readonly revision?: number;
   } = {},
 ): ProjectWorkbenchReadPublication {
   return {
     publicationId: options.publicationId ?? 1,
     runtimeGeneration: options.runtimeGeneration ?? 1,
+    publishedAt: options.publishedAt ?? 0,
     snapshot: new IndexBuilder().build(notes, {
       revision: options.revision ?? 1,
     }),

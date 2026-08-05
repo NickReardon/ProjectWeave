@@ -40,7 +40,11 @@ export default class ProjectWeavePlugin extends Plugin {
   public override settings: ProjectWeaveSettings =
     createDefaultProjectWeaveSettings();
 
-  readonly #readSource = new ProjectWeaveReadSource();
+  // The clock is supplied here, at the composition root, so the read source
+  // itself stays deterministic under test.
+  readonly #readSource = new ProjectWeaveReadSource(undefined, () =>
+    Date.now(),
+  );
   #runtime: ProjectWeaveRuntime | null = null;
   #noteDiagnosticBanners: NoteDiagnosticBannerController | null = null;
   #openingWorkbench: Promise<void> | null = null;

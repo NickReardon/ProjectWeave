@@ -445,13 +445,17 @@ export class ProjectWorkbenchView extends ItemView {
       text:
         'Index ' +
         model.indexFreshness.replaceAll('_', ' ') +
-        ' · revision ' +
-        String(model.indexRevision) +
+        ' · updated ' +
+        formatUpdatedAt(model.indexUpdatedAt) +
         diagnosticRevisionSummary(model),
       attr: {
         role: 'status',
         'aria-live': 'polite',
         'aria-atomic': 'true',
+        // The revision number answers "did it actually republish?" during a
+        // manual check. It is diagnostic rather than something to read at a
+        // glance, so it lives in the tooltip instead of the line itself.
+        title: 'Index revision ' + String(model.indexRevision),
       },
     });
   }
@@ -1589,6 +1593,29 @@ function localDateKey(date: Date): string {
     '-' +
     String(date.getDate()).padStart(2, '0')
   );
+}
+
+/**
+ * Local wall-clock time an index publication happened.
+ *
+ * Absolute rather than relative ("2 minutes ago") on purpose: a relative label
+ * is wrong the moment it is drawn and would need a timer to stay true, and the
+ * workbench re-renders on publication, not on a tick. The date is shown only
+ * when the publication is not from today, which is the case a bare time would
+ * misrepresent.
+ */
+function formatUpdatedAt(publishedAt: number, now: Date = new Date()): string {
+  const published = new Date(publishedAt);
+  if (!Number.isFinite(publishedAt)) {
+    return 'unknown';
+  }
+  const time =
+    String(published.getHours()).padStart(2, '0') +
+    ':' +
+    String(published.getMinutes()).padStart(2, '0');
+  return localDateKey(published) === localDateKey(now)
+    ? time
+    : localDateKey(published) + ' ' + time;
 }
 
 function selectedProjectPathFromState(state: unknown): string | null {

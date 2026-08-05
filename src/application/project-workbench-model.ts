@@ -46,7 +46,7 @@ export type ProjectWorkbenchDueState =
  */
 export type ProjectWorkbenchReadPublication = Pick<
   ProjectWeaveReadPublication,
-  'publicationId' | 'runtimeGeneration' | 'snapshot'
+  'publicationId' | 'runtimeGeneration' | 'publishedAt' | 'snapshot'
 >;
 
 export interface ProjectWorkbenchProjectionInput {
@@ -186,6 +186,8 @@ interface ProjectWorkbenchBaseModel {
   readonly publicationId: number;
   readonly runtimeGeneration: number;
   readonly indexRevision: number;
+  /** Epoch milliseconds when the shown index was published. */
+  readonly indexUpdatedAt: number;
   readonly indexFreshness: IndexFreshness;
   readonly banner: ProjectWorkbenchBanner | null;
   readonly projectOptions: readonly ProjectWorkbenchProjectOption[];
@@ -240,6 +242,7 @@ export function buildProjectWorkbenchModel(
     publicationId: publication.publicationId,
     runtimeGeneration: publication.runtimeGeneration,
     indexRevision: snapshot.revision,
+    indexUpdatedAt: publication.publishedAt,
     indexFreshness: snapshot.freshness,
     banner: freshnessBanner(snapshot),
     projectOptions: projects.map(projectOption),
