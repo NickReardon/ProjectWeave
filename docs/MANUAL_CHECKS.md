@@ -123,7 +123,7 @@ and left alone rather than deleted.
 
 ## The checks
 
-### 1. Three entry points, one reusable tab
+### 1. Three entry points, one reusable tab ✅ passed
 
 **Why:** the view must be a singleton, not a new tab per invocation.
 
@@ -153,7 +153,7 @@ filters are back at their defaults rather than restored.
 
 ---
 
-### 3. Ready Now, and opening in another tab
+### 3. Ready Now, and opening in another tab ✅ passed
 
 1. With the fixture project selected, read the **Ready Now** section.
 2. Click **Implement request**.
@@ -166,7 +166,7 @@ tab; the workbench tab stays open and is not replaced.
 
 ---
 
-### 4. Default status scope in All Tasks
+### 4. Default status scope in All Tasks ✅ passed
 
 1. Read the **All Tasks** list with default filters.
 2. Select the `done` status.
@@ -180,7 +180,7 @@ The default scope is `backlog`, `todo`, `in-progress`, `waiting`, and `review`.
 
 ---
 
-### 5. Search and the advanced filters
+### 5. Search and the advanced filters — partially passed
 
 **Setup:** the seeded vault already carries due dates. Add the other four
 fields to **one** fixture task, for example `Blocked request.md`:
@@ -216,7 +216,7 @@ and selectors; **Due today** matches against your local calendar date, not UTC.
 
 ---
 
-### 6. Live refresh after an edit
+### 6. Live refresh after an edit ✅ passed
 
 1. With the workbench visible, open a task note in another tab.
 2. Change `status: todo` to `status: done` on **External prerequisite**.
@@ -229,7 +229,7 @@ update, and the filter selectors offer the currently available values.
 
 ---
 
-### 7. Invalid status diagnostic
+### 7. Invalid status diagnostic ✅ passed
 
 **Note:** this was previously exercised only incidentally while setting up
 check 9. Its recovery guidance and exact-note navigation are unconfirmed.
@@ -294,7 +294,7 @@ the retired runtime appear after the switch.
 
 ---
 
-### 11. Degenerate states
+### 11. Degenerate states — partially passed
 
 Ordinary use never reaches these states. Run each sub-case and record it
 separately.
@@ -356,7 +356,7 @@ Known and accepted: the create-task modal is cramped at narrow widths.
 
 ---
 
-### 12. Create-task preview
+### 12. Create-task preview — re-run required
 
 **Note:** `tests/ui/task-creation-preview-modal.test.ts` now drives the real
 preview service through the modal and asserts what it shows: the allocated
@@ -394,7 +394,7 @@ untouched.
 
 ---
 
-### 13. Create-task commit ✅ passed
+### 13. Create-task commit — re-run required
 
 **This check writes to the vault.**
 

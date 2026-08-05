@@ -134,123 +134,54 @@ cap.
 
 ## Manual checks still required
 
-Use a disposable Obsidian vault populated from `tests/fixtures/vault/` and
-verify the checks below. `docs/MANUAL_CHECKS.md` holds the step-by-step
-procedure, fixture baseline, and pass criteria for each one, under the same
-numbering; this file remains authoritative for whether a check has passed.
+`docs/MANUAL_CHECKS.md` holds the step-by-step procedure, fixture baseline, and
+pass criteria for each numbered check; this file remains authoritative for
+whether one has passed. Run them against a disposable vault seeded from
+`tests/fixtures/vault/`.
 
-1. The ribbon, command palette, and settings button open one reusable Project
-   Workbench tab.
-2. Obsidian restores the workbench and selected project after workspace reload;
-   transient task filters reset rather than becoming project data.
-3. With the fixture project selected, **Implement request** is the only Ready
-   task and opens in another tab without replacing the dashboard.
-4. All Tasks initially shows both todo tasks and **External prerequisite**
-   (`in-progress`), while **Define request** (`done`) appears after selecting
-   done.
-5. Title/path search and combined status, priority, epic, milestone, owner, and
-   due-state filters isolate the expected tasks; **Reset filters** restores the
-   non-terminal default. Verify **Due today** against the local calendar date.
-6. Editing task status, metadata, or dependencies refreshes Ready Now, All
-   Tasks, counts, and available filter options after one index publication.
-7. An invalid status such as `complete` produces `task.status.invalid` with
-   recovery guidance and exact-note navigation; changing it to `done` removes
-   the diagnostic.
-8. A malformed entity or task without a usable project relationship appears in
-   the prominent **Unassigned diagnostics** section with its source-note link
-   and error type.
-9. Opening an affected note shows its diagnostic banner in editing and reading
-   modes; correcting the note removes the banner after index publication.
-10. Changing indexed project roots replaces the runtime, shows a rebuilding
-    state, and does not publish callbacks from the retired runtime.
-11. Multiple-project selection, unavailable restored selection, empty scope,
-    stale-last-good state, zero filter matches, paging a project larger than
-    the 200-result bound, and narrow layouts remain usable.
-12. **Create task** previews a target path under the project's task
-    folder, a rank one gap past the largest existing rank, and rendered bytes
-    matching both. A subfolder nests, a colliding title yields a numbered
-    suggestion with an explicit notice, and an unusable title yields a
-    diagnostic. Closing the modal creates nothing.
-13. In a disposable vault, creating from both the workbench **New task**
-    button and the command palette writes exactly the previewed path
-    with the previewed bytes, creates a missing `Tasks` folder, and the new
-    task appears in the dashboard after the index refreshes. Editing the
-    project note while the modal is open makes the commit refuse with a
-    changed-note message and create nothing. No existing note is modified at
-    any point.
-14. The same states as check 11 remain usable in a mobile-compatible Obsidian
-    environment. Deferred; see below.
+**Checks 1, 2, 3, 4, 6, 7, 8, 9, and 10 have passed** and are not restated
+here — entry points and tab reuse, workspace restoration, Ready Now, the
+default status scope, live refresh, the invalid-status diagnostic, unassigned
+diagnostics, the note banner, and changing indexed project roots. Checks 2, 8,
+9, and 10 ran against 0.3.0; the rest in a session on 2026-08-05. Nothing in
+0.4.0 changes what any of them exercises. Two cosmetic defects came out of that
+session, both since fixed and both still to be confirmed. Reopen any of these
+only if a later change touches what it covers.
 
-Checks 12 and 13 predate ADR 0010, which changes the frontmatter of every
-created task. Both passed on preview and written bytes agreeing, so both need
-re-running before task creation counts as manually accepted again. The
-installed 0.4.0 build includes ADR 0010, so both are now runnable.
+Outstanding, all runnable against the installed 0.4.0 build:
 
-**Check 13 passed** against a real vault: creating from the workbench works,
-the task folder and requested subfolders are created, a duplicate title yields
-a suffixed name rather than an overwrite, editing the project note while the
-modal is open makes the commit refuse, and the written note matches its
-preview byte for byte. Creating from the command palette was fixed during this
-check, having previously refused whenever the workbench itself had focus.
+- **Check 5 — due-state filters.** Search and the status, priority, epic,
+  milestone, and owner filters passed. The due states did not: no seeded task
+  carried a `due_date` at the time. The seeder now dates three of the four
+  fixture tasks relative to the day it runs, leaving the fourth undated, so all
+  four states have a task and **Due today** means today. Confirm each, against
+  the local calendar date.
+- **Check 11 — degenerate states.** 11a (multiple projects) passed. 11d (stale
+  last good) needs an index rebuild that throws, which ordinary use does not
+  produce, and was not reached. 11b, 11c, 11e, 11f, and 11g are unrecorded, and
+  11f now covers paging and the **Page** field rather than truncation, so it is
+  outstanding on its new terms regardless. Everything here except narrow
+  layouts is automated; a disagreement between the automated result and the app
+  is a defect in the test double and should be recorded as one.
+- **Checks 12 and 13 — create task.** Both passed on preview and written bytes
+  agreeing, but predate ADR 0010, which changes the frontmatter of every
+  created task, so both need re-running before task creation counts as
+  manually accepted again. Check 13 also found and fixed a defect worth not
+  losing: creating from the command palette used to refuse whenever the
+  workbench itself had focus.
+- **The two cosmetic focus defects.** A status checkbox stayed lit after being
+  unchecked, and **New task** stayed lit after the preview modal closed. Both
+  were Obsidian styling `:focus` on a control clicked with the mouse;
+  `styles.css` now suppresses the indicator for `:focus:not(:focus-visible)` on
+  those two controls, leaving the keyboard focus ring intact. No automated
+  check covers how Obsidian draws focus, so confirm both in the app.
 
-**Status: partially complete.** Checks 2, 8, 9, and 10 were
-run against the installed 0.3.0 build and passed, with no defects observed:
-workspace restoration kept the workbench and selected project while resetting
-transient filters, a task with no usable project relationship appeared under
-**Unassigned diagnostics**, the note banner rendered in both editing and
-reading modes and cleared after correction, and a project-root change rebuilt
-without publishing from the retired runtime.
+Those four are what desktop acceptance is waiting on.
 
-**Checks 1, 3, 4, 6, 7, and 12 passed** in a session on 2026-08-05, with two
-cosmetic defects recorded below. Check 7 is now confirmed in full, including the
-workbench listing's recovery guidance and exact-note navigation; the earlier
-incidental result is superseded. Check 12's appearance in the app agrees with
-the modal tests.
-
-**Check 5 is partially complete.** Search and the filters behaved correctly, but
-the due-state filters were not exercised: at the time, no seeded task carried a
-`due_date`, and the check's setup step required adding one by hand. The seeder
-now dates three of the four fixture tasks relative to the day it runs — three
-days ago, today, and a week out — leaving the fourth undated, so all four due
-states have a task and **Due today** means today. Treat check 5 as outstanding
-until the due-state filters, including **Due today** against the local calendar
-date, are confirmed against a freshly seeded vault.
-
-**Check 11 is partially complete.** 11a (multiple projects) passed. 11d
-(stale last good) was not reached; it needs an index rebuild that throws, which
-ordinary use does not produce. 11b, 11c, 11e, 11f, and 11g were not recorded.
-11f now covers paging rather than truncation, so it is outstanding on its new
-terms regardless of the earlier session.
-Check 11's rendering is automated apart from narrow layouts, which no harness
-here reaches; a disagreement between the automated result and the app is a
-defect in the test double and should be recorded as one.
-
-Check 14 — the same states in a mobile-compatible Obsidian environment — is
-deferred until a mobile device or emulator is available, and is not required
-for desktop manual acceptance. Nothing in the workbench is known to be
-desktop-only; the check is unrun, not waived. Run it before any release that
-claims mobile support.
-
-Two cosmetic defects were observed, neither affecting behavior: a status
-checkbox kept a highlighted, hovered-looking appearance after being unchecked,
-and the **New task** button kept a held-looking appearance after the preview
-modal closed. Both had the same cause — Obsidian styles `:focus`, so a control
-clicked with the mouse stays lit until focus moves, and the modal returns focus
-to its trigger. `styles.css` now suppresses the indicator for
-`:focus:not(:focus-visible)` on those two controls, which leaves the keyboard
-focus ring intact. Confirm both in the app; no automated check covers how
-Obsidian draws focus.
-
-What remains for desktop acceptance, all of it runnable against the installed
-0.4.0 build:
-
-- check 5's due-state filters, which the seeded due dates now make reachable;
-- the unreached parts of check 11 — stale last good, an unavailable restored
-  selection, an empty scope, zero filter matches, paging a project past the
-  200-result bound including the new **Page** field, and narrow layouts;
-- checks 12 and 13 re-run against ADR 0010's frontmatter;
-- the two cosmetic focus defects, which have a fix in `styles.css` that no
-  automated check can confirm.
+**Check 14 — mobile** is deferred until a mobile device or emulator is
+available, and is not required for desktop acceptance. Nothing in the workbench
+is known to be desktop-only; the check is unrun, not waived. Run it before any
+release that claims mobile support.
 
 The disposable vault still holds a handful of notes an earlier manual session
 created, which the seeder reports rather than deletes. Remove them before
@@ -333,10 +264,9 @@ Verified against the committed tree; none blocks the manual checks:
 
 ## Next decision point
 
-1. Complete and record the manual Obsidian checks above. Record any defects
-   before treating the workbench as accepted.
-2. Run the outstanding manual Obsidian checks, including the new preview check,
-   in one session against a rebuilt test-vault install.
-3. Keep further note kinds and any edit path behind a manually accepted task
+1. Run the four outstanding items above in one session against the installed
+   0.4.0 build, and record what was observed — including any defect — before
+   treating the workbench as accepted.
+2. Keep further note kinds and any edit path behind a manually accepted task
    creation flow. Multi-file proposals need the partial-success reporting
    design 10 requires before any bulk operation ships.
