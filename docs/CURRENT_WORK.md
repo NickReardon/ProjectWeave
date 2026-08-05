@@ -30,8 +30,10 @@ ends, or the next decision changes — not for every code change.
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
   and the write path cannot modify, move, or delete an existing note.
-- Creation has never been exercised against a real vault. Manual check 13 is
-  the first time anything in this project writes outside a test double.
+- Creating a task has been exercised against a real vault and works. The
+  narrower guarantees around it — byte-exact output, folder creation, and
+  refusing a proposal whose inputs changed — are still proven only against
+  test doubles; check 13 covers them.
 - Task target paths and backlog ranks are now allocated by pure application
   code. ADR 0008 settles the folder convention, filename derivation, collision
   policy, and rank rule that `docs/design/README.md` had left open.
@@ -135,6 +137,12 @@ verify:
     changed-note message and create nothing. No existing note is modified at
     any point.
 
+Creating a task from the modal has been exercised against a real vault and
+works. The remaining parts of check 13 — that the written bytes match the
+preview exactly, that a missing `Tasks` folder is created, and that editing
+the project note mid-modal makes the commit refuse — have not been confirmed
+separately.
+
 **Status as of 2026-08-03: partially complete.** Checks 2, 8, 9, and 10 were
 run against the installed 0.3.0 build and passed, with no defects observed:
 workspace restoration kept the workbench and selected project while resetting
@@ -187,6 +195,11 @@ Verified against the committed tree; none blocks the manual checks:
 - The `Tasks` folder convention from ADR 0008 is fixed. The per-project
   override and the vault-wide setting considered there were deferred until a
   caller needs them.
+- The create-task modal is cramped in a narrow pane. Obsidian's `Setting`
+  rows keep the label and control side by side at every width, so the
+  descriptions compress into tall thin columns rather than the control moving
+  below its label. Reconsider the modal's layout or wrapping; it is awkward,
+  not broken, and no behavior depends on it.
 - `templateClockFromLocalDate` exists for a future caller. Nothing calls it
   yet.
 - Only `templates/default/task.md` has a consumer. The other packaged starter
