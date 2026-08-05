@@ -294,6 +294,64 @@ describe('Project Workbench view rendering', () => {
     expect(harness.text()).toContain('1–200 of 250 matching tasks');
   });
 
+  it('jumps straight to a page instead of clicking Next to reach it', async () => {
+    const project = 'Projects/Game/Project.md';
+    const notes: SourceNote[] = [projectNote(project)];
+    for (let index = 1; index <= 250; index += 1) {
+      notes.push(
+        taskNote(
+          `Projects/Game/Tasks/Task ${String(index)}.md`,
+          project,
+          `status: todo\nrank: ${String(index * 1000)}`,
+        ),
+      );
+    }
+
+    const harness = await openWorkbench(notes, {
+      selectedProjectPath: project,
+    });
+
+    const jump = () =>
+      harness.content.querySelector<HTMLInputElement>(
+        '[data-workbench-focus-key="all-tasks-page-jump"]',
+      );
+    // 250 tasks at 25 a page, and the field opens on the page being shown.
+    expect(jump()!.value).toBe('1');
+    expect(jump()!.getAttribute('max')).toBe('10');
+
+    jump()!.value = '7';
+    jump()!.dispatchEvent(new Event('change'));
+    expect(harness.text()).toContain('151–175 of 250 matching tasks');
+    expect(harness.text()).toContain('Task 151');
+    expect(jump()!.value).toBe('7');
+
+    // Past the end is clamped to the last page rather than refused.
+    jump()!.value = '99';
+    jump()!.dispatchEvent(new Event('change'));
+    expect(harness.text()).toContain('226–250 of 250 matching tasks');
+    expect(jump()!.value).toBe('10');
+  });
+
+  it('offers no page jump when everything fits on one page', async () => {
+    const project = 'Projects/Game/Project.md';
+    const harness = await openWorkbench(
+      [projectNote(project), taskNote('Projects/Game/Tasks/One.md', project)],
+      { selectedProjectPath: project },
+    );
+
+    expect(harness.text()).toContain('1–1 of 1 ready tasks');
+    expect(
+      harness.content.querySelector(
+        '[data-workbench-focus-key="ready-page-jump"]',
+      ),
+    ).toBeNull();
+    expect(
+      harness.content.querySelector(
+        '[data-workbench-focus-key="all-tasks-page-jump"]',
+      ),
+    ).toBeNull();
+  });
+
   it('marks a stale last-good index as an alert without hiding its results', async () => {
     const project = 'Projects/Game/Project.md';
     const notes = [

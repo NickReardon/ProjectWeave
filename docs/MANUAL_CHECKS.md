@@ -76,13 +76,17 @@ several checks require corrupting notes on purpose.
 
 The seeded vault contains:
 
-| Note | Type | Status | Rank | Depends on |
-| --- | --- | --- | --- | --- |
-| `Projects/Game/Project.md` | project | — | — | — |
-| `Projects/Game/Tasks/Define request.md` | task | `done` | 1000 | — |
-| `Projects/Game/Tasks/Implement request.md` | task | `todo` | 2000 | Define request |
-| `Projects/Game/Tasks/External prerequisite.md` | task | `in-progress` | 3000 | — |
-| `Projects/Game/Tasks/Blocked request.md` | task | `todo` | 4000 | External prerequisite |
+| Note | Type | Status | Rank | Depends on | Due |
+| --- | --- | --- | --- | --- | --- |
+| `Projects/Game/Project.md` | project | — | — | — | — |
+| `Projects/Game/Tasks/Define request.md` | task | `done` | 1000 | — | none |
+| `Projects/Game/Tasks/Implement request.md` | task | `todo` | 2000 | Define request | today |
+| `Projects/Game/Tasks/External prerequisite.md` | task | `in-progress` | 3000 | — | 3 days ago |
+| `Projects/Game/Tasks/Blocked request.md` | task | `todo` | 4000 | External prerequisite | in 7 days |
+
+The due dates are written by the seeder relative to the day you seed, not
+committed with the fixture: a fixed date cannot be **today**. Reset before
+checking due states if the vault was seeded on an earlier day.
 
 Also present: `Projects/Game/Design/Travel.md` and `Templates/Task.md`.
 
@@ -119,7 +123,7 @@ and left alone rather than deleted.
 
 ## The checks
 
-### 1. Three entry points, one reusable tab
+### 1. Three entry points, one reusable tab ✅ passed
 
 **Why:** the view must be a singleton, not a new tab per invocation.
 
@@ -149,7 +153,7 @@ filters are back at their defaults rather than restored.
 
 ---
 
-### 3. Ready Now, and opening in another tab
+### 3. Ready Now, and opening in another tab ✅ passed
 
 1. With the fixture project selected, read the **Ready Now** section.
 2. Click **Implement request**.
@@ -162,7 +166,7 @@ tab; the workbench tab stays open and is not replaced.
 
 ---
 
-### 4. Default status scope in All Tasks
+### 4. Default status scope in All Tasks ✅ passed
 
 1. Read the **All Tasks** list with default filters.
 2. Select the `done` status.
@@ -176,17 +180,16 @@ The default scope is `backlog`, `todo`, `in-progress`, `waiting`, and `review`.
 
 ---
 
-### 5. Search and the advanced filters
+### 5. Search and the advanced filters — partially passed
 
-**Setup:** temporarily add all five fields to **one** fixture task, for example
-`Blocked request.md`:
+**Setup:** the seeded vault already carries due dates. Add the other four
+fields to **one** fixture task, for example `Blocked request.md`:
 
 ```yaml
 priority: high
 owner: Robin
 epic: '[[Engine]]'
 milestone: '[[Alpha]]'
-due_date: 2026-12-31
 ```
 
 1. Search `external` — confirm case-insensitive title matching. Search a
@@ -194,21 +197,26 @@ due_date: 2026-12-31
    Try mixed case (`ExTeRnAl`).
 2. Open the priority, epic, milestone, and owner selectors and confirm each
    offers the value you just added.
-3. Combine all five filters and confirm they isolate the one edited task.
+3. Combine those four filters and confirm they isolate the one edited task.
 4. Press **Reset filters**.
-5. Change `due_date` to **today's local calendar date**, then filter by **Due
-   today**.
+5. Filter by each due state in turn, with the default status set plus `done`
+   so every task is in scope. Expect **Past due date** to give **External
+   prerequisite**, **Due today** to give **Implement request**, **Future due
+   date** to give **Blocked request**, and **No due date** to give **Define
+   request**.
+   Confirm **Due today** against your machine's local calendar date — if the
+   vault was seeded on an earlier day, reset it first.
 
-**Pass:** each filter narrows as expected; combining them isolates the single
-task; **Reset filters** returns to the non-terminal default status set and
-clears the search and selectors; **Due today** matches against your local
-calendar date, not UTC.
+**Pass:** each filter narrows as expected; combining the four isolates the
+single edited task; each due state matches exactly the task above; **Reset
+filters** returns to the non-terminal default status set and clears the search
+and selectors; **Due today** matches against your local calendar date, not UTC.
 
 **Then:** `npm run test-vault:reset`.
 
 ---
 
-### 6. Live refresh after an edit
+### 6. Live refresh after an edit ✅ passed
 
 1. With the workbench visible, open a task note in another tab.
 2. Change `status: todo` to `status: done` on **External prerequisite**.
@@ -221,7 +229,7 @@ update, and the filter selectors offer the currently available values.
 
 ---
 
-### 7. Invalid status diagnostic
+### 7. Invalid status diagnostic ✅ passed
 
 **Note:** this was previously exercised only incidentally while setting up
 check 9. Its recovery guidance and exact-note navigation are unconfirmed.
@@ -286,7 +294,7 @@ the retired runtime appear after the switch.
 
 ---
 
-### 11. Degenerate states
+### 11. Degenerate states — partially passed
 
 Ordinary use never reaches these states. Run each sub-case and record it
 separately.
@@ -335,8 +343,11 @@ All Tasks opens on **1–25 of 250 matching tasks** and Ready Now on its first
 ten. Confirm that **Previous** is disabled on the first page, that **Next**
 reaches the end, and that the last page is short rather than padded. Set
 **Per page** to 200 and confirm the tail past 200 is reachable — that is the
-range ADR 0011 exists for. Diagnostics still truncate at 200 and do not page.
-A plain `npm run test-vault:reset` removes the bulk tasks again.
+range ADR 0011 exists for. Then use the **Page** field: type a page in the
+middle, press Enter, and confirm the list moves there in one step; type a page
+past the end and confirm it lands on the last page rather than refusing.
+Diagnostics still truncate at 200 and do not page. A plain
+`npm run test-vault:reset` removes the bulk tasks again.
 
 **11g — narrow layouts.** Drag the workbench pane as narrow as it goes, and
 also try it in a right sidebar. The filter controls should stack rather than
@@ -345,7 +356,7 @@ Known and accepted: the create-task modal is cramped at narrow widths.
 
 ---
 
-### 12. Create-task preview
+### 12. Create-task preview — re-run required
 
 **Note:** `tests/ui/task-creation-preview-modal.test.ts` now drives the real
 preview service through the modal and asserts what it shows: the allocated
@@ -383,7 +394,7 @@ untouched.
 
 ---
 
-### 13. Create-task commit ✅ passed
+### 13. Create-task commit — re-run required
 
 **This check writes to the vault.**
 

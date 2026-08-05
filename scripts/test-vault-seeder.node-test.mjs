@@ -13,8 +13,10 @@ import test from 'node:test';
 
 import {
   MANIFEST_NAME,
+  localIsoDate,
   parseSeedArguments,
   seedTestVault,
+  withDueDate,
   writeTestVaultPointer,
 } from './test-vault-seeder.mjs';
 
@@ -30,6 +32,8 @@ async function workspace() {
         vaultPath: join(root, 'test-vault'),
         repositoryRoot: root,
         seedSource: SEED_SOURCE,
+        // Fixed, so a seed and a later reset agree even across midnight.
+        seedDate: new Date(2026, 7, 5),
         ...options,
       });
     },
@@ -314,4 +318,57 @@ test('parses arguments and rejects unsupported ones', () => {
   assert.throws(() => parseSeedArguments(['--wipe']), /Unsupported/u);
   assert.throws(() => parseSeedArguments(['--scale', 'lots']), /whole number/u);
   assert.throws(() => parseSeedArguments(['--path']), /expects a directory/u);
+});
+
+test('dates the fixture tasks relative to the day it seeds', async () => {
+  const space = await workspace();
+  try {
+    // A fixed seed date, so the assertion is about the offsets rather than
+    // about whatever day the suite happens to run.
+    await space.seed({ seedDate: new Date(2026, 7, 5) });
+
+    const read = async (name) =>
+      await readFile(
+        join(space.vaultPath, 'Projects', 'Game', 'Tasks', name),
+        'utf8',
+      );
+
+    assert.match(await read('Implement request.md'), /due_date: 2026-08-05\n/u);
+    assert.match(
+      await read('External prerequisite.md'),
+      /due_date: 2026-08-02\n/u,
+    );
+    assert.match(await read('Blocked request.md'), /due_date: 2026-08-12\n/u);
+    // The fourth state is a task with no due date at all.
+    assert.doesNotMatch(await read('Define request.md'), /due_date/u);
+
+    // The committed fixture is untouched; only the seeded copy is dated.
+    const fixture = await readFile(
+      join(SEED_SOURCE, 'Projects', 'Game', 'Tasks', 'Implement request.md'),
+      'utf8',
+    );
+    assert.doesNotMatch(fixture, /due_date/u);
+  } finally {
+    await space.cleanup();
+  }
+});
+
+test('offsets calendar days locally and refuses notes it cannot date', () => {
+  // Crossing a month boundary, and a UTC-sensitive hour: the due-state filters
+  // compare local calendar dates, so this must not slip a day.
+  assert.equal(localIsoDate(new Date(2026, 7, 5, 23, 30), -6), '2026-07-30');
+  assert.equal(localIsoDate(new Date(2026, 11, 31, 0, 30), 1), '2027-01-01');
+
+  assert.equal(
+    withDueDate('---\ntype: task\n---\n\n# One\n', '2026-08-05'),
+    '---\ntype: task\ndue_date: 2026-08-05\n---\n\n# One\n',
+  );
+  assert.throws(
+    () => withDueDate('# No frontmatter\n', '2026-08-05'),
+    /without frontmatter/u,
+  );
+  assert.throws(
+    () => withDueDate('---\ndue_date: 2026-01-01\n---\n', '2026-08-05'),
+    /already declares/u,
+  );
 });

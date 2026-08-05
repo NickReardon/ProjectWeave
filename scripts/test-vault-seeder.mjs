@@ -27,6 +27,23 @@ const OBSIDIAN_FILES = {
   'community-plugins.json': '["project-weave"]\n',
 };
 
+/**
+ * Due dates the seeder injects into fixture tasks, as day offsets from the day
+ * the vault is seeded.
+ *
+ * These cannot live in `tests/fixtures/vault/` with the rest of the baseline: a
+ * committed date is a fixed date, and the **Due today** filter has to be
+ * checked against the day the check is run. Offsets give one task in each due
+ * state — past, today, and future — while the fourth fixture task keeps no due
+ * date, which is the fourth state. The automated tests read the fixture
+ * directly and so are unaffected.
+ */
+export const SEEDED_DUE_DATES = {
+  'Projects/Game/Tasks/External prerequisite.md': -3,
+  'Projects/Game/Tasks/Implement request.md': 0,
+  'Projects/Game/Tasks/Blocked request.md': 7,
+};
+
 /** Rank gap matching the allocator's convention. */
 const BULK_RANK_GAP = 1000;
 const BULK_RANK_BASE = 100000;
@@ -51,6 +68,54 @@ export function paddedIndex(index) {
 }
 
 /**
+ * A calendar date in the machine's own timezone, offset by whole days.
+ *
+ * Local rather than UTC on purpose: the due-state filters compare against the
+ * local calendar date, so a UTC date would put a seeded "today" a day out for
+ * anyone west of Greenwich for part of the day.
+ */
+export function localIsoDate(from, offsetDays) {
+  const date = new Date(
+    from.getFullYear(),
+    from.getMonth(),
+    from.getDate() + offsetDays,
+  );
+  return (
+    String(date.getFullYear()).padStart(4, '0') +
+    '-' +
+    String(date.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(date.getDate()).padStart(2, '0')
+  );
+}
+
+/**
+ * Adds a `due_date` to a note's frontmatter, at the end of the block.
+ *
+ * Refuses anything it does not recognize rather than guessing: this rewrites a
+ * fixture note, and a silent no-op would leave a check quietly unrunnable.
+ */
+export function withDueDate(content, isoDate) {
+  const match = /^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n)/u.exec(content);
+  if (match === null) {
+    throw new Error('Cannot add a due date to a note without frontmatter.');
+  }
+  if (/^due_date:/mu.test(match[2])) {
+    throw new Error('The note already declares a due date.');
+  }
+  const newline = match[3].startsWith('\r\n') ? '\r\n' : '\n';
+  return (
+    match[1] +
+    match[2] +
+    newline +
+    'due_date: ' +
+    isoDate +
+    match[3] +
+    content.slice(match[0].length)
+  );
+}
+
+/**
  * Seeds a vault, or resets one this tool previously seeded.
  *
  * Reset preserves `.obsidian/`, so the installed plugin and its local settings
@@ -64,6 +129,7 @@ export async function seedTestVault({
   reset = false,
   scale = 0,
   allowOutsideRepository = false,
+  seedDate = new Date(),
 } = {}) {
   const vaultRoot = resolve(vaultPath);
   assertSafeTarget(vaultRoot, resolve(repositoryRoot), allowOutsideRepository);
@@ -92,6 +158,7 @@ export async function seedTestVault({
   }
 
   const seededFiles = await copySeed(seedSource, vaultRoot);
+  await addDueDates(vaultRoot, seededFiles, seedDate);
   for (let index = 1; index <= scale; index += 1) {
     const relativePath = join(
       'Projects',
@@ -225,6 +292,29 @@ async function copySeed(seedSource, vaultRoot) {
     throw new Error('The seed source contains no files: ' + source + '.');
   }
   return seeded;
+}
+
+/**
+ * Dates the copied fixture tasks relative to the seed run, so the due-state
+ * filters have something to filter and **Due today** means today.
+ */
+async function addDueDates(vaultRoot, seededFiles, seedDate) {
+  for (const [relativePath, offsetDays] of Object.entries(SEEDED_DUE_DATES)) {
+    if (!seededFiles.includes(relativePath)) {
+      throw new Error(
+        'The seed source no longer contains ' +
+          relativePath +
+          ', which the seeded due dates expect.',
+      );
+    }
+    const target = resolveInside(vaultRoot, relativePath);
+    const content = await readFile(target, 'utf8');
+    await writeFile(
+      target,
+      withDueDate(content, localIsoDate(seedDate, offsetDays)),
+      'utf8',
+    );
+  }
 }
 
 async function listFiles(root, prefix) {

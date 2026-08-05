@@ -273,6 +273,12 @@ alone seeds without touching the pointer.
 Only `test-vault/` is seeded or reset. Any other vault, including a copy of a
 real one, is an install target only, through `npm run test-vault:update`.
 
+Seeded task notes carry due dates relative to the day they are seeded — one
+overdue, one due today, one due later, one undated — so the due-state filters
+have something to filter. A committed date cannot be today, so these are
+written by the seeder rather than held in the fixture, and reseeding on a later
+day moves them.
+
 `reset` returns the vault to its baseline between checks, preserving
 `.obsidian/` so the installed plugin survives, and reporting rather than
 deleting notes it did not seed. Pass `-- --scale 250` to seed bulk tasks for

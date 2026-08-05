@@ -572,6 +572,24 @@
   outline: none;
 }
 
+.project-weave-workbench__page-jump {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-1);
+  white-space: nowrap;
+}
+
+.project-weave-workbench__page-jump-input {
+  font-size: var(--font-ui-smaller);
+  height: auto;
+  padding: var(--size-4-1) var(--size-4-2);
+  /* Wide enough for a three-digit page, and no wider: the pager already
+     competes for room in a narrow pane. */
+  width: 4.5em;
+}
+
 .project-weave-workbench__empty {
   background: var(--background-secondary);
   border: 1px dashed var(--background-modifier-border);
