@@ -256,20 +256,26 @@ Run `npm run export` to build and verify the plugin, then generate:
 - `export/project-weave-<version>.zip` — a ZIP containing that plugin folder.
 
 To create a disposable vault for the manual checks, seeded from
-`tests/fixtures/vault/`:
+`tests/fixtures/vault/`, and install the plugin into it:
 
 ```shell
-npm run test-vault:create
+npm run test-vault:setup
 npm run test-vault:reset
 ```
 
-`create` writes a Git-ignored `test-vault/` with a minimal `.obsidian/` and a
-manifest of everything it wrote; `reset` returns it to that baseline between
-checks, preserving `.obsidian/` so the installed plugin survives, and reporting
-rather than deleting notes it did not seed. Pass `-- --scale 250` to seed bulk
-tasks for the truncation check. Both refuse any directory without a manifest
-this tool wrote, and refuse a target outside the repository unless given
-`--allow-outside`. Neither writes the pointer file below.
+`setup` seeds a Git-ignored `test-vault/` with a minimal `.obsidian/` and a
+manifest of everything it wrote, points `.project-weave-test-vault` at it, then
+builds and installs. It refuses when the pointer already names a different
+vault, since that decides where the next build lands; add `-- --force` to
+repoint deliberately. `npm run test-vault:create` seeds without touching the
+pointer.
+
+`reset` returns the vault to its baseline between checks, preserving
+`.obsidian/` so the installed plugin survives, and reporting rather than
+deleting notes it did not seed. Pass `-- --scale 250` to seed bulk tasks for
+the truncation check. Every command refuses a directory without a manifest this
+tool wrote, and refuses a target outside the repository unless given
+`--allow-outside`.
 
 To update a local Obsidian test vault on every export, put its absolute path in
 the Git-ignored `.project-weave-test-vault` file or set

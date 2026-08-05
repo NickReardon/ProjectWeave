@@ -15,44 +15,42 @@ the end.
 
 ## Setup
 
-### 1. Create the vault
+### 1. Create the vault and install the plugin
 
 ```shell
-npm run test-vault:create
+npm run test-vault:setup
 ```
 
-That materializes `test-vault/` at the repository root: the fixture notes, a
-minimal `.obsidian/` so the installer accepts it, and a
-`.project-weave-seed.json` manifest recording what it wrote. The directory is
+That does the whole thing: seeds `test-vault/` at the repository root, points
+`.project-weave-test-vault` at it, builds, and installs `main.js`,
+`manifest.json`, and `styles.css` into `.obsidian/plugins/project-weave`. The
+seeded `community-plugins.json` already enables the plugin, so it loads rather
+than waiting to be switched on.
+
+**It will refuse if the pointer already names a different vault**, leaving the
+existing one alone — the pointer decides where the next build installs, and
+silently redirecting it would send your build somewhere you were not expecting.
+Re-run with `-- --force` when repointing is what you want.
+
+The seeded vault holds the fixture notes, a minimal `.obsidian/`, and a
+`.project-weave-seed.json` manifest of everything the seeder wrote. It is
 Git-ignored, so nothing the checks do to it shows up in `git status`.
 
-Put the printed path in the Git-ignored `.project-weave-test-vault` file. The
-seeder deliberately does not write that file itself: it may already point at a
-vault you care about, and repointing it silently would redirect your next
-export.
+The steps are also available separately — `npm run test-vault:create` seeds
+without touching the pointer and prints the path; `npm run test-vault:update`
+builds and installs into whatever the pointer names.
 
 **Two vaults are useful, for different questions.** `test-vault/` gives a known
 state, so a check that passes is repeatable. A copy of a real vault answers
 whether the plugin survives reality — volume, other plugins, mobile — which is
-what checks 11f through 11h are really about. Point the file at whichever one
-the session needs.
+what checks 11f through 11h are really about. Point at whichever one the
+session needs.
 
-### 2. Build and install
+### 2. Confirm what you are testing
 
 ```shell
 npm run check
 ```
-
-```shell
-npm run test-vault:update
-```
-
-The second command builds, verifies the release inventory, and copies exactly
-`main.js`, `manifest.json`, and `styles.css` into
-`.obsidian/plugins/project-weave` in the configured vault. It fails loudly if
-no vault is configured.
-
-Confirm the installed version matches what you think you are testing:
 
 ```shell
 npm run version:show

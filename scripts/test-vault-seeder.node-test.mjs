@@ -15,6 +15,7 @@ import {
   MANIFEST_NAME,
   parseSeedArguments,
   seedTestVault,
+  writeTestVaultPointer,
 } from './test-vault-seeder.mjs';
 
 const SEED_SOURCE = resolve('tests/fixtures/vault');
@@ -230,11 +231,85 @@ test('reset accepts a scale so a truncation check needs one command', async () =
   }
 });
 
+test('writes the pointer when there is none', async () => {
+  const space = await workspace();
+  try {
+    const pointerPath = join(space.root, 'pointer');
+    const result = await writeTestVaultPointer({
+      vaultRoot: space.vaultPath,
+      pointerPath,
+    });
+
+    assert.equal(result.written, true);
+    assert.equal((await readFile(pointerPath, 'utf8')).trim(), space.vaultPath);
+  } finally {
+    await space.cleanup();
+  }
+});
+
+test('refuses to repoint an existing pointer without --force', async () => {
+  const space = await workspace();
+  try {
+    const pointerPath = join(space.root, 'pointer');
+    const theirs = join(space.root, 'Real Vault');
+    await writeFile(pointerPath, theirs + '\n');
+
+    const refused = await writeTestVaultPointer({
+      vaultRoot: space.vaultPath,
+      pointerPath,
+    });
+
+    assert.equal(refused.written, false);
+    assert.equal(refused.reason, 'conflict');
+    // The user's own vault must still be the install target.
+    assert.equal((await readFile(pointerPath, 'utf8')).trim(), theirs);
+
+    const forced = await writeTestVaultPointer({
+      vaultRoot: space.vaultPath,
+      pointerPath,
+      force: true,
+    });
+    assert.equal(forced.written, true);
+    assert.equal((await readFile(pointerPath, 'utf8')).trim(), space.vaultPath);
+  } finally {
+    await space.cleanup();
+  }
+});
+
+test('treats an identical pointer as nothing to do', async () => {
+  const space = await workspace();
+  try {
+    const pointerPath = join(space.root, 'pointer');
+    await writeFile(pointerPath, space.vaultPath + '\n');
+
+    const result = await writeTestVaultPointer({
+      vaultRoot: space.vaultPath,
+      pointerPath,
+    });
+
+    assert.deepEqual(
+      { written: result.written, reason: result.reason },
+      { written: false, reason: 'already' },
+    );
+  } finally {
+    await space.cleanup();
+  }
+});
+
 test('parses arguments and rejects unsupported ones', () => {
   assert.deepEqual(parseSeedArguments(['--reset', '--scale', '250']), {
     reset: true,
     scale: 250,
     allowOutsideRepository: false,
+    point: false,
+    force: false,
+  });
+  assert.deepEqual(parseSeedArguments(['--point', '--force']), {
+    reset: false,
+    scale: 0,
+    allowOutsideRepository: false,
+    point: true,
+    force: true,
   });
   assert.throws(() => parseSeedArguments(['--wipe']), /Unsupported/u);
   assert.throws(() => parseSeedArguments(['--scale', 'lots']), /whole number/u);

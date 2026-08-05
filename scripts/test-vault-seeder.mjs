@@ -271,8 +271,51 @@ function toManifestPath(relativePath) {
   return relativePath.split(sep).join('/');
 }
 
+export const POINTER_NAME = '.project-weave-test-vault';
+
+/**
+ * Points the export installer at a vault.
+ *
+ * The pointer decides where the next build is installed, so an existing one is
+ * never overwritten silently: it may aim at a vault the user is mid-session
+ * with. Same target is a no-op, a different target refuses until forced.
+ */
+export async function writeTestVaultPointer({
+  vaultRoot,
+  pointerPath = resolve(POINTER_NAME),
+  force = false,
+}) {
+  const target = resolve(vaultRoot);
+  let existing = null;
+  try {
+    existing = (await readFile(pointerPath, 'utf8')).trim();
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  if (existing !== null && existing.length > 0) {
+    if (resolve(existing) === target) {
+      return { written: false, reason: 'already', existing };
+    }
+    if (!force) {
+      return { written: false, reason: 'conflict', existing };
+    }
+  }
+
+  await writeFile(pointerPath, target + '\n', 'utf8');
+  return { written: true, reason: existing === null ? 'created' : 'replaced' };
+}
+
 export function parseSeedArguments(argv) {
-  const options = { reset: false, scale: 0, allowOutsideRepository: false };
+  const options = {
+    reset: false,
+    scale: 0,
+    allowOutsideRepository: false,
+    point: false,
+    force: false,
+  };
   let vaultPath = null;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -280,6 +323,10 @@ export function parseSeedArguments(argv) {
       options.reset = true;
     } else if (argument === '--allow-outside') {
       options.allowOutsideRepository = true;
+    } else if (argument === '--point') {
+      options.point = true;
+    } else if (argument === '--force') {
+      options.force = true;
     } else if (argument === '--scale') {
       const value = Number(argv[index + 1]);
       if (!Number.isInteger(value) || value < 0 || value > 5000) {
@@ -315,10 +362,32 @@ if (process.argv[1]?.endsWith('test-vault-seeder.mjs') === true) {
   for (const unknown of result.unknown) {
     console.log('Left in place, not seeded: ' + unknown);
   }
-  // The pointer file is never written here: it may already aim at a vault the
-  // user cares about, and repointing it silently would redirect the next export.
-  console.log(
-    'To install builds here, put this path in .project-weave-test-vault:',
-  );
-  console.log('  ' + result.vaultRoot);
+  // Writing the pointer is opt-in: it decides where the next build installs,
+  // and it may already aim at a vault the user cares about.
+  if (!options.point) {
+    console.log(
+      'To install builds here, put this path in ' + POINTER_NAME + ':',
+    );
+    console.log('  ' + result.vaultRoot);
+    console.log('Or re-run with --point to write it.');
+  } else {
+    const pointer = await writeTestVaultPointer({
+      vaultRoot: result.vaultRoot,
+      force: options.force,
+    });
+    if (pointer.written) {
+      console.log(POINTER_NAME + ' now points at ' + result.vaultRoot);
+    } else if (pointer.reason === 'already') {
+      console.log(POINTER_NAME + ' already points at ' + result.vaultRoot);
+    } else {
+      throw new Error(
+        POINTER_NAME +
+          ' already points at ' +
+          pointer.existing +
+          '. Re-run with --force to repoint it at ' +
+          result.vaultRoot +
+          '.',
+      );
+    }
+  }
 }
