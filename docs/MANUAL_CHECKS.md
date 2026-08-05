@@ -15,9 +15,29 @@ the end.
 
 ## Setup
 
-### 1. Build and install
+### 1. Create the vault
 
-From a clean tree:
+```shell
+npm run test-vault:create
+```
+
+That materializes `test-vault/` at the repository root: the fixture notes, a
+minimal `.obsidian/` so the installer accepts it, and a
+`.project-weave-seed.json` manifest recording what it wrote. The directory is
+Git-ignored, so nothing the checks do to it shows up in `git status`.
+
+Put the printed path in the Git-ignored `.project-weave-test-vault` file. The
+seeder deliberately does not write that file itself: it may already point at a
+vault you care about, and repointing it silently would redirect your next
+export.
+
+**Two vaults are useful, for different questions.** `test-vault/` gives a known
+state, so a check that passes is repeatable. A copy of a real vault answers
+whether the plugin survives reality — volume, other plugins, mobile — which is
+what checks 11f through 11h are really about. Point the file at whichever one
+the session needs.
+
+### 2. Build and install
 
 ```shell
 npm run check
@@ -29,9 +49,8 @@ npm run test-vault:update
 
 The second command builds, verifies the release inventory, and copies exactly
 `main.js`, `manifest.json`, and `styles.css` into
-`.obsidian/plugins/project-weave` in the vault named by the Git-ignored
-`.project-weave-test-vault` file or the `PROJECT_WEAVE_TEST_VAULT` environment
-variable. It fails loudly if no vault is configured.
+`.obsidian/plugins/project-weave` in the configured vault. It fails loudly if
+no vault is configured.
 
 Confirm the installed version matches what you think you are testing:
 
@@ -42,12 +61,12 @@ npm run version:show
 In Obsidian, **Settings → Community plugins**, disable and re-enable Project
 Weave so the new bundle loads. Obsidian does not hot-reload a replaced plugin.
 
-### 2. Prepare the vault
+### 3. Know the baseline
 
-**Use a disposable vault.** Check 13 writes to it, and several checks require
-you to corrupt notes on purpose.
+**Never point any of this at a vault you would miss.** Check 13 writes, and
+several checks require corrupting notes on purpose.
 
-Copy the contents of `tests/fixtures/vault/` into the vault root. That gives:
+The seeded vault contains:
 
 | Note | Type | Status | Rank | Depends on |
 | --- | --- | --- | --- | --- |
@@ -67,11 +86,21 @@ So the expected baseline is: **Implement request** is the only Ready task
 In **Settings → Community plugins → Project Weave**, confirm **Indexed project
 folders** is `Projects`.
 
-### 3. Working rules
+### 4. Working rules
 
-- Restore any note you edit before starting the next check. Several checks
-  depend on the baseline table above.
-- A snapshot copy of the vault folder before you start makes reverting trivial.
+Between checks, return to the baseline:
+
+```shell
+npm run test-vault:reset
+```
+
+Reset restores every seeded note, drops the ones the seeder added, and
+preserves `.obsidian/` — so the installed plugin and its settings survive and
+you do not reinstall after every check. Notes you created yourself are reported
+and left alone rather than deleted.
+
+- Reset between checks rather than reverting edits by hand. A check that passes
+  against leftover state from the previous one has proved nothing.
 - Vault edits take effect on the next index publication, which is automatic.
   If a view looks stale for more than a second or two, that is a defect —
   record it rather than reloading past it.
@@ -167,7 +196,7 @@ task; **Reset filters** returns to the non-terminal default status set and
 clears the search and selectors; **Due today** matches against your local
 calendar date, not UTC.
 
-**Then:** revert the task note.
+**Then:** `npm run test-vault:reset`.
 
 ---
 
@@ -201,7 +230,7 @@ link opens **that exact note**; follow-on validation errors that depend on the
 unparsed status are suppressed rather than piled on; the diagnostic disappears
 after the next index publication once corrected.
 
-**Then:** revert the task note.
+**Then:** `npm run test-vault:reset`.
 
 ---
 
@@ -215,7 +244,8 @@ after the next index publication once corrected.
 with a link to its source note and its error type — Project Weave cannot infer
 ownership, and must not silently drop them.
 
-**Then:** delete the notes you created.
+**Then:** delete the notes you created, or `npm run test-vault:reset` — reset
+reports them rather than removing them, since it only deletes what it seeded.
 
 ---
 
@@ -263,7 +293,7 @@ contradiction between the test and the app as a defect in the test double.
 **11a — multiple projects.** Add a second project note, for example
 `Projects/Tooling/Project.md` with `type: project`. Confirm the project
 selector lists both and switching between them changes the task lists. Then
-delete it.
+delete it — reset will report it, not remove it.
 
 **11b — unavailable restored selection.** Select a project, then delete or
 rename its project note while the workbench is open. Expect the
@@ -287,16 +317,16 @@ record it as unreached rather than passed.
 **No tasks in this project**. Confirm you get the second message by selecting a
 project with no tasks at all.
 
-**11f — 200-result truncation.** Generate more than 200 tasks in one project.
-From the repository root, with the vault path substituted:
+**11f — 200-result truncation.** Seed more than 200 tasks in one project:
 
-```powershell
-1..250 | ForEach-Object { Set-Content -Path "C:\path\to\vault\Projects\Game\Tasks\Bulk $_.md" -Value "---`ntype: task`nproject: '[[Projects/Game/Project]]'`nstatus: todo`nrank: $($_ * 1000 + 10000)`n---`n`n# Bulk $_" }
+```shell
+npm run test-vault:reset -- --scale 250
 ```
 
 Expect **Showing the first 200 of &lt;total&gt;** in All Tasks, and
 **Showing the first 200 ready tasks** in Ready Now. Diagnostics truncate the
-same way at 200. Delete the `Bulk *.md` notes afterward.
+same way at 200. A plain `npm run test-vault:reset` removes the bulk tasks
+again.
 
 **11g — narrow layouts.** Drag the workbench pane as narrow as it goes, and
 also try it in a right sidebar. The filter controls should stack rather than

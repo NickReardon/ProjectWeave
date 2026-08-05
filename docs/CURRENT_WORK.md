@@ -39,6 +39,9 @@ ends, or the next decision changes — not for every code change.
   policy, and rank rule that `docs/design/README.md` had left open.
 - Local test-vault installation and the preview/stable release workflow are
   documented and automatically exercised. Nothing has been released.
+- A disposable test vault can be seeded and reset from the committed fixture,
+  so a manual check runs from a known state rather than from whatever the
+  previous check left behind. It refuses any directory it did not seed.
 
 ## Automated verification
 

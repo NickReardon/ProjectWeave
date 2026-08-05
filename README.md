@@ -255,6 +255,22 @@ Run `npm run export` to build and verify the plugin, then generate:
 - `export/project-weave/` — the directly installable Obsidian plugin folder;
 - `export/project-weave-<version>.zip` — a ZIP containing that plugin folder.
 
+To create a disposable vault for the manual checks, seeded from
+`tests/fixtures/vault/`:
+
+```shell
+npm run test-vault:create
+npm run test-vault:reset
+```
+
+`create` writes a Git-ignored `test-vault/` with a minimal `.obsidian/` and a
+manifest of everything it wrote; `reset` returns it to that baseline between
+checks, preserving `.obsidian/` so the installed plugin survives, and reporting
+rather than deleting notes it did not seed. Pass `-- --scale 250` to seed bulk
+tasks for the truncation check. Both refuse any directory without a manifest
+this tool wrote, and refuse a target outside the repository unless given
+`--allow-outside`. Neither writes the pointer file below.
+
 To update a local Obsidian test vault on every export, put its absolute path in
 the Git-ignored `.project-weave-test-vault` file or set
 `PROJECT_WEAVE_TEST_VAULT`. The configured folder must already contain an
