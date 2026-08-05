@@ -339,19 +339,24 @@ export default class ProjectWeavePlugin extends Plugin {
       return;
     }
 
+    // Prefer an explicit project, then whatever the workbench is showing, and
+    // only then the active file. The workbench is not a file view, so with the
+    // dashboard focused there is no active file to infer from at all.
+    const selectedProjectPath =
+      requestedProjectPath ?? this.#workbenchProjectPath();
     const projectModel = buildProjectWorkbenchModel({
       publication,
-      selectedProjectPath: requestedProjectPath ?? null,
+      selectedProjectPath,
       activePath:
-        requestedProjectPath === undefined
+        selectedProjectPath === null
           ? (this.app.workspace.getActiveFile()?.path ?? null)
           : null,
       readyDisplayLimit: 1,
     });
     if (projectModel.state !== 'project') {
       new Notice(
-        requestedProjectPath === undefined
-          ? 'Open a project or task note before creating a task.'
+        selectedProjectPath === null
+          ? 'Select a project in the workbench, or open a project or task note, before creating a task.'
           : 'That project is no longer available. Rebuilding the index may help.',
       );
       return;
@@ -393,6 +398,22 @@ export default class ProjectWeavePlugin extends Plugin {
       commit: (proposal) => commits.commit(proposal),
       openNote: (path) => this.#openCreatedNote(path),
     }).open();
+  }
+
+  /** The project an open workbench is showing, or null when none is. */
+  #workbenchProjectPath(): string | null {
+    for (const leaf of this.app.workspace.getLeavesOfType(
+      PROJECT_WORKBENCH_VIEW_TYPE,
+    )) {
+      const { view } = leaf;
+      if (view instanceof ProjectWorkbenchView) {
+        const selected = view.selectedProjectPath;
+        if (selected !== null) {
+          return selected;
+        }
+      }
+    }
+    return null;
   }
 
   /** Opens a just-created note in a new tab, leaving the workbench in place. */

@@ -131,6 +131,15 @@ export class ProjectWorkbenchView extends ItemView {
     return 'layout-dashboard';
   }
 
+  /**
+   * The project this workbench is showing, if any. Lets a command act on the
+   * dashboard's own selection instead of inferring from the active file —
+   * there is no active file when the workbench itself has focus.
+   */
+  public get selectedProjectPath(): string | null {
+    return this.#selectedProjectPath;
+  }
+
   public override getState(): Record<string, unknown> {
     return {
       stateVersion: WORKBENCH_STATE_VERSION,

@@ -137,11 +137,12 @@ verify:
     changed-note message and create nothing. No existing note is modified at
     any point.
 
-Creating a task from the modal has been exercised against a real vault and
-works. The remaining parts of check 13 — that the written bytes match the
-preview exactly, that a missing `Tasks` folder is created, and that editing
-the project note mid-modal makes the commit refuse — have not been confirmed
-separately.
+Check 13 is largely confirmed against a real vault: creating from the
+workbench works, the task folder and requested subfolders are created, a
+duplicate title yields a suffixed name rather than an overwrite, and editing
+the project note while the modal is open makes the commit refuse. Comparing
+the written bytes against the preview character for character has not been
+done separately.
 
 **Status as of 2026-08-03: partially complete.** Checks 2, 8, 9, and 10 were
 run against the installed 0.3.0 build and passed, with no defects observed:
