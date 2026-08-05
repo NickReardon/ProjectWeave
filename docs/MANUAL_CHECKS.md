@@ -30,7 +30,13 @@ than waiting to be switched on.
 **It will refuse if the pointer already names a different vault**, leaving the
 existing one alone — the pointer decides where the next build installs, and
 silently redirecting it would send your build somewhere you were not expecting.
-Re-run with `-- --force` when repointing is what you want.
+Repointing is deliberate and takes two steps, because `setup` forwards extra
+arguments to its last command rather than to the seeder:
+
+```shell
+npm run test-vault:create -- --point --force
+npm run test-vault:update
+```
 
 The seeded vault holds the fixture notes, a minimal `.obsidian/`, and a
 `.project-weave-seed.json` manifest of everything the seeder wrote. It is
@@ -39,6 +45,10 @@ Git-ignored, so nothing the checks do to it shows up in `git status`.
 The steps are also available separately — `npm run test-vault:create` seeds
 without touching the pointer and prints the path; `npm run test-vault:update`
 builds and installs into whatever the pointer names.
+
+Only `test-vault/` is ever seeded or reset. A vault the seeder did not create
+has no manifest, so it is refused; a real vault is only ever an install target,
+through `test-vault:update`.
 
 **Two vaults are useful, for different questions.** `test-vault/` gives a known
 state, so a check that passes is repeatable. A copy of a real vault answers

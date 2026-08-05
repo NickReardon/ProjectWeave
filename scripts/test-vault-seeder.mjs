@@ -384,9 +384,10 @@ if (process.argv[1]?.endsWith('test-vault-seeder.mjs') === true) {
         POINTER_NAME +
           ' already points at ' +
           pointer.existing +
-          '. Re-run with --force to repoint it at ' +
+          '. To install builds there instead, run test-vault:update. To ' +
+          'repoint at ' +
           result.vaultRoot +
-          '.',
+          ', run: npm run test-vault:create -- --point --force',
       );
     }
   }
