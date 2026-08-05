@@ -5,12 +5,14 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
+      '.claude/**',
       'coverage/**',
       'dist/**',
       'export/**',
       'main.js',
       'node_modules/**',
       'templates/**',
+      'test-vault/**',
     ],
   },
   eslint.configs.recommended,

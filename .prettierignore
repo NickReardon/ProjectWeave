@@ -1,7 +1,9 @@
+.claude/
 coverage/
 dist/
 export/
 node_modules/
+test-vault/
 CURRENT-DESIGN.md
 PLAN*.md
 docs/**/*.md

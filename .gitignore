@@ -6,3 +6,4 @@ coverage/
 .DS_Store
 Thumbs.db
 .project-weave-test-vault
+test-vault/
