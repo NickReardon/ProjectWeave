@@ -491,12 +491,12 @@
   font-size: var(--font-ui-medium);
   font-weight: var(--font-semibold);
   height: auto;
-  /* Padding rather than a bare label so the hit area has room around the
-     title. The matching negative inline margin keeps the text aligned with
-     the rest of the card, so the target grows without the layout shifting.
-     Vertical padding stays tight: the card already supplies the row's height,
-     and doubling it up makes every row taller for no extra reach. */
-  margin-inline: calc(-1 * var(--size-4-2));
+  /* Padding rather than a bare label so the title is not flush against the
+     edge of its own box. No negative inline margin to compensate: pulling the
+     button back out to the card's padding edge is what made the box bleed to
+     the card borders. The box keeps the card's content width and the text sits
+     inside it. Vertical padding stays tight because the card already supplies
+     the row height. */
   padding: var(--size-2-1) var(--size-4-2);
   text-align: left;
   white-space: normal;
