@@ -30,10 +30,11 @@ ends, or the next decision changes — not for every code change.
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
   and the write path cannot modify, move, or delete an existing note.
-- Creating a task has been exercised against a real vault and works. The
-  narrower guarantees around it — byte-exact output, folder creation, and
-  refusing a proposal whose inputs changed — are still proven only against
-  test doubles; check 13 covers them.
+- Creating a task has been exercised against a real vault. Folder and
+  subfolder creation, the suffixed name on a duplicate title, and refusing a
+  commit whose project note changed mid-modal all behave as designed. Only the
+  byte-for-byte comparison of the written note against its preview is still
+  proven solely against test doubles.
 - Task target paths and backlog ranks are now allocated by pure application
   code. ADR 0008 settles the folder convention, filename derivation, collision
   policy, and rank rule that `docs/design/README.md` had left open.
