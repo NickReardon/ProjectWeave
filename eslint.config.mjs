@@ -12,6 +12,7 @@ export default tseslint.config(
       'main.js',
       'node_modules/**',
       'templates/**',
+      'test-vault/**',
     ],
   },
   eslint.configs.recommended,

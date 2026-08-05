@@ -88,13 +88,15 @@ Allocation is confirmed absent from `dist/main.js`, so it is tree-shaken out
 and the running plugin is unchanged. The proposal service and its seven tests
 were not modified by that slice.
 
-`npm run check` passed in full again after adding rendering coverage for the
-Project Workbench view and the create-task modal: 23 Vitest files with 244
-tests, 13 Node script tests, the production build, and the same three-file
-release inventory. The `obsidian`
-package ships types only, so the suite aliases it to a test double and installs
-Obsidian's `HTMLElement` helpers into a `happy-dom` environment; `happy-dom` is
-a development dependency and the shipped bundle is unchanged.
+On 2026-08-05, `npm run check` passed in full with UI rendering coverage and
+the test-vault seeder in place, using Node.js 24.11.1: 23 Vitest files with 244
+tests, 26 Node script tests, the production build, and the same three-file
+release inventory. The `obsidian` package ships types only, so the suite
+aliases it to a test double and installs Obsidian's `HTMLElement` helpers into
+a `happy-dom` environment; `happy-dom` is a development dependency and the
+shipped bundle is unchanged. Vitest, ESLint, and Prettier all skip `.claude`
+and `test-vault`, so another branch's worktree or an installed build cannot be
+counted as this tree's result.
 
 Automated validation does not replace the manual Obsidian checks below. The
 workbench view now has DOM coverage for the states ordinary use does not reach
@@ -110,8 +112,8 @@ reaches the user still fails; the commit runner is a double, so nothing writes.
 That covers what the UI draws, not how Obsidian behaves: tab reuse, workspace
 restoration, live vault events, layout at width, and mobile remain manual by
 nature. The settings tab and the note diagnostic banner still have no DOM
-coverage. The pure projection
-covers project isolation, default and terminal statuses, blocked-task
+coverage. The pure projection covers project isolation, default and terminal
+statuses, blocked-task
 discoverability, case-insensitive title/path search, all planning-metadata
 filters, injected-date due states, deterministic ordering, and the 200-result
 cap.

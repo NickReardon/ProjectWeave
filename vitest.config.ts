@@ -9,6 +9,17 @@ import { defineConfig } from 'vitest/config';
  * everything else stays on the faster default Node environment.
  */
 export default defineConfig({
+  test: {
+    // `.claude/worktrees` holds full checkouts of other branches, whose tests
+    // would otherwise be collected here and reported as this branch's results.
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '.claude/**',
+      'export/**',
+      'test-vault/**',
+    ],
+  },
   resolve: {
     alias: {
       obsidian: fileURLToPath(
