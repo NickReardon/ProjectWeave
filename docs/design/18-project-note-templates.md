@@ -186,7 +186,7 @@ depends_on: "{{dependency_links}}"
 
 The renderer replaces it with the typed integer/list value rather than textual YAML. If a known optional variable is unset and occupies the complete value, the property is omitted. Static text interpolation inside frontmatter values is rejected in v1 because it is difficult to type and escape safely.
 
-Static template properties are preserved unless reserved or overridden by creation context/explicit input/invariants. Unknown non-reserved properties are allowed and become ordinary output frontmatter.
+Static template properties are preserved unless reserved or overridden by creation context/explicit input/invariants. Unknown non-reserved properties are allowed and become ordinary output frontmatter. A static property whose value is empty is preserved the same way and renders as `key: null`; a template that wants a field to stay visible when unset declares it that way instead of as a placeholder. ADR 0010 applies this to the packaged task template's planning properties.
 
 ### Body
 
