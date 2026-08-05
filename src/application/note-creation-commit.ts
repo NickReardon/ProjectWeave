@@ -3,16 +3,45 @@ import type { Diagnostic } from '../domain/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { NoteWriter } from '../ports/note-writer';
 import type { VaultReader } from '../ports/vault-reader';
-import type { TaskCreationProposal } from './task-creation-proposal';
 
-export interface TaskCreationCommitSuccess {
+/** The kinds this commit path can create. */
+export type CreatedNoteKind = 'task' | 'project';
+
+/**
+ * What a commit needs from a proposal, and no more. Each kind's proposal
+ * service returns a richer object; this is the part the write depends on, so a
+ * new kind reaches the vault through the same checked sequence rather than
+ * through a second copy of it.
+ */
+export interface NoteCreationProposal {
+  readonly operation_id: string;
+  readonly template: {
+    readonly kind: CreatedNoteKind;
+    readonly source: string;
+  };
+  readonly read_set: readonly {
+    readonly role: string;
+    readonly path: string;
+    readonly fingerprint: string;
+  }[];
+  readonly preconditions: readonly {
+    readonly kind: 'path_absent';
+    readonly path: string;
+  }[];
+  readonly created_files: readonly {
+    readonly path: string;
+    readonly content: string;
+  }[];
+}
+
+export interface NoteCreationCommitSuccess {
   readonly ok: true;
   readonly operation_id: string;
   readonly created_path: string;
   readonly diagnostics: readonly Diagnostic[];
 }
 
-export interface TaskCreationCommitFailure {
+export interface NoteCreationCommitFailure {
   readonly ok: false;
   readonly operation_id: string;
   /** True only when nothing was written, which is every failure here. */
@@ -20,11 +49,11 @@ export interface TaskCreationCommitFailure {
   readonly diagnostics: readonly Diagnostic[];
 }
 
-export type TaskCreationCommitResult =
-  TaskCreationCommitSuccess | TaskCreationCommitFailure;
+export type NoteCreationCommitResult =
+  NoteCreationCommitSuccess | NoteCreationCommitFailure;
 
 /**
- * Commits one previously confirmed task creation proposal.
+ * Commits one previously confirmed creation proposal, of any kind.
  *
  * This is the only path to a vault write. It implements the single-file commit
  * sequence in docs/design/10-validation-and-safe-writes.md: re-check the read
@@ -35,7 +64,7 @@ export type TaskCreationCommitResult =
  * saw. If any input has changed since, the commit aborts rather than silently
  * rendering something different from what was confirmed.
  */
-export class TaskCreationCommitService {
+export class NoteCreationCommitService {
   readonly #getSnapshot: () => IndexSnapshot;
   readonly #vault: VaultReader;
   readonly #writer: NoteWriter;
@@ -51,9 +80,10 @@ export class TaskCreationCommitService {
   }
 
   public async commit(
-    proposal: TaskCreationProposal,
-  ): Promise<TaskCreationCommitResult> {
+    proposal: NoteCreationProposal,
+  ): Promise<NoteCreationCommitResult> {
     const operationId = proposal.operation_id;
+    const kind = proposal.template.kind;
     const created = proposal.created_files[0];
     if (proposal.created_files.length !== 1 || created === undefined) {
       return failure(operationId, [
@@ -74,7 +104,7 @@ export class TaskCreationCommitService {
         diagnostic(
           created.path,
           'commit.index.not_current',
-          'Task creation is disabled while the project index is not current.',
+          `${sentenceCase(kind)} creation is disabled while the project index is not current.`,
           undefined,
           'Wait for indexing to finish, then preview and confirm again.',
         ),
@@ -101,7 +131,7 @@ export class TaskCreationCommitService {
             'commit.read_set.missing',
             `The ${entry.role} note this proposal was built from no longer exists.`,
             entry.role,
-            'Preview the task again to build a proposal from current notes.',
+            `Preview the ${kind} again to build a proposal from current notes.`,
           ),
         ]);
       }
@@ -110,9 +140,9 @@ export class TaskCreationCommitService {
           diagnostic(
             entry.path,
             'commit.read_set.changed',
-            `The ${entry.role} note changed after this task was previewed.`,
+            `The ${entry.role} note changed after this ${kind} was previewed.`,
             entry.role,
-            'Preview the task again to see what would be created now.',
+            `Preview the ${kind} again to see what would be created now.`,
           ),
         ]);
       }
@@ -128,7 +158,7 @@ export class TaskCreationCommitService {
             'commit.target.exists',
             'A note now exists at the proposed path.',
             'target_path',
-            'Preview the task again to be offered a free path.',
+            `Preview the ${kind} again to be offered a free path.`,
           ),
         ]);
       }
@@ -141,14 +171,14 @@ export class TaskCreationCommitService {
       fingerprint: 'pending-commit',
     });
     const entity = parsed.entity;
-    if (entity === null || entity.kind !== 'task') {
+    if (entity === null || entity.kind !== kind) {
       return failure(operationId, [
         diagnostic(
           created.path,
           'commit.output.invalid',
-          'The note this proposal would write does not parse as a task.',
+          `The note this proposal would write does not parse as a ${kind}.`,
           undefined,
-          'Correct the project template, then preview the task again.',
+          `Correct the template, then preview the ${kind} again.`,
         ),
         ...parsed.diagnostics.filter((issue) => issue.severity === 'error'),
       ]);
@@ -180,7 +210,7 @@ export class TaskCreationCommitService {
             'commit.target.exists',
             'A note appeared at the proposed path during the write.',
             'target_path',
-            'Preview the task again to be offered a free path.',
+            `Preview the ${kind} again to be offered a free path.`,
           ),
         ]);
       case 'out_of_scope':
@@ -210,13 +240,17 @@ export class TaskCreationCommitService {
 function failure(
   operationId: string,
   diagnostics: readonly Diagnostic[],
-): TaskCreationCommitFailure {
+): NoteCreationCommitFailure {
   return {
     ok: false,
     operation_id: operationId,
     vault_unchanged: true,
     diagnostics,
   };
+}
+
+function sentenceCase(kind: CreatedNoteKind): string {
+  return kind.charAt(0).toUpperCase() + kind.slice(1);
 }
 
 function diagnostic(

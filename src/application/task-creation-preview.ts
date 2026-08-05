@@ -61,7 +61,7 @@ export type TaskCreationPreviewResult =
  * service to produce everything a user must see before any note is written.
  *
  * This service itself cannot write: it holds no writer and produces only a
- * proposal. Committing that proposal is TaskCreationCommitService's job, and
+ * proposal. Committing that proposal is NoteCreationCommitService's job, and
  * the two are deliberately separate so everything the write would do is
  * reviewable before anything is written.
  */

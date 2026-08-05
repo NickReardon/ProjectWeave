@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest';
 
-import type { TaskCreationCommitResult } from '../../src/application/task-creation-commit';
+import type { NoteCreationCommitResult } from '../../src/application/note-creation-commit';
 import { TaskCreationPreviewService } from '../../src/application/task-creation-preview';
 import { TaskCreationProposalService } from '../../src/application/task-creation-proposal';
 import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
@@ -96,7 +96,7 @@ interface ModalHarness {
 
 function openModal(
   notes: readonly SourceNote[] = fixtureNotes(),
-  commit: (proposal: unknown) => Promise<TaskCreationCommitResult> = () =>
+  commit: (proposal: unknown) => Promise<NoteCreationCommitResult> = () =>
     Promise.resolve({
       ok: true,
       operation_id: 'test',

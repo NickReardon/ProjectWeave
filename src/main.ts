@@ -8,7 +8,7 @@ import {
 } from './adapters/obsidian/obsidian-vault-reader';
 import { buildProjectWorkbenchModel } from './application/project-workbench-model';
 import { ProjectWeaveReadSource } from './application/project-weave-read-source';
-import { TaskCreationCommitService } from './application/task-creation-commit';
+import { NoteCreationCommitService } from './application/note-creation-commit';
 import { TaskCreationPreviewService } from './application/task-creation-preview';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
@@ -384,7 +384,7 @@ export default class ProjectWeavePlugin extends Plugin {
 
     // The writer is scoped to the same project roots the reader indexes, so a
     // path outside them is refused by the adapter regardless of what asks.
-    const commits = new TaskCreationCommitService(
+    const commits = new NoteCreationCommitService(
       () => this.#readSource.current.snapshot,
       runtime.reader,
       new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),

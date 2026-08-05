@@ -6,7 +6,7 @@ import type {
   TaskCreationPreviewRequest,
   TaskCreationPreviewResult,
 } from '../application/task-creation-preview';
-import type { TaskCreationCommitResult } from '../application/task-creation-commit';
+import type { NoteCreationCommitResult } from '../application/note-creation-commit';
 import type { TaskCreationProposal } from '../application/task-creation-proposal';
 import type { Diagnostic } from '../domain/model';
 
@@ -21,7 +21,7 @@ export type TaskCreationPreviewRunner = (
 /** Commits a previewed proposal; resolves to the created path or an error. */
 export type TaskCreationCommitRunner = (
   proposal: TaskCreationProposal,
-) => Promise<TaskCreationCommitResult>;
+) => Promise<NoteCreationCommitResult>;
 
 export interface TaskCreationPreviewContext {
   readonly projectTitle: string;
