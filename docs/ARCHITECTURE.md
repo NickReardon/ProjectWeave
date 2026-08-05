@@ -64,7 +64,12 @@ import Obsidian, Node, Electron, views, or future MCP code.
   rendered note is re-parsed with the ordinary entity parser before it is
   returned. The renderer produces content only; it has no write capability and
   no proposal, path-allocation, or template-map resolution behavior; those
-  concerns stay in application services.
+  concerns stay in application services. A project renderer sits beside the task
+  one on the same terms and with the smaller context a project carries — no
+  project relation, rank, or dependencies. What the two share — declared inputs,
+  clock variables, the precedence rewrite, the invariant overlay, and the
+  target-path guard — lives in src/domain/templates/creation-context; what makes
+  a kind a kind stays in its own renderer.
 - **Indexing:** IndexBuilder deterministically publishes a complete immutable
   snapshot. IndexCoordinator owns asynchronous rebuilds, coalesced targeted
   reads, revisions, stale-last-good state, and unload cancellation.
@@ -96,6 +101,10 @@ import Obsidian, Node, Electron, views, or future MCP code.
   rather than throwing. Suggesting a free path is not reserving one:
   TaskCreationProposalService remains the authority on target collisions. ADR
   0008 records the folder, filename, collision, and rank rules.
+  src/application/project-creation-allocator does the same for a project note,
+  which lands at `<root>/<Title>/Project.md` per ADR 0012. Its collision unit is
+  the folder rather than the note, because ADR 0008 derives a project's task
+  folder from where its project note sits. It has no runtime caller yet.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another
