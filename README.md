@@ -38,8 +38,8 @@ The implemented slices are:
 - workspace-restored project selection and task navigation that preserves the
   dashboard tab;
 - an Obsidian **Open Ready Now** command and modal for the compact flow;
-- a persisted Obsidian settings tab for project-folder discovery and template
-  scaffold location;
+- a persisted Obsidian settings tab for project-folder discovery and the
+  template library location;
 - a plugin-lifetime read publication layer that keeps open views current when
   indexed project folders replace the indexing runtime;
 - a deterministic task-template renderer in the domain, covering template
@@ -65,6 +65,9 @@ The implemented slices are:
   before writing it once;
 - a create-only note-writing port with no way to express overwrite, move, or
   delete, implemented over Obsidian's Vault API;
+- a vault template library and merged template catalog per ADR 0013, with
+  per-key precedence and a composite reader that reaches templates outside the
+  indexed project folders without widening what indexing sees;
 - fixture-backed parser, index, query, dashboard projection, template
   rendering, incremental-update, lifecycle, and release-inventory tests.
 - CI runs the same complete check on supported Node.js versions.
@@ -170,10 +173,14 @@ should be visible. Removing every root intentionally produces an empty index.
 Changing roots replaces the current runtime and rebuilds without retaining
 out-of-scope notes.
 
-The **Template scaffold folder** is a local destination preference for the
-future template-initialization flow. Canonical template mappings remain in the
-project note so they travel with the project; saving this preference never
-creates or edits vault content.
+The **Template library folder** names where vault-wide templates live, one
+folder per kind and one file per variant, such as `task/bug.md`. It is a local
+preference: saving it never creates or edits vault content, an empty value uses
+the packaged templates only, and a folder nobody has created simply holds no
+templates. Project notes may still map their own variants under
+`weave.templates`, which travel with the project and take precedence. Reading
+the library is what ADR 0013's later steps add; today the folder is discovered
+but not yet consulted during creation.
 
 Open the dashboard from the left ribbon, **Project Weave: Open project
 workbench** in the command palette, or **Open dashboard** on the settings page.

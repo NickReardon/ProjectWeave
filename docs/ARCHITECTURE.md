@@ -105,6 +105,18 @@ import Obsidian, Node, Electron, views, or future MCP code.
   which lands at `<root>/<Title>/Project.md` per ADR 0012. Its collision unit is
   the folder rather than the note, because ADR 0008 derives a project's task
   folder from where its project note sits.
+- **Template catalog:** src/application/vault-template-library discovers
+  vault-wide templates under the configured library folder — one folder per
+  `template_for` value, one file per variant — through the read-only
+  `VaultReader`, reporting unusable names and case-colliding keys rather than
+  guessing. src/application/template-catalog merges plugin, vault, and project
+  candidates per key, so a project may override one variant without displacing
+  another, and a broken winner leaves its key unusable rather than falling
+  through to different bytes. ADR 0013 records the decision. The index reader
+  stays scoped to the project roots; `CompositeVaultReader` in src/ports lets
+  creation re-read a template outside them without widening what indexing sees.
+  Neither has a runtime caller yet: resolution and the chooser are later steps
+  of the same ADR.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another

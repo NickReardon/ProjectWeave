@@ -222,6 +222,11 @@ Verified against the committed tree; none blocks the manual checks:
   assuming a task. ADR 0012 settles where a created project note lands and why
   its collision unit is the folder rather than the note. Unlike task creation,
   it is unverified in Obsidian itself — see check 15 below.
+- ADR 0013's vault template library, merged catalog, and composite reader are
+  implemented and tested but have no runtime caller: creation still resolves
+  templates exactly as before. `dist/main.js` contains none of the three, so
+  the running plugin is unchanged. The ADR stays proposed until the normative
+  template contract in Plan Addendum 005 and Design 18 matches it.
 - A created project can only use the packaged project template, and only the
   `default` task variant is reachable from the UI: a project may map `bug` or
   `test` under `weave.templates.task`, but no chooser selects one and

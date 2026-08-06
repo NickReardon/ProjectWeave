@@ -93,14 +93,14 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName('Templates').setHeading();
     containerEl.createEl('p', {
       cls: 'setting-item-description',
-      text: 'Project-specific template mappings remain portable in each project note. This local folder is the default destination for future template scaffolding.',
+      text: 'Templates in this folder are available to every project: one folder per kind, one file per variant, such as task/bug.md. A project note may still map its own variants under weave.templates, which take precedence.',
     });
 
     let templateFolderCandidate = this.#plugin.settings.templateScaffoldFolder;
     new Setting(containerEl)
-      .setName('Template scaffold folder')
+      .setName('Template library folder')
       .setDesc(
-        'A vault-relative folder. Saving this preference does not create or modify any notes.',
+        'A vault-relative folder. Saving this preference does not create or modify any notes, and an empty value uses the packaged templates only.',
       )
       .addSearch((search) => {
         search.setValue(templateFolderCandidate);
@@ -188,7 +188,7 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       await this.#plugin.updateTemplateScaffoldFolder(
         normalizeOptionalVaultFolderPath(value),
       );
-      new Notice('Project Weave template scaffold folder saved.');
+      new Notice('Project Weave template library folder saved.');
       this.display();
     } catch (error) {
       new Notice('Project Weave: ' + errorMessage(error));
