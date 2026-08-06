@@ -9,12 +9,17 @@ import {
 } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
+import { loadEnvFile } from './env-file.mjs';
 import { assertProjectVersion, readProjectState } from './project-version.mjs';
 import {
   installConfiguredTestVault,
   PLUGIN_RUNTIME_FILES,
 } from './test-vault-installer.mjs';
 import { createZip } from './zip.mjs';
+
+// Before anything reads PROJECT_WEAVE_TEST_VAULT, so a Git-ignored .env can
+// name the install target without repeating it on every command.
+loadEnvFile();
 
 const RELEASE_FILES = PLUGIN_RUNTIME_FILES;
 const EXPORT_ROOT = resolve('export');

@@ -372,10 +372,18 @@ the truncation check. Every command refuses a directory without a manifest this
 tool wrote, and refuses a target outside the repository unless given
 `--allow-outside`.
 
-To update a local Obsidian test vault on every export, put its absolute path in
-the Git-ignored `.project-weave-test-vault` file or set
-`PROJECT_WEAVE_TEST_VAULT`. The configured folder must already contain an
-`.obsidian` directory. Export copies only `main.js`, `manifest.json`, and
+To update a local Obsidian test vault on every export, name it in one of three
+places. In precedence order: `PROJECT_WEAVE_TEST_VAULT` in the environment, the
+same variable in a Git-ignored `.env` at the repository root, then the
+Git-ignored `.project-weave-test-vault` file. Copy `.env.example` to `.env` to
+start; a one-off variable on the command line always beats the file, which is
+what makes switching vaults for a single command easy:
+
+```shell
+PROJECT_WEAVE_TEST_VAULT="/path/to/other/vault" npm run test-vault:update
+```
+
+The configured folder must already contain an `.obsidian` directory. Export copies only `main.js`, `manifest.json`, and
 `styles.css` into `.obsidian/plugins/project-weave`, preserving `data.json`
 and other local plugin state. With no local setting, export only creates the
 ordinary artifacts. To require a configured vault and receive a failure when

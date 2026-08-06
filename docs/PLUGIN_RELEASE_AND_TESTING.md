@@ -44,8 +44,17 @@ its absolute root path in the Git-ignored `.project-weave-test-vault` file:
 D:\Path\To\Disposable Vault
 ```
 
-Alternatively, set `PROJECT_WEAVE_TEST_VAULT`. The environment variable takes
-precedence over the file. Never commit a personal vault path or vault files.
+Alternatively, set `PROJECT_WEAVE_TEST_VAULT` — in the environment, or in a
+Git-ignored `.env` at the repository root, copied from the committed
+`.env.example`. Precedence runs environment, then `.env`, then the pointer
+file, so a one-off command can target another vault without editing anything:
+
+```shell
+PROJECT_WEAVE_TEST_VAULT="/path/to/other/vault" npm run test-vault:update
+```
+
+Never commit a personal vault path or vault files. Only `test-vault/` is ever
+seeded or reset; a vault named here is an install target and nothing else.
 
 ### Update from the current branch
 

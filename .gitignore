@@ -7,3 +7,6 @@ coverage/
 Thumbs.db
 .project-weave-test-vault
 test-vault/
+# Machine-specific install target; .env.example is committed in its place.
+.env
+!.env.example
