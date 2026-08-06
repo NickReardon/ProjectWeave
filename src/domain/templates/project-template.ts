@@ -10,6 +10,10 @@ import {
   validateTargetPath,
 } from './creation-context';
 import type { ResolvedInput } from './creation-context';
+import {
+  applyCreationProfile,
+  PROJECT_CREATION_PROFILE,
+} from './creation-profile';
 import { hasError, templateDiagnostic } from './model';
 import type {
   ResolvedVariable,
@@ -121,8 +125,15 @@ export function renderProjectTemplate(
     CONTEXT_OWNED_PROPERTIES,
   );
   const resolved = resolveProperties(path, properties, resolve, diagnostics);
-  const overlaid = applyInvariants(
+  const profiled = applyCreationProfile(
     resolved,
+    PROJECT_CREATION_PROFILE,
+    resolve,
+    path,
+    diagnostics,
+  );
+  const overlaid = applyInvariants(
+    profiled,
     [{ key: 'type', value: 'project' }],
     'project',
     path,

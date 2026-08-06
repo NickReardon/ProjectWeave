@@ -41,10 +41,15 @@ const DIAGNOSTIC_DISPLAY_INCREMENT = 25;
 const MAX_DIAGNOSTIC_DISPLAY_LIMIT = 200;
 const WORKBENCH_STATE_VERSION = 1;
 
+/** The vault's configured task categories, supplied by the composition root. */
+export type TaskCategoriesSource = () => readonly string[];
+
 export interface ProjectWorkbenchActions {
   rebuildIndex(): Promise<void>;
   /** Opens the create-task flow for an already-resolved project. */
   createTask(projectPath: string): void;
+  /** Opens the create-project flow. */
+  createProject(): void;
 }
 
 /** What must survive a full re-render so typing is not disrupted. */
@@ -81,6 +86,9 @@ interface DiagnosticSectionOptions {
 export class ProjectWorkbenchView extends ItemView {
   readonly #readSource: ProjectWeaveReadSource;
   readonly #actions: ProjectWorkbenchActions;
+  // Read on every projection rather than captured, so changing the setting
+  // reaches an open workbench without rebuilding the view.
+  readonly #taskCategories: TaskCategoriesSource;
   #publication: ProjectWeaveReadPublication;
   #selectedProjectPath: string | null = null;
   #activePathHint: string | null = null;
@@ -94,6 +102,7 @@ export class ProjectWorkbenchView extends ItemView {
   #taskEpicPath: string | null = null;
   #taskMilestonePath: string | null = null;
   #taskOwner: string | null = null;
+  #taskCategory: string | null = null;
   #taskDueState: ProjectWorkbenchDueState | null = null;
   #diagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
   #unassignedDiagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
@@ -121,10 +130,12 @@ export class ProjectWorkbenchView extends ItemView {
     leaf: WorkspaceLeaf,
     readSource: ProjectWeaveReadSource,
     actions: ProjectWorkbenchActions,
+    taskCategories: TaskCategoriesSource = () => [],
   ) {
     super(leaf);
     this.#readSource = readSource;
     this.#actions = actions;
+    this.#taskCategories = taskCategories;
     this.#publication = readSource.current;
     this.navigation = false;
 
@@ -179,6 +190,7 @@ export class ProjectWorkbenchView extends ItemView {
     this.#taskEpicPath = null;
     this.#taskMilestonePath = null;
     this.#taskOwner = null;
+    this.#taskCategory = null;
     this.#taskDueState = null;
     this.#diagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
     this.#unassignedDiagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
@@ -206,6 +218,7 @@ export class ProjectWorkbenchView extends ItemView {
     this.#taskEpicPath = null;
     this.#taskMilestonePath = null;
     this.#taskOwner = null;
+    this.#taskCategory = null;
     this.#taskDueState = null;
     this.#diagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
     this.#unassignedDiagnosticDisplayLimit = INITIAL_DIAGNOSTIC_DISPLAY_LIMIT;
@@ -280,10 +293,14 @@ export class ProjectWorkbenchView extends ItemView {
         );
         break;
       case 'no_projects':
+        // The one empty state a user can act on from here: with nothing
+        // indexed, checking frontmatter is advice, and creating the first
+        // project is a way out.
         this.#renderMessage(
           root,
           'No projects are indexed',
           'No valid non-archived project notes were found. Check project frontmatter and indexed folders in Settings → Community plugins → Project Weave.',
+          { label: 'New project', run: () => this.#actions.createProject() },
         );
         break;
       case 'choose_project':
@@ -324,6 +341,8 @@ export class ProjectWorkbenchView extends ItemView {
       taskEpicPath: this.#taskEpicPath,
       taskMilestonePath: this.#taskMilestonePath,
       taskOwner: this.#taskOwner,
+      taskCategory: this.#taskCategory,
+      taskCategories: this.#taskCategories(),
       taskDueState: this.#taskDueState,
       taskToday: localDateKey(new Date()),
       diagnosticDisplayLimit: this.#diagnosticDisplayLimit,
@@ -532,12 +551,29 @@ export class ProjectWorkbenchView extends ItemView {
     });
   }
 
-  #renderMessage(root: HTMLElement, title: string, description: string): void {
+  #renderMessage(
+    root: HTMLElement,
+    title: string,
+    description: string,
+    action?: { readonly label: string; readonly run: () => void },
+  ): void {
     const empty = root.createDiv({
       cls: 'project-weave-workbench__empty',
     });
     empty.createEl('h2', { text: title });
     empty.createEl('p', { text: description });
+    if (action === undefined) {
+      return;
+    }
+    const button = empty.createEl('button', {
+      cls: 'project-weave-workbench__new-project mod-cta',
+      text: action.label,
+      attr: {
+        type: 'button',
+        'data-workbench-focus-key': 'new-project',
+      },
+    });
+    button.addEventListener('click', action.run);
   }
 
   #renderProject(
@@ -762,6 +798,7 @@ export class ProjectWorkbenchView extends ItemView {
       this.#taskEpicPath = null;
       this.#taskMilestonePath = null;
       this.#taskOwner = null;
+      this.#taskCategory = null;
       this.#taskDueState = null;
       this.#taskOffset = 0;
       // The controls are no longer rebuilt, so reset must push the cleared
@@ -847,6 +884,16 @@ export class ProjectWorkbenchView extends ItemView {
       () => this.#taskOwner,
       (value) => {
         this.#taskOwner = value;
+      },
+    );
+    this.#renderTaskFilterSelect(
+      details,
+      'Category',
+      'task-filter-category',
+      model.allTasks.filterOptions.categories,
+      () => this.#taskCategory,
+      (value) => {
+        this.#taskCategory = value;
       },
     );
     this.#renderTaskFilterSelect(

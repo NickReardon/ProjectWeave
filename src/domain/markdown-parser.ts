@@ -304,6 +304,7 @@ function parseTask(
     | 'milestone'
     | 'planningPeriod'
     | 'owner'
+    | 'category'
     | 'points'
     | 'rank'
     | 'priority'
@@ -372,6 +373,12 @@ function parseTask(
       frontmatter.owner,
       base.path,
       'owner',
+      diagnostics,
+    ),
+    category: readOptionalString(
+      frontmatter.category,
+      base.path,
+      'category',
       diagnostics,
     ),
     points: readOptionalPositiveInteger(

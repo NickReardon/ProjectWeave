@@ -7,6 +7,7 @@ import {
   loadProjectWeaveSettings,
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
+  normalizeTaskCategories,
   normalizeVaultFolderPath,
 } from '../../src/settings/project-weave-settings';
 
@@ -16,6 +17,7 @@ describe('Project Weave settings', () => {
       settingsVersion: 1,
       projectRoots: ['Projects'],
       templateScaffoldFolder: 'Templates/Project Weave',
+      taskCategories: [],
     });
     expect(loadProjectWeaveSettings(null)).toEqual(
       createDefaultProjectWeaveSettings(),
@@ -66,6 +68,7 @@ describe('Project Weave settings', () => {
       settingsVersion: 1,
       projectRoots: [],
       templateScaffoldFolder: 'Templates',
+      taskCategories: [],
     });
     expect(
       loadProjectWeaveSettings({
@@ -80,5 +83,35 @@ describe('Project Weave settings', () => {
     expect(classifyScopeTransition(false, true)).toBe('upsert');
     expect(classifyScopeTransition(true, false)).toBe('remove');
     expect(classifyScopeTransition(true, true)).toBe('rename');
+  });
+});
+
+describe('task categories', () => {
+  it('trims, drops empties, and de-duplicates case-insensitively', () => {
+    expect(
+      normalizeTaskCategories([
+        '  bug ',
+        'chore',
+        'BUG',
+        '',
+        '   ',
+        42,
+        'spike',
+      ]),
+    ).toEqual(['bug', 'chore', 'spike']);
+  });
+
+  it('keeps the first spelling the user chose', () => {
+    expect(normalizeTaskCategories(['Bug', 'bug'])).toEqual(['Bug']);
+  });
+
+  it('reads a persisted list and defaults to none', () => {
+    expect(
+      loadProjectWeaveSettings({ settingsVersion: 1, taskCategories: ['bug'] })
+        .taskCategories,
+    ).toEqual(['bug']);
+    expect(
+      loadProjectWeaveSettings({ settingsVersion: 1 }).taskCategories,
+    ).toEqual([]);
   });
 });

@@ -93,14 +93,14 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName('Templates').setHeading();
     containerEl.createEl('p', {
       cls: 'setting-item-description',
-      text: 'Project-specific template mappings remain portable in each project note. This local folder is the default destination for future template scaffolding.',
+      text: 'Templates in this folder are available to every project: one folder per kind, one file per variant, such as task/bug.md. A project note may still map its own variants under weave.templates, which take precedence.',
     });
 
     let templateFolderCandidate = this.#plugin.settings.templateScaffoldFolder;
     new Setting(containerEl)
-      .setName('Template scaffold folder')
+      .setName('Template library folder')
       .setDesc(
-        'A vault-relative folder. Saving this preference does not create or modify any notes.',
+        'A vault-relative folder. Saving this preference does not create or modify any notes, and an empty value uses the packaged templates only.',
       )
       .addSearch((search) => {
         search.setValue(templateFolderCandidate);
@@ -116,6 +116,52 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
         button.setButtonText('Save').onClick(() => {
           void this.#saveTemplateFolder(templateFolderCandidate);
         }),
+      );
+
+    new Setting(containerEl).setName('Task categories').setHeading();
+    containerEl.createEl('p', {
+      cls: 'setting-item-description',
+      text: 'Optional grouping for tasks, such as bug or chore. Leave this empty to accept any value; list categories to have anything else reported as invalid. Obsidian suggests property values across the whole vault, so this list is vault-wide too.',
+    });
+
+    if (this.#plugin.settings.taskCategories.length === 0) {
+      containerEl.createEl('p', {
+        cls: 'setting-item-description',
+        text: 'No categories are listed, so any value is accepted.',
+      });
+    }
+    for (const category of this.#plugin.settings.taskCategories) {
+      new Setting(containerEl)
+        .setName(category)
+        .setDesc('Allowed task category')
+        .addExtraButton((button) =>
+          button
+            .setIcon('trash')
+            .setTooltip('Stop allowing this category')
+            .onClick(() => {
+              void this.#removeTaskCategory(category);
+            }),
+        );
+    }
+
+    let categoryCandidate = '';
+    new Setting(containerEl)
+      .setName('Add category')
+      .setDesc(
+        'Tasks already using a value you remove are reported, not changed.',
+      )
+      .addText((text) => {
+        text.setPlaceholder('bug').onChange((value) => {
+          categoryCandidate = value;
+        });
+      })
+      .addButton((button) =>
+        button
+          .setButtonText('Add')
+          .setCta()
+          .onClick(() => {
+            void this.#addTaskCategory(categoryCandidate);
+          }),
       );
 
     new Setting(containerEl)
@@ -188,11 +234,41 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       await this.#plugin.updateTemplateScaffoldFolder(
         normalizeOptionalVaultFolderPath(value),
       );
-      new Notice('Project Weave template scaffold folder saved.');
+      new Notice('Project Weave template library folder saved.');
       this.display();
     } catch (error) {
       new Notice('Project Weave: ' + errorMessage(error));
     }
+  }
+
+  async #addTaskCategory(value: string): Promise<void> {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      new Notice('Project Weave: enter a category first.');
+      return;
+    }
+    const existing = this.#plugin.settings.taskCategories;
+    if (
+      existing.some(
+        (category) => category.toLowerCase() === trimmed.toLowerCase(),
+      )
+    ) {
+      new Notice('Project Weave already allows that category.');
+      return;
+    }
+    await this.#plugin.updateTaskCategories([...existing, trimmed]);
+    new Notice('Project Weave task category added.');
+    this.display();
+  }
+
+  async #removeTaskCategory(category: string): Promise<void> {
+    await this.#plugin.updateTaskCategories(
+      this.#plugin.settings.taskCategories.filter(
+        (candidate) => candidate !== category,
+      ),
+    );
+    new Notice('Project Weave task category removed.');
+    this.display();
   }
 
   async #rebuildIndex(): Promise<void> {

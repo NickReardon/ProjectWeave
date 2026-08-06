@@ -10,10 +10,11 @@ import {
   vi,
 } from 'vitest';
 
-import type { TaskCreationCommitResult } from '../../src/application/task-creation-commit';
+import type { NoteCreationCommitResult } from '../../src/application/note-creation-commit';
 import { TaskCreationPreviewService } from '../../src/application/task-creation-preview';
 import { TaskCreationProposalService } from '../../src/application/task-creation-proposal';
 import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import type { IndexSnapshot } from '../../src/indexing/index-snapshot';
@@ -96,13 +97,17 @@ interface ModalHarness {
 
 function openModal(
   notes: readonly SourceNote[] = fixtureNotes(),
-  commit: (proposal: unknown) => Promise<TaskCreationCommitResult> = () =>
+  commit: (proposal: unknown) => Promise<NoteCreationCommitResult> = () =>
     Promise.resolve({
       ok: true,
       operation_id: 'test',
       created_path: 'Projects/Game/Tasks/Untitled.md',
       diagnostics: [],
     }),
+  options: {
+    readonly libraryFolder?: string;
+    readonly variants?: readonly string[];
+  } = {},
 ): ModalHarness {
   const vault = new MemoryVault(notes);
   const links = new PathLinkResolver(notes.map((note) => note.path));
@@ -117,15 +122,23 @@ function openModal(
     new TaskCreationProposalService(
       getSnapshot,
       vault,
-      new TaskTemplateResolver(vault, links),
+      new TaskTemplateResolver(
+        vault,
+        links,
+        options.libraryFolder === undefined
+          ? null
+          : new VaultTemplateLibrary(vault, options.libraryFolder),
+      ),
     ),
   );
 
   const openedNotes: string[] = [];
   const app = createStubApp(notes.map((note) => note.path));
+  const variants = options.variants ?? ['default'];
   const modal = new TaskCreationPreviewModal(app as never, {
     projectTitle: 'Fixture Game',
     projectPath: PROJECT_PATH,
+    templateVariants: variants,
     run: (request) =>
       preview.preview({
         ...request,
@@ -297,5 +310,91 @@ describe('Create task modal', () => {
       'The project note changed while the preview was open.',
     );
     expect(recordedNotices).toHaveLength(0);
+  });
+});
+
+describe('Create task modal template chooser', () => {
+  const LIBRARY = 'Templates/Project Weave';
+
+  function libraryTemplate(variant: string, heading: string): SourceNote {
+    return sourceNote(
+      `${LIBRARY}/task/${variant}.md`,
+      [
+        'weave_template: true',
+        'template_schema: 1',
+        'template_for: task',
+        'type: task',
+        'project: "{{project_link}}"',
+        'status: "{{status}}"',
+        'rank: "{{rank}}"',
+      ].join('\n'),
+      [`# {{title}}`, '', `## ${heading}`, ''].join('\n'),
+    );
+  }
+
+  it('offers no chooser when only the default template exists', () => {
+    const harness = openModal();
+
+    expect([...harness.content.querySelectorAll('select')].length).toBe(0);
+  });
+
+  it('renders the chosen variant, and the packaged escape hatch', async () => {
+    const notes = [
+      ...fixtureNotes(),
+      libraryTemplate('default', 'House style'),
+      libraryTemplate('bug', 'Steps to reproduce'),
+    ];
+    const harness = openModal(notes, undefined, {
+      libraryFolder: LIBRARY,
+      variants: ['default', 'bug'],
+    });
+
+    const chooser = harness.content.querySelector('select');
+    expect(chooser).not.toBeNull();
+    expect(
+      [...(chooser?.querySelectorAll('option') ?? [])].map(
+        (option) => option.value,
+      ),
+    ).toEqual(['default', 'bug', 'builtin:minimal']);
+
+    harness.type('Implement request', 'Fix the crash');
+    await harness.settle();
+    // Distinctive on purpose: the packaged template also ends in "## Notes",
+    // so a heading it does not have is what proves the vault rung was used.
+    expect(harness.text()).toContain('## House style');
+
+    chooser!.value = 'bug';
+    chooser!.dispatchEvent(new Event('change'));
+    await harness.settle();
+    // The preview follows the selection: these are the bytes that get written.
+    expect(harness.text()).toContain('## Steps to reproduce');
+    expect(harness.text()).not.toContain('## House style');
+
+    chooser!.value = 'builtin:minimal';
+    chooser!.dispatchEvent(new Event('change'));
+    await harness.settle();
+    expect(harness.text()).toContain('builtin:minimal (packaged)');
+  });
+
+  it('shows the diagnostic and refuses to create when the chosen variant is broken', async () => {
+    const broken = sourceNote(
+      `${LIBRARY}/task/bug.md`,
+      ['weave_template: true', 'template_schema: 1', 'template_for: epic'].join(
+        '\n',
+      ),
+    );
+    const harness = openModal([...fixtureNotes(), broken], undefined, {
+      libraryFolder: LIBRARY,
+      variants: ['default', 'bug'],
+    });
+
+    const chooser = harness.content.querySelector('select');
+    chooser!.value = 'bug';
+    chooser!.dispatchEvent(new Event('change'));
+    harness.type('Implement request', 'Fix the crash');
+    await harness.settle();
+
+    expect(harness.text()).toContain('template.kind_mismatch');
+    expect(harness.createButton().disabled).toBe(true);
   });
 });

@@ -2,6 +2,14 @@ export interface ProjectWeaveSettings {
   readonly settingsVersion: 1;
   readonly projectRoots: readonly string[];
   readonly templateScaffoldFolder: string;
+  /**
+   * Allowed task `category` values for the whole vault (ADR 0014). Empty means
+   * unconstrained: any value is accepted and the filter offers whatever tasks
+   * actually use. Vault-wide rather than per-project because Obsidian's own
+   * property suggestions are vault-wide, and two disagreeing lists would show
+   * the user two different sets of options for one field.
+   */
+  readonly taskCategories: readonly string[];
 }
 
 export type ScopeTransition = 'ignore' | 'upsert' | 'remove' | 'rename';
@@ -15,6 +23,7 @@ export function createDefaultProjectWeaveSettings(): ProjectWeaveSettings {
     settingsVersion: 1,
     projectRoots: [DEFAULT_PROJECT_ROOT],
     templateScaffoldFolder: DEFAULT_TEMPLATE_SCAFFOLD_FOLDER,
+    taskCategories: [],
   };
 }
 
@@ -45,7 +54,36 @@ export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
     settingsVersion: 1,
     projectRoots,
     templateScaffoldFolder,
+    taskCategories: Array.isArray(value.taskCategories)
+      ? normalizeTaskCategories(value.taskCategories)
+      : defaults.taskCategories,
   };
+}
+
+/**
+ * Trim, drop empties, and de-duplicate case-insensitively, keeping the first
+ * spelling of each. The list is what the user typed, so `Bug` stays `Bug`;
+ * matching against it ignores case, since Obsidian's own suggestions do not
+ * enforce one.
+ */
+export function normalizeTaskCategories(
+  values: readonly unknown[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const categories: string[] = [];
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const trimmed = value.trim();
+    const key = trimmed.toLowerCase();
+    if (trimmed.length === 0 || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    categories.push(trimmed);
+  }
+  return categories;
 }
 
 export function normalizeProjectRoots(

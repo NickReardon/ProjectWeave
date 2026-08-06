@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import { parseMarkdownEntity } from '../../src/domain/markdown-parser';
 import type { ProjectEntity, SourceNote } from '../../src/domain/model';
 import { PACKAGED_MINIMAL_TEMPLATE_ID } from '../../src/domain/templates/packaged-templates';
@@ -66,10 +67,17 @@ function template(
   return { path, content, fingerprint };
 }
 
-function resolver(notes: readonly SourceNote[]): TaskTemplateResolver {
+function resolver(
+  notes: readonly SourceNote[],
+  libraryFolder: string | null = null,
+): TaskTemplateResolver {
+  const vault = new MemoryVault(notes);
   return new TaskTemplateResolver(
-    new MemoryVault(notes),
+    vault,
     new PathLinkResolver(notes.map((note) => note.path)),
+    libraryFolder === null
+      ? null
+      : new VaultTemplateLibrary(vault, libraryFolder),
   );
 }
 
@@ -226,5 +234,91 @@ describe('TaskTemplateResolver', () => {
     expect(result.diagnostics.map((issue) => issue.code)).toEqual([
       'template.map.variant_key_invalid',
     ]);
+  });
+});
+
+const LIBRARY = 'Templates/Project Weave';
+
+describe('TaskTemplateResolver with a vault template library', () => {
+  it('uses a vault template when the project maps nothing', async () => {
+    const note = template(`${LIBRARY}/task/default.md`);
+    const result = await resolver([note], LIBRARY).resolve(project());
+
+    expect(result.ok).toBe(true);
+    expect(result.selected).toEqual({
+      source: 'vault',
+      variant: 'default',
+      reference: note.path,
+      fingerprint: note.fingerprint,
+      template: { path: note.path, content: note.content },
+    });
+  });
+
+  it('lets a project override one variant without displacing the others', async () => {
+    const own = template('Projects/Game/Templates/Bug.md');
+    const vaultBug = template(`${LIBRARY}/task/bug.md`);
+    const vaultDefault = template(`${LIBRARY}/task/default.md`);
+    const notes = [own, vaultBug, vaultDefault];
+    const mapped = project(taskMap(['      bug: "[[Templates/Bug]]"']));
+
+    const bug = await resolver(notes, LIBRARY).resolve(mapped, 'bug');
+    expect(bug.selected?.source).toBe('project');
+    expect(bug.selected?.reference).toBe('[[Templates/Bug]]');
+
+    const fallback = await resolver(notes, LIBRARY).resolve(mapped);
+    expect(fallback.selected?.source).toBe('vault');
+    expect(fallback.selected?.reference).toBe(vaultDefault.path);
+  });
+
+  it('reaches the packaged template only when no rung supplies the default', async () => {
+    const result = await resolver([], LIBRARY).resolve(project());
+
+    expect(result.selected?.source).toBe('packaged');
+  });
+
+  it('refuses a vault template declared for another kind rather than falling back', async () => {
+    const wrongKind = template(`${LIBRARY}/task/bug.md`, 'epic');
+    const result = await resolver([wrongKind], LIBRARY).resolve(
+      project(),
+      'bug',
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.selected).toBeNull();
+    expect(result.diagnostics.map((issue) => issue.code)).toContain(
+      'template.kind_mismatch',
+    );
+  });
+
+  it('reports a variant that exists at no rung instead of inventing one', async () => {
+    const result = await resolver(
+      [template(`${LIBRARY}/task/default.md`)],
+      LIBRARY,
+    ).resolve(project(), 'bug');
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((issue) => issue.code)).toContain(
+      'template.variant.not_found',
+    );
+  });
+
+  it('lists every configured variant, default first', async () => {
+    const notes = [
+      template(`${LIBRARY}/task/test.md`),
+      template(`${LIBRARY}/task/bug.md`),
+      template(`${LIBRARY}/project/default.md`, 'project'),
+      template('Projects/Game/Templates/Spike.md'),
+    ];
+
+    const variants = await resolver(notes, LIBRARY).listVariants(
+      project(taskMap(['      spike: "[[Templates/Spike]]"'])),
+    );
+
+    // Project and vault variants merge; another kind's folder is not a task.
+    expect(variants).toEqual(['default', 'bug', 'spike', 'test']);
+  });
+
+  it('offers only the default when no library is configured', async () => {
+    expect(await resolver([]).listVariants(project())).toEqual(['default']);
   });
 });

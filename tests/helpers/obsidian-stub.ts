@@ -262,6 +262,40 @@ export class ButtonComponent {
   }
 }
 
+/** Models Obsidian's dropdown surface, not its styling. */
+export class DropdownComponent {
+  public readonly selectEl: HTMLSelectElement;
+
+  public constructor(container: HTMLElement) {
+    this.selectEl = container.ownerDocument.createElement('select');
+    container.appendChild(this.selectEl);
+  }
+
+  public addOption(value: string, display: string): this {
+    const option = this.selectEl.ownerDocument.createElement('option');
+    option.value = value;
+    option.textContent = display;
+    this.selectEl.appendChild(option);
+    return this;
+  }
+
+  public setValue(value: string): this {
+    this.selectEl.value = value;
+    return this;
+  }
+
+  public getValue(): string {
+    return this.selectEl.value;
+  }
+
+  public onChange(callback: (value: string) => void): this {
+    this.selectEl.addEventListener('change', () => {
+      callback(this.selectEl.value);
+    });
+    return this;
+  }
+}
+
 export class Setting {
   public readonly settingEl: HTMLElement;
   public readonly nameEl: HTMLElement;
@@ -301,6 +335,11 @@ export class Setting {
 
   public addButton(configure: (button: ButtonComponent) => void): this {
     configure(new ButtonComponent(this.controlEl));
+    return this;
+  }
+
+  public addDropdown(configure: (dropdown: DropdownComponent) => void): this {
+    configure(new DropdownComponent(this.controlEl));
     return this;
   }
 }

@@ -67,6 +67,9 @@ export interface ProjectWorkbenchProjectionInput {
   readonly taskEpicPath?: string | null;
   readonly taskMilestonePath?: string | null;
   readonly taskOwner?: string | null;
+  readonly taskCategory?: string | null;
+  /** The vault's configured category vocabulary, for the filter's options. */
+  readonly taskCategories?: readonly string[];
   readonly taskDueState?: ProjectWorkbenchDueState | null;
   readonly taskToday?: string;
   readonly diagnosticDisplayLimit?: number;
@@ -132,6 +135,7 @@ export interface ProjectWorkbenchTaskFilterOptions {
   readonly epics: readonly ProjectWorkbenchTaskFilterOption[];
   readonly milestones: readonly ProjectWorkbenchTaskFilterOption[];
   readonly owners: readonly ProjectWorkbenchTaskFilterOption[];
+  readonly categories: readonly ProjectWorkbenchTaskFilterOption[];
 }
 
 export interface ProjectWorkbenchTasksModel {
@@ -150,6 +154,7 @@ export interface ProjectWorkbenchTasksModel {
   readonly epicPath: string | null;
   readonly milestonePath: string | null;
   readonly owner: string | null;
+  readonly category: string | null;
   readonly dueState: ProjectWorkbenchDueState | null;
   readonly filterOptions: ProjectWorkbenchTaskFilterOptions;
 }
@@ -294,6 +299,7 @@ function projectModel(
     taskEpicPath: requestedTaskEpicPath,
     taskMilestonePath: requestedTaskMilestonePath,
     taskOwner: requestedTaskOwner,
+    taskCategory: requestedTaskCategory,
     taskDueState: requestedTaskDueState,
     taskToday: requestedTaskToday,
     diagnosticDisplayLimit: requestedDiagnosticDisplayLimit,
@@ -333,8 +339,13 @@ function projectModel(
   const taskEpicPath = normalizeOptionalPath(requestedTaskEpicPath);
   const taskMilestonePath = normalizeOptionalPath(requestedTaskMilestonePath);
   const taskOwner = normalizeOptionalText(requestedTaskOwner);
+  const taskCategory = normalizeOptionalText(requestedTaskCategory);
   const taskDueState = requestedTaskDueState ?? null;
-  const taskFilterOptions = buildTaskFilterOptions(snapshot, tasks);
+  const taskFilterOptions = buildTaskFilterOptions(
+    snapshot,
+    tasks,
+    input.taskCategories ?? [],
+  );
   const filteredTasks = tasks
     .filter(
       (task): task is TaskEntity & { readonly status: TaskStatus } =>
@@ -348,6 +359,11 @@ function projectModel(
         (taskMilestonePath === null ||
           taskRelationPath(task.milestone) === taskMilestonePath) &&
         (taskOwner === null || task.owner === taskOwner) &&
+        // Case-insensitively, because Obsidian's own property suggestions do
+        // not enforce one spelling and the configured list is what the user
+        // typed.
+        (taskCategory === null ||
+          (task.category ?? '').toLowerCase() === taskCategory.toLowerCase()) &&
         taskMatchesDueState(task, taskDueState, requestedTaskToday),
     )
     .sort(compareProjectTask);
@@ -423,6 +439,7 @@ function projectModel(
       epicPath: taskEpicPath,
       milestonePath: taskMilestonePath,
       owner: taskOwner,
+      category: taskCategory,
       dueState: taskDueState,
       filterOptions: taskFilterOptions,
     },
@@ -617,6 +634,7 @@ function compareReadyTask(left: TaskEntity, right: TaskEntity): number {
 function buildTaskFilterOptions(
   snapshot: IndexSnapshot,
   tasks: readonly TaskEntity[],
+  configuredCategories: readonly string[],
 ): ProjectWorkbenchTaskFilterOptions {
   return {
     epics: relationFilterOptions(
@@ -630,7 +648,38 @@ function buildTaskFilterOptions(
     owners: [...new Set(tasks.flatMap((task) => task.owner ?? []))]
       .sort(compareText)
       .map((owner) => ({ value: owner, label: owner })),
+    categories: categoryFilterOptions(tasks, configuredCategories),
   };
+}
+
+/**
+ * Configured categories first, then any value tasks actually use that the
+ * vocabulary does not list.
+ *
+ * An undeclared value stays offered on purpose: it carries a diagnostic, and a
+ * filter that hid it would make the mistake harder to find than it already is.
+ */
+function categoryFilterOptions(
+  tasks: readonly TaskEntity[],
+  configured: readonly string[],
+): readonly ProjectWorkbenchTaskFilterOption[] {
+  const options = new Map<string, string>();
+  for (const category of configured) {
+    options.set(category.toLowerCase(), category);
+  }
+  const used = [...new Set(tasks.flatMap((task) => task.category ?? []))].sort(
+    compareText,
+  );
+  for (const category of used) {
+    const key = category.toLowerCase();
+    if (!options.has(key)) {
+      options.set(key, category);
+    }
+  }
+  return [...options.values()].map((category) => ({
+    value: category,
+    label: category,
+  }));
 }
 
 function relationFilterOptions(

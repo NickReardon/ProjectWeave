@@ -22,6 +22,14 @@ The current v1 direction is [Project Weave v1 Product Brief](docs/PRODUCT_BRIEF-
 
 Later addenda take precedence where wording conflicts. The earlier feature designs in `docs/design/01` through `14` remain supporting contracts for lifecycle, data safety, entities, provenance, validation, migration, and testing except where the current direction explicitly defers portfolio behavior or changes defaults.
 
+## Implementation sequence
+
+[Approved-v1 Implementation Order](docs/IMPLEMENTATION_ORDER.md) derives the
+remaining delivery sequence from the contracts above and the current
+implementation state. It does not alter this file's precedence rules. Use
+`README.md` and `docs/CURRENT_WORK.md` to determine which roadmap steps have
+already landed or still need validation.
+
 ## Core v1 slice
 
 ```text

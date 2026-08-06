@@ -113,8 +113,11 @@ describe('IndexBuilder', () => {
   });
 });
 
-function build(notes: readonly SourceNote[]) {
-  return new IndexBuilder().build(notes, { revision: 1 });
+function build(
+  notes: readonly SourceNote[],
+  taskCategories: readonly string[] = [],
+) {
+  return new IndexBuilder().build(notes, { revision: 1, taskCategories });
 }
 
 function project(path: string): SourceNote {
@@ -142,3 +145,67 @@ function task(
     ].join('\n'),
   );
 }
+
+describe('IndexBuilder task categories', () => {
+  const PROJECT = 'Projects/Game/Project.md';
+
+  function categorised(category: string): readonly SourceNote[] {
+    return [
+      project(PROJECT),
+      sourceNote(
+        'Projects/Game/Tasks/One.md',
+        [
+          'type: task',
+          'project: "[[Projects/Game/Project]]"',
+          'status: todo',
+          `category: ${category}`,
+        ].join('\n'),
+      ),
+    ];
+  }
+
+  it('accepts any category when the vault configures none', () => {
+    const snapshot = build(categorised('anything at all'));
+
+    expect(snapshot.diagnostics).toEqual([]);
+    const task = snapshot.getEntity('Projects/Game/Tasks/One.md');
+    expect(task?.kind === 'task' && task.category).toBe('anything at all');
+  });
+
+  it('reports a category the configured vocabulary does not list', () => {
+    const snapshot = build(categorised('feature'), ['bug', 'chore']);
+
+    const issue = snapshot.diagnostics.find(
+      (candidate) => candidate.code === 'task.category.invalid',
+    );
+    expect(issue?.path).toBe('Projects/Game/Tasks/One.md');
+    expect(issue?.field).toBe('category');
+    expect(issue?.recovery).toContain('bug, chore');
+    // Reported, never repaired: the note still says what it says.
+    const task = snapshot.getEntity('Projects/Game/Tasks/One.md');
+    expect(task?.kind === 'task' && task.category).toBe('feature');
+    expect(task?.diagnostics.map((one) => one.code)).toContain(
+      'task.category.invalid',
+    );
+  });
+
+  it('matches a configured category case-insensitively', () => {
+    expect(build(categorised('Bug'), ['bug']).diagnostics).toEqual([]);
+    expect(build(categorised('bug'), ['Bug']).diagnostics).toEqual([]);
+  });
+
+  it('leaves a task with no category alone', () => {
+    const snapshot = build(
+      [
+        project(PROJECT),
+        sourceNote(
+          'Projects/Game/Tasks/One.md',
+          'type: task\nproject: "[[Projects/Game/Project]]"\nstatus: todo',
+        ),
+      ],
+      ['bug'],
+    );
+
+    expect(snapshot.diagnostics).toEqual([]);
+  });
+});

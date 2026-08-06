@@ -61,7 +61,7 @@ export type TaskCreationPreviewResult =
  * service to produce everything a user must see before any note is written.
  *
  * This service itself cannot write: it holds no writer and produces only a
- * proposal. Committing that proposal is TaskCreationCommitService's job, and
+ * proposal. Committing that proposal is NoteCreationCommitService's job, and
  * the two are deliberately separate so everything the write would do is
  * reviewable before anything is written.
  */
@@ -78,6 +78,24 @@ export class TaskCreationPreviewService {
     this.#getSnapshot = getSnapshot;
     this.#vault = vault;
     this.#proposals = proposals;
+  }
+
+  /**
+   * The template variants this project could create from, `default` first.
+   *
+   * Separate from `preview` because a chooser must be populated before a
+   * preview exists to populate it from.
+   */
+  public async listTemplateVariants(
+    projectPath: string,
+  ): Promise<readonly string[]> {
+    const entity = this.#getSnapshot().getEntity(
+      normalizeVaultPath(projectPath),
+    );
+    if (entity?.kind !== 'project') {
+      return ['default'];
+    }
+    return await this.#proposals.listTemplateVariants(entity);
   }
 
   public async preview(

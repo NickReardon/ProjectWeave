@@ -83,12 +83,25 @@ The seeded vault contains:
 | `Projects/Game/Tasks/Implement request.md` | task | `todo` | 2000 | Define request | today |
 | `Projects/Game/Tasks/External prerequisite.md` | task | `in-progress` | 3000 | — | 3 days ago |
 | `Projects/Game/Tasks/Blocked request.md` | task | `todo` | 4000 | External prerequisite | in 7 days |
+| `Projects/Game/Epics/Travel system.md` | epic | `active` | — | — | — |
+| `Projects/Game/Milestones/Alpha.md` | milestone | `planned` | — | — | 2026-09-30 |
 
 The due dates are written by the seeder relative to the day you seed, not
 committed with the fixture: a fixed date cannot be **today**. Reset before
 checking due states if the vault was seeded on an earlier day.
 
+**Blocked request** carries the planning properties the other tasks leave
+unset: `epic`, `milestone`, `owner: Robin`, `category: bug`, and
+`priority: high`. That is what gives the epic, milestone, owner, priority, and
+category selectors something to offer, and it is why no check has to add those
+fields by hand.
+
 Also present: `Projects/Game/Design/Travel.md` and `Templates/Task.md`.
+
+`--scale` generates tasks carrying the full planning shape — every property
+set, statuses, owners, categories, priorities, points, and due dates cycling by
+index — so
+a large seeded project exercises the filters rather than repeating one task.
 
 So the expected baseline is: **Implement request** is the only Ready task
 (its one dependency is `done`); **Blocked request** is todo but blocked by an
@@ -182,22 +195,17 @@ The default scope is `backlog`, `todo`, `in-progress`, `waiting`, and `review`.
 
 ### 5. Search and the advanced filters — partially passed
 
-**Setup:** the seeded vault already carries due dates. Add the other four
-fields to **one** fixture task, for example `Blocked request.md`:
-
-```yaml
-priority: high
-owner: Robin
-epic: '[[Engine]]'
-milestone: '[[Alpha]]'
-```
+**Setup:** none. The seeded vault carries due dates, and **Blocked request**
+carries the epic, milestone, owner, priority, and category the selectors
+need.
 
 1. Search `external` — confirm case-insensitive title matching. Search a
    fragment of the vault path, such as `Game/Tasks`, and confirm path matching.
    Try mixed case (`ExTeRnAl`).
 2. Open the priority, epic, milestone, and owner selectors and confirm each
-   offers the value you just added.
-3. Combine those four filters and confirm they isolate the one edited task.
+   offers **Blocked request**'s values — `high`, *Travel system*, *Alpha*, and
+   `Robin`.
+3. Combine those four filters and confirm they isolate **Blocked request**.
 4. Press **Reset filters**.
 5. Filter by each due state in turn, with the default status set plus `done`
    so every task is in scope. Expect **Past due date** to give **External
@@ -207,10 +215,18 @@ milestone: '[[Alpha]]'
    Confirm **Due today** against your machine's local calendar date — if the
    vault was seeded on an earlier day, reset it first.
 
-**Pass:** each filter narrows as expected; combining the four isolates the
-single edited task; each due state matches exactly the task above; **Reset
+**Pass:** each filter narrows as expected; combining the four isolates
+**Blocked request**; each due state matches exactly the task above; **Reset
 filters** returns to the non-terminal default status set and clears the search
 and selectors; **Due today** matches against your local calendar date, not UTC.
+
+**Then, for categories:** filter by **Category** and confirm `bug` isolates
+**Blocked request**. Add `bug` and `chore` under **Settings → Task categories**,
+change the task's category to `feature`, and confirm it is reported as
+`task.category.invalid` listing the allowed values while the task still appears
+and still says `feature`. Confirm the selector offers `chore` even though no
+task uses it, and `feature` even though nothing declares it. Remove both
+categories and confirm the diagnostic disappears.
 
 **Then:** `npm run test-vault:reset`.
 
@@ -433,6 +449,89 @@ Open the vault in Obsidian mobile, or in the desktop app's mobile emulation.
 The plugin declares `isDesktopOnly: false`, so it must load and the workbench
 must be usable. Run 11a through 11g there. Any crash or missing view here is a
 release blocker.
+
+---
+
+### 15. Create project — unrun
+
+**This check writes to the vault.** Use the disposable vault.
+
+**Why:** project creation goes through the same commit path task creation
+does, and its preview and modal have automated coverage, but nothing has
+exercised it in Obsidian itself.
+
+1. Run **Project Weave: Create project** from the command palette. Type
+   `Travel Planner`.
+2. Read the previewed target path, project folder, and rendered bytes. Close
+   the modal without confirming, and confirm nothing was created.
+3. Reopen it, enter `Game` — the fixture project's title — and read the notice.
+4. Enter `///` and read the diagnostic.
+5. Enter `Travel Planner` again and confirm.
+6. Select the new project in the workbench, press **New task**, and create one.
+7. Empty the vault of project notes, or point the plugin at an empty indexed
+   folder, and open the workbench.
+
+**Pass:** the preview shows `Projects/Travel Planner/Project.md` under the
+project folder of the same name; closing creates nothing; `Game` yields
+`Projects/Game 2/Project.md` with a notice that a numbered folder is
+suggested; `///` yields a diagnostic instead of a folder name; confirming
+writes exactly the previewed bytes; the project appears in the workbench
+picker after the index refreshes; the task created in it lands under
+`Projects/Travel Planner/Tasks/`; and the workbench's empty state offers a
+**New project** button that opens the same modal.
+
+**Note:** with one indexed folder there is no folder chooser, by design. To see
+it, add a second indexed project folder in settings first.
+
+**Then:** add `Templates/Project Weave/project/default.md` with
+`template_for: project` and a distinctive heading, and create another project.
+The preview must render that template's body, and the created note must still
+carry `type`, `title`, and a status — those come from the creation profile, not
+the template.
+
+---
+
+### 16. Task template chooser — unrun
+
+**This check writes to the vault.** Use the disposable vault.
+
+**Why:** the chooser is the first control whose value changes the bytes a
+confirmed create writes. Precedence and fail-closed behavior are automated;
+what is not is that the right thing reaches the modal in Obsidian.
+
+**Setup:** in the vault, create `Templates/Project Weave/task/bug.md`:
+
+```markdown
+---
+weave_template: true
+template_schema: 1
+template_for: task
+---
+
+# {{title}}
+
+## Steps to reproduce
+
+## Expected
+```
+
+1. Open **Create task**. Read the **Template** chooser.
+2. Select `bug`, type a title, and read the previewed bytes.
+3. Select **Packaged minimal** and read them again.
+4. Add `weave: {templates: {task: {bug: "[[Templates/Task]]"}}}` to the project
+   note, reopen the modal, and select `bug`.
+5. Break the vault template — change `template_for` to `epic` — reopen, and
+   select `bug`.
+6. Remove `bug.md`, leaving only the packaged default, and reopen.
+
+**Pass:** the chooser lists `default`, `bug`, and **Packaged minimal**; the
+preview follows the selection each time; the project mapping wins over the
+vault template for `bug`; the broken template shows `template.kind_mismatch`
+with creation disabled, and does not quietly render the packaged template; and
+with one variant the chooser is absent rather than showing a single option.
+
+**Note:** a body-only template still produces full task frontmatter — that is
+the creation profile, not the template.
 
 ---
 

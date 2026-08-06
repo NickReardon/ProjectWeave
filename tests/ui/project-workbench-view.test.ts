@@ -74,6 +74,8 @@ interface Harness {
   readonly text: () => string;
 }
 
+let createProjectCalls = 0;
+
 async function openWorkbench(
   notes: readonly SourceNote[],
   options: {
@@ -93,6 +95,9 @@ async function openWorkbench(
   const actions: ProjectWorkbenchActions = {
     rebuildIndex: () => Promise.resolve(),
     createTask: () => undefined,
+    createProject: () => {
+      createProjectCalls += 1;
+    },
   };
 
   // The view's real types come from Obsidian; the stub stands in for them.
@@ -147,6 +152,26 @@ describe('Project Workbench view rendering', () => {
     expect(
       harness.content.querySelector('.project-weave-workbench__empty'),
     ).not.toBeNull();
+  });
+
+  it('offers a way out of an empty vault rather than only advice', async () => {
+    createProjectCalls = 0;
+    const harness = await openWorkbench([]);
+
+    const button = harness.content.querySelector<HTMLButtonElement>(
+      '[data-workbench-focus-key="new-project"]',
+    );
+    expect(button).not.toBeNull();
+    button!.click();
+    expect(createProjectCalls).toBe(1);
+
+    // Only the state a user can act on carries the button.
+    const populated = await openWorkbench([projectNote('Projects/One.md')]);
+    expect(
+      populated.content.querySelector(
+        '[data-workbench-focus-key="new-project"]',
+      ),
+    ).toBeNull();
   });
 
   it('keeps an unavailable selection visible instead of falling back to another project', async () => {

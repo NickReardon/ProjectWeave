@@ -60,9 +60,9 @@ import Obsidian, Node, Electron, views, or future MCP code.
   function of its request: it reads no clock, environment, network, or file.
   Precedence runs template static values, context defaults and explicit typed
   inputs, then the entity-type and selected-project invariant overlay. The
-  packaged minimal task template is embedded as a plugin asset, and every
-  rendered note is re-parsed with the ordinary entity parser before it is
-  returned. The renderer produces content only; it has no write capability and
+  packaged minimal task and project templates are embedded as plugin assets,
+  and every rendered note is re-parsed with the ordinary entity parser before
+  it is returned. The renderer produces content only; it has no write capability and
   no proposal, path-allocation, or template-map resolution behavior; those
   concerns stay in application services. A project renderer sits beside the task
   one on the same terms and with the smaller context a project carries — no
@@ -70,6 +70,20 @@ import Obsidian, Node, Electron, views, or future MCP code.
   clock variables, the precedence rewrite, the invariant overlay, and the
   target-path guard — lives in src/domain/templates/creation-context; what makes
   a kind a kind stays in its own renderer.
+- **Creation profiles:** src/domain/templates/creation-profile states what a
+  created note carries because of its kind rather than because its template
+  said so: a task's title, status, and the seven planning properties ADR 0010
+  keeps visible; a project's title and defaulted status. The profile fills only
+  the gaps a template leaves, in a fixed order and after the template's own
+  properties, so an existing template renders exactly the bytes it did before
+  while a body-only template still parses as its kind. Templates own
+  presentation, body, declared inputs, and any other property.
+- **Configured validation:** the parser reads `category` as an optional task
+  string and knows nothing of settings; IndexBuilder applies the vault's
+  configured vocabulary and attaches `task.category.invalid` where a value is
+  not listed. Configuration reaches indexing, so the domain stays a pure
+  function of the note, and an empty vocabulary validates nothing. ADR 0014
+  records why the vocabulary is vault-wide.
 - **Indexing:** IndexBuilder deterministically publishes a complete immutable
   snapshot. IndexCoordinator owns asynchronous rebuilds, coalesced targeted
   reads, revisions, stale-last-good state, and unload cancellation.
@@ -79,7 +93,7 @@ import Obsidian, Node, Electron, views, or future MCP code.
   indexing runtimes. The pure Project Workbench projection derives all visible
   counts, selection states, bounded project and unassigned diagnostics, Ready
   ordering, and bounded task results filtered by status, text, priority, epic,
-  milestone, owner, and due state from one publication. The UI injects its
+  milestone, owner, category, and due state from one publication. The UI injects its
   current local calendar date; application filtering does not read a clock.
   Task results remain project-scoped and deterministically order canonical
   status, explicit rank, priority, then normalized path. Diagnostic details
@@ -87,9 +101,12 @@ import Obsidian, Node, Electron, views, or future MCP code.
   exact read-only
   navigation. Unassigned diagnostics cover malformed entities and unresolved
   ownership without guessing from folder layout.
-- **Creation proposals:** TaskTemplateResolver reads project-owned task
-  mappings through the existing read-only ports, resolves default/named
-  variants, and fails closed on explicit reference errors.
+- **Creation proposals:** TaskTemplateResolver resolves a task template per
+  variant across the three ADR 0013 rungs — the project's own mapping, the
+  vault template library, then the packaged default — through the existing
+  read-only ports. It fails closed on a broken candidate rather than falling
+  through to another rung, and lists the merged variants so a chooser can be
+  populated before any preview exists.
   TaskCreationProposalService renders one exact create proposal with
   fingerprints, target-absence and index-freshness preconditions, exact
   frontmatter/content, and expected postconditions. Neither service can write.
@@ -104,7 +121,20 @@ import Obsidian, Node, Electron, views, or future MCP code.
   src/application/project-creation-allocator does the same for a project note,
   which lands at `<root>/<Title>/Project.md` per ADR 0012. Its collision unit is
   the folder rather than the note, because ADR 0008 derives a project's task
-  folder from where its project note sits. It has no runtime caller yet.
+  folder from where its project note sits.
+- **Template catalog:** src/application/vault-template-library discovers
+  vault-wide templates under the configured library folder — one folder per
+  `template_for` value, one file per variant — through the read-only
+  `VaultReader`, reporting unusable names and case-colliding keys rather than
+  guessing. src/application/template-catalog merges plugin, vault, and project
+  candidates per key, so a project may override one variant without displacing
+  another, and a broken winner leaves its key unusable rather than falling
+  through to different bytes. ADR 0013 records the decision. The index reader
+  stays scoped to the project roots; `CompositeVaultReader` in src/ports lets
+  creation re-read a template outside them without widening what indexing sees.
+  Both creation flows compose the two readers at the composition root: task
+  creation resolves a variant across all three rungs, and project creation
+  reads `project/default.md` before falling back to the packaged template.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another
@@ -117,7 +147,7 @@ import Obsidian, Node, Electron, views, or future MCP code.
   `TaskSearchCandidate` carries, so
   matching note bodies would be a snapshot decision rather than a matcher
   change — indexing discards content after parsing.
-- **Creation commit:** TaskCreationCommitService is the only path to a vault
+- **Creation commit:** NoteCreationCommitService is the only path to a vault
   write. It re-reads the proposal's read set and compares fingerprints,
   re-checks target absence, re-validates the produced note in memory, then
   writes once, per the single-file sequence in design 10. It writes the

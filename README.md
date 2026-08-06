@@ -13,7 +13,8 @@ Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
 defines the branch and small-commit workflow. Validation evidence, remaining
 manual checks, and the next decision point are in
 [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md); commit history is the record of
-what changed.
+what changed. The dependency-ordered remaining roadmap is in
+[docs/IMPLEMENTATION_ORDER.md](docs/IMPLEMENTATION_ORDER.md).
 
 ## Current status
 
@@ -27,7 +28,8 @@ The implemented slices are:
 - bounded project context, task context, and Ready Now application queries;
 - a persistent Obsidian Project Workbench with a project picker, project
   summary, live index state, bounded Ready Now list, and a project-scoped All
-  Tasks list with status, priority, epic, milestone, owner, due-state, and
+  Tasks list with status, priority, epic, milestone, owner, category,
+  due-state, and
   title/path filters;
 - visible project and unassigned diagnostic sections grouped by affected note,
   with severity, error code, field, recovery guidance, related-note links, and
@@ -38,8 +40,8 @@ The implemented slices are:
 - workspace-restored project selection and task navigation that preserves the
   dashboard tab;
 - an Obsidian **Open Ready Now** command and modal for the compact flow;
-- a persisted Obsidian settings tab for project-folder discovery and template
-  scaffold location;
+- a persisted Obsidian settings tab for project-folder discovery and the
+  template library location;
 - a plugin-lifetime read publication layer that keeps open views current when
   indexed project folders replace the indexing runtime;
 - a deterministic task-template renderer in the domain, covering template
@@ -57,13 +59,19 @@ The implemented slices are:
 - a **Create task** command and modal showing the allocated path and
   rank, resolved template, preconditions, read set, expected postconditions,
   and exact rendered bytes, with an explicit **Create task** action;
+- a **Create project** command and modal on the same terms, allocating a
+  folder of the project's own and offering a chooser when settings name more
+  than one indexed folder;
 - a commit coordinator that re-reads the proposal's inputs, compares
   fingerprints, re-checks target absence, and re-validates the produced note
   before writing it once;
 - a create-only note-writing port with no way to express overwrite, move, or
   delete, implemented over Obsidian's Vault API;
+- a vault template library and merged template catalog per ADR 0013, with
+  per-key precedence and a composite reader that reaches templates outside the
+  indexed project folders without widening what indexing sees;
 - fixture-backed parser, index, query, dashboard projection, template
-  rendering, incremental-update, lifecycle, and release-inventory tests.
+  rendering, incremental-update, lifecycle, and release-inventory tests;
 - CI runs the same complete check on supported Node.js versions.
 
 **New task** in the workbench, or **Create task** in the command palette,
@@ -79,9 +87,9 @@ rather than overwritten. If the project note or template changes between
 preview and confirmation, the commit aborts and asks you to preview again,
 rather than writing something you did not see.
 
-Editing existing tasks, rank rebalancing and reorder, further note kinds, full
-Plan/Board/My Work perspectives, portfolio views, and agent/MCP transport
-remain later slices.
+Editing existing notes, rank rebalancing and reorder, the remaining note
+kinds, full Plan/Board/My Work perspectives, portfolio views, and agent/MCP
+transport remain later slices.
 
 New task notes are placed in a `Tasks` folder beside the project note, so
 `Projects/Game/Project.md` gives `Projects/Game/Tasks/`. A caller may pass a
@@ -91,17 +99,76 @@ numeric suffix as a visible suggestion, never as a silent overwrite.
 [ADR 0008](docs/decisions/0008-derive-task-paths-and-allocate-spaced-ranks.md)
 records these rules.
 
+A created project takes a folder of its own inside an indexed project folder:
+`Projects/Travel Planner/Project.md`. The folder is the project's identity, so
+its tasks land in `Projects/Travel Planner/Tasks/` under the rule above, and a
+folder already in use yields a numbered folder rather than a shared one — two
+projects in one folder would mingle their tasks.
+[ADR 0012](docs/decisions/0012-give-each-project-its-own-folder.md) records
+that decision.
+
+With nothing indexed yet, the workbench's empty state offers **New project**,
+so a fresh vault does not have to be bootstrapped by hand.
+
+## Task categories
+
+Tasks may carry an optional `category` such as `bug` or `chore`, filterable in
+the workbench beside owner and priority. It is free-form by default: with no
+configuration, any value is accepted and the filter offers whatever tasks use.
+
+Listing categories under **Settings → Task categories** turns on validation —
+anything else is reported as `task.category.invalid` naming the allowed values,
+without changing the note. Matching ignores case, a declared category is
+offered even before a task uses it, and an undeclared value in use stays
+offered so the task carrying the diagnostic remains findable.
+
+The vocabulary is vault-wide rather than per project, because Obsidian's own
+property suggestions are vault-wide; two lists would contradict each other in
+adjacent editors. A `task/bug.md` template that declares `category: bug` is how
+choosing a template assigns one.
+[ADR 0014](docs/decisions/0014-group-tasks-with-a-vault-wide-category.md)
+records the decision, including why a `bug` entity type was rejected.
+
 ## Note templates
 
-`templates/default/` holds the packaged starter templates. Only
-`templates/default/task.md` is currently used by code; the plugin embeds a
-copy so rendering works without filesystem access, and a test keeps the two
-byte-identical. The remaining files are inputs for later slices.
-For tasks, a project may map default and named variants under
-`weave.templates.task`. References resolve relative to the project note using
-the same link semantics as indexing. Missing configuration uses the packaged
-minimal task template; an explicit broken, ambiguous, malformed, or
-wrong-kind reference fails without silently falling back.
+`templates/default/` holds the packaged starter templates.
+`templates/default/task.md` and `templates/default/project.md` are used by
+code; the plugin embeds a copy of each so rendering works without filesystem
+access, and a test keeps each pair byte-identical. The remaining files are
+inputs for later slices.
+
+A task template is chosen per variant from three places, in order:
+
+1. the project note's own `weave.templates.task.<variant>` mapping;
+2. `<template library folder>/task/<variant>.md`;
+3. the packaged minimal template, for `default` only.
+
+Precedence applies per variant, so a project can override `bug` while still
+using the vault's `default`. A broken, ambiguous, malformed, or wrong-kind
+template blocks the variant that selected it rather than falling back to
+another source — falling back would create bytes other than the ones the
+chosen template describes. A variant that exists nowhere is reported instead of
+becoming the default by accident.
+
+The create-task modal shows a **Template** chooser once more than one variant
+exists, listing the merged variants plus **Packaged minimal** as an explicit
+escape hatch, and re-previews when you change it. With one variant there is no
+choice to make, so there is no control.
+[ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md)
+records the design.
+
+A created project uses `<template library folder>/project/default.md` when it
+exists, and the packaged project template otherwise, on the same fail-closed
+terms. There is no chooser: a project note is where a project's own template
+mapping would live, so one house style per vault is the only choice there is to
+make.
+
+What a created note carries because of its kind does not depend on its
+template. A task always gets its title, status, project relation, and the seven
+planning properties; a project always gets its title and a status. A template
+that declares one of those keeps its own value and position, so a template you
+already use renders exactly the bytes it did before, while a template that is
+only a heading and some sections still produces a valid note.
 
 A template is an ordinary Markdown note marked `weave_template: true` with a
 `template_for` kind. Marked templates are excluded from entity indexing, so a
@@ -147,10 +214,17 @@ should be visible. Removing every root intentionally produces an empty index.
 Changing roots replaces the current runtime and rebuilds without retaining
 out-of-scope notes.
 
-The **Template scaffold folder** is a local destination preference for the
-future template-initialization flow. Canonical template mappings remain in the
-project note so they travel with the project; saving this preference never
-creates or edits vault content.
+The **Template library folder** names where vault-wide templates live, one
+folder per kind and one file per variant, such as `task/bug.md`. It is a local
+preference: saving it never creates or edits vault content, an empty value uses
+the packaged templates only, and a folder nobody has created simply holds no
+templates. Project notes may still map their own variants under
+`weave.templates`, which travel with the project and take precedence. Task
+creation reads `task/<variant>.md` from this folder and merges it with project
+overrides and the packaged default, and project creation reads
+`project/default.md` from it before falling back to the packaged template. A
+project note cannot map its own project template, since it is the note being
+created.
 
 Open the dashboard from the left ribbon, **Project Weave: Open project
 workbench** in the command palette, or **Open dashboard** on the settings page.
@@ -217,6 +291,12 @@ in the dashboard after the index refreshes. With the modal open, edit the
 project note in another tab, then confirm: the commit must refuse with a
 message about the note having changed, and create nothing.
 
+Run **Project Weave: Create project** for the project kind. Confirm the target
+path is `Projects/<Title>/Project.md`, that a title matching an existing
+folder yields a numbered folder with an explicit notice, and that the created
+project appears in the workbench picker after the index refreshes. Creating a
+task in it should then land under its own `Tasks` folder.
+
 ## Versioning and exports
 
 `package.json` is the canonical project version. Version commands update it
@@ -278,6 +358,12 @@ overdue, one due today, one due later, one undated — so the due-state filters
 have something to filter. A committed date cannot be today, so these are
 written by the seeder rather than held in the fixture, and reseeding on a later
 day moves them.
+
+The fixture also holds an epic and a milestone, and one task that references
+them along with an owner and a priority, so every workbench filter has values
+without editing notes by hand. Tasks generated by `--scale` carry the full
+planning shape, cycling statuses, owners, priorities, points, and due dates by
+index.
 
 `reset` returns the vault to its baseline between checks, preserving
 `.obsidian/` so the installed plugin survives, and reporting rather than

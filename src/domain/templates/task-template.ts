@@ -2,6 +2,10 @@ import { parseWikiLink } from '../markdown-parser';
 import type { Diagnostic, TaskPriority, TaskStatus } from '../model';
 import type { ResolvedInput } from './creation-context';
 import {
+  applyCreationProfile,
+  TASK_CREATION_PROFILE,
+} from './creation-profile';
+import {
   applyContextPrecedence,
   applyInvariants,
   createResolver,
@@ -42,6 +46,7 @@ export interface TaskTemplateContext {
   readonly planningPeriodLink?: string | null;
   readonly originLink?: string | null;
   readonly owner?: string | null;
+  readonly category?: string | null;
   readonly priority?: TaskPriority | null;
   readonly points?: number | null;
   readonly rank?: number | null;
@@ -83,6 +88,7 @@ const BUILTIN_TASK_VARIABLES = new Set([
   'milestone_link',
   'planning_period_link',
   'owner',
+  'category',
   'priority',
   'points',
   'rank',
@@ -103,6 +109,7 @@ const CONTEXT_OWNED_PROPERTIES: Readonly<Record<string, string>> = {
   milestone: 'milestone_link',
   sprint: 'planning_period_link',
   owner: 'owner',
+  category: 'category',
   priority: 'priority',
   points: 'points',
   rank: 'rank',
@@ -152,8 +159,15 @@ export function renderTaskTemplate(
     CONTEXT_OWNED_PROPERTIES,
   );
   const resolved = resolveProperties(path, properties, resolve, diagnostics);
-  const overlaid = applyInvariants(
+  const profiled = applyCreationProfile(
     resolved,
+    TASK_CREATION_PROFILE,
+    resolve,
+    path,
+    diagnostics,
+  );
+  const overlaid = applyInvariants(
+    profiled,
     [
       { key: 'type', value: 'task' },
       { key: 'project', value: invariants.projectLink },
@@ -265,6 +279,8 @@ function resolveBuiltin(
       return optionalText(context.planningPeriodLink);
     case 'owner':
       return optionalText(context.owner);
+    case 'category':
+      return optionalText(context.category);
     case 'priority':
       return optionalText(context.priority);
     case 'due_date':

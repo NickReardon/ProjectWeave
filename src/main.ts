@@ -2,14 +2,19 @@ import { Notice, Plugin, TFile } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 
 import { ObsidianNoteWriter } from './adapters/obsidian/obsidian-note-writer';
+import { CompositeVaultReader } from './ports/composite-vault-reader';
+import type { VaultReader } from './ports/vault-reader';
 import {
   ObsidianLinkResolver,
   ObsidianVaultReader,
 } from './adapters/obsidian/obsidian-vault-reader';
 import { buildProjectWorkbenchModel } from './application/project-workbench-model';
 import { ProjectWeaveReadSource } from './application/project-weave-read-source';
-import { TaskCreationCommitService } from './application/task-creation-commit';
+import { NoteCreationCommitService } from './application/note-creation-commit';
+import { ProjectCreationPreviewService } from './application/project-creation-preview';
+import { ProjectCreationProposalService } from './application/project-creation-proposal';
 import { TaskCreationPreviewService } from './application/task-creation-preview';
+import { VaultTemplateLibrary } from './application/vault-template-library';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
 import { templateClockFromLocalDate } from './domain/templates/model';
@@ -20,6 +25,7 @@ import {
   loadProjectWeaveSettings,
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
+  normalizeTaskCategories,
 } from './settings/project-weave-settings';
 import type { ProjectWeaveSettings } from './settings/project-weave-settings';
 import {
@@ -29,6 +35,7 @@ import {
 import { NoteDiagnosticBannerController } from './ui/note-diagnostic-banner';
 import { ReadyNowModal } from './ui/ready-now-modal';
 import { ProjectWeaveSettingTab } from './ui/settings-tab';
+import { ProjectCreationPreviewModal } from './ui/project-creation-preview-modal';
 import { TaskCreationPreviewModal } from './ui/task-creation-preview-modal';
 
 interface ProjectWeaveRuntime {
@@ -57,12 +64,20 @@ export default class ProjectWeavePlugin extends Plugin {
     this.registerView(
       PROJECT_WORKBENCH_VIEW_TYPE,
       (leaf: WorkspaceLeaf) =>
-        new ProjectWorkbenchView(leaf, this.#readSource, {
-          rebuildIndex: () => this.rebuildIndex(false),
-          createTask: (projectPath) => {
-            this.#openTaskCreationPreview(projectPath);
+        new ProjectWorkbenchView(
+          leaf,
+          this.#readSource,
+          {
+            rebuildIndex: () => this.rebuildIndex(false),
+            createTask: (projectPath) => {
+              this.#openTaskCreationPreview(projectPath);
+            },
+            createProject: () => {
+              this.#openProjectCreationPreview();
+            },
           },
-        }),
+          () => this.settings.taskCategories,
+        ),
     );
     this.addSettingTab(new ProjectWeaveSettingTab(this.app, this));
 
@@ -111,6 +126,13 @@ export default class ProjectWeavePlugin extends Plugin {
       },
     });
     this.addCommand({
+      id: 'create-project',
+      name: 'Create project',
+      callback: () => {
+        this.#openProjectCreationPreview();
+      },
+    });
+    this.addCommand({
       id: 'rebuild-index',
       name: 'Rebuild index',
       callback: () => {
@@ -156,6 +178,20 @@ export default class ProjectWeavePlugin extends Plugin {
     return await this.#rebuildRuntime(next, false);
   }
 
+  /**
+   * Replaces the vault's task category vocabulary and rebuilds, since the
+   * index carries the diagnostics that depend on it.
+   */
+  public async updateTaskCategories(
+    taskCategories: readonly string[],
+  ): Promise<void> {
+    const normalized = normalizeTaskCategories(taskCategories);
+    const nextSettings = { ...this.settings, taskCategories: normalized };
+    await this.saveData(nextSettings);
+    this.settings = nextSettings;
+    await this.rebuildIndex(false);
+  }
+
   public async updateTemplateScaffoldFolder(
     templateScaffoldFolder: string,
   ): Promise<void> {
@@ -196,6 +232,7 @@ export default class ProjectWeavePlugin extends Plugin {
     const reader = new ObsidianVaultReader(this.app.vault, projectRoots);
     const coordinator = new IndexCoordinator(reader, {
       linkResolver: new ObsidianLinkResolver(this.app.metadataCache),
+      taskCategories: () => this.settings.taskCategories,
     });
     return {
       reader,
@@ -327,6 +364,30 @@ export default class ProjectWeavePlugin extends Plugin {
   }
 
   /**
+   * The readers a creation flow needs: the project-scoped one it shares with
+   * indexing, plus a second scoped to the template library.
+   *
+   * ADR 0013 keeps them separate on purpose. Indexing must not start reading
+   * notes outside the configured project folders, and creation must be able to
+   * read a template that lives outside them, so the two are composed here
+   * rather than by widening the index reader's scope.
+   */
+  #creationReaders(runtime: ProjectWeaveRuntime): {
+    readonly reader: VaultReader;
+    readonly library: VaultTemplateLibrary | null;
+  } {
+    const folder = this.settings.templateScaffoldFolder;
+    if (folder.trim().length === 0) {
+      return { reader: runtime.reader, library: null };
+    }
+    const libraryReader = new ObsidianVaultReader(this.app.vault, [folder]);
+    return {
+      reader: new CompositeVaultReader([runtime.reader, libraryReader]),
+      library: new VaultTemplateLibrary(libraryReader, folder),
+    };
+  }
+
+  /**
    * Opens the create-task flow. A caller that already knows the project — the
    * workbench does — passes it, so the flow never guesses from the active
    * note and never refuses because no project note happens to be open.
@@ -369,34 +430,97 @@ export default class ProjectWeavePlugin extends Plugin {
 
     // Each preview reads the publication current when it runs, so a rebuild
     // while the modal is open is reflected rather than silently stale.
+    const { reader, library } = this.#creationReaders(runtime);
     const previews = new TaskCreationPreviewService(
       () => this.#readSource.current.snapshot,
-      runtime.reader,
+      reader,
       new TaskCreationProposalService(
         () => this.#readSource.current.snapshot,
-        runtime.reader,
+        reader,
         new TaskTemplateResolver(
-          runtime.reader,
+          reader,
           new ObsidianLinkResolver(this.app.metadataCache),
+          library,
         ),
       ),
     );
 
-    // The writer is scoped to the same project roots the reader indexes, so a
-    // path outside them is refused by the adapter regardless of what asks.
-    const commits = new TaskCreationCommitService(
+    // The writer is scoped to the project roots, not to whatever the readers
+    // can see, so no template folder becomes a writable location.
+    const commits = new NoteCreationCommitService(
       () => this.#readSource.current.snapshot,
-      runtime.reader,
+      reader,
       new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),
     );
 
-    new TaskCreationPreviewModal(this.app, {
-      projectTitle: project.title,
-      projectPath: project.path,
+    void previews
+      .listTemplateVariants(project.path)
+      .catch((error: unknown) => {
+        console.error('Project Weave could not list task templates', error);
+        return ['default'] as readonly string[];
+      })
+      .then((templateVariants) => {
+        new TaskCreationPreviewModal(this.app, {
+          projectTitle: project.title,
+          projectPath: project.path,
+          templateVariants,
+          run: (request) =>
+            previews.preview({
+              ...request,
+              projectPath: project.path,
+              clock: templateClockFromLocalDate(new Date()),
+            }),
+          commit: (proposal) => commits.commit(proposal),
+          openNote: (path) => this.#openCreatedNote(path),
+        }).open();
+      });
+  }
+
+  /**
+   * Opens the create-project flow.
+   *
+   * Unlike task creation, this needs no project to be selected — creating one
+   * is the point, and the state it is most useful from is a vault with none.
+   */
+  #openProjectCreationPreview(): void {
+    const runtime = this.#runtime;
+    if (runtime === null) {
+      new Notice('Project Weave is not loaded.');
+      return;
+    }
+    if (this.#readSource.current.snapshot.revision === 0) {
+      new Notice('Project Weave is still indexing the vault.');
+      return;
+    }
+    const roots = this.settings.projectRoots;
+    if (roots.length === 0) {
+      new Notice(
+        'Set an indexed project folder in Settings → Community plugins → Project Weave first.',
+      );
+      return;
+    }
+
+    const { reader, library } = this.#creationReaders(runtime);
+    const previews = new ProjectCreationPreviewService(
+      () => this.#readSource.current.snapshot,
+      reader,
+      new ProjectCreationProposalService(
+        () => this.#readSource.current.snapshot,
+        reader,
+        library,
+      ),
+    );
+    const commits = new NoteCreationCommitService(
+      () => this.#readSource.current.snapshot,
+      reader,
+      new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),
+    );
+
+    new ProjectCreationPreviewModal(this.app, {
+      roots,
       run: (request) =>
         previews.preview({
           ...request,
-          projectPath: project.path,
           clock: templateClockFromLocalDate(new Date()),
         }),
       commit: (proposal) => commits.commit(proposal),

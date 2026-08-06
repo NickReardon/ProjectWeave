@@ -19,6 +19,7 @@ epic:
 milestone:
 sprint:
 owner:
+category:
 priority:
 points:
 rank: "{{rank}}"

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  TaskCreationCommitService,
-  type TaskCreationCommitResult,
-} from '../../src/application/task-creation-commit';
+  NoteCreationCommitService,
+  type NoteCreationCommitResult,
+} from '../../src/application/note-creation-commit';
 import { TaskCreationProposalService } from '../../src/application/task-creation-proposal';
 import type { TaskCreationProposal } from '../../src/application/task-creation-proposal';
 import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
@@ -119,7 +119,7 @@ async function harness(): Promise<{
   snapshot: IndexSnapshot;
   commit: (
     override?: Partial<{ snapshot: IndexSnapshot }>,
-  ) => Promise<TaskCreationCommitResult>;
+  ) => Promise<NoteCreationCommitResult>;
 }> {
   const notes = [projectNote()];
   const vault = new MemoryVault(notes);
@@ -133,7 +133,7 @@ async function harness(): Promise<{
     proposal,
     snapshot,
     commit: async (override) =>
-      new TaskCreationCommitService(
+      new NoteCreationCommitService(
         () => override?.snapshot ?? snapshot,
         vault,
         writer,
@@ -141,7 +141,7 @@ async function harness(): Promise<{
   };
 }
 
-describe('TaskCreationCommitService', () => {
+describe('NoteCreationCommitService', () => {
   it('writes exactly the bytes the proposal showed', async () => {
     const { writer, proposal, commit } = await harness();
 
@@ -182,7 +182,7 @@ describe('TaskCreationCommitService', () => {
     const writer = new RecordingWriter();
     const emptied = new MemoryVault([]);
 
-    const result = await new TaskCreationCommitService(
+    const result = await new NoteCreationCommitService(
       () => snapshot,
       emptied,
       writer,
@@ -250,7 +250,7 @@ describe('TaskCreationCommitService', () => {
 
     const writer = new RecordingWriter();
     vault.set(templateNote('# {{title}}\n\nAn edited template body.\n'));
-    const result = await new TaskCreationCommitService(
+    const result = await new NoteCreationCommitService(
       () => snapshot,
       vault,
       writer,
@@ -323,7 +323,7 @@ describe('TaskCreationCommitService', () => {
 
   it('refuses a proposal that would not create exactly one note', async () => {
     const { writer, proposal, snapshot, vault } = await harness();
-    const service = new TaskCreationCommitService(
+    const service = new NoteCreationCommitService(
       () => snapshot,
       vault,
       writer,
@@ -342,7 +342,7 @@ describe('TaskCreationCommitService', () => {
 
   it('validates the produced note before writing it', async () => {
     const { writer, proposal, snapshot, vault } = await harness();
-    const service = new TaskCreationCommitService(
+    const service = new NoteCreationCommitService(
       () => snapshot,
       vault,
       writer,

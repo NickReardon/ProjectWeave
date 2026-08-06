@@ -183,8 +183,27 @@ Outstanding, all runnable against the installed 0.4.0 build:
   those two controls, leaving the keyboard focus ring intact. No automated
   check covers how Obsidian draws focus, so confirm both in the app.
 
-Those three are what desktop acceptance is waiting on. Task creation is
+Those three, and checks 15 and 16 below, are what desktop acceptance is
+waiting on. Task creation is
 manually accepted, so the write path is no longer gated behind it.
+
+**Check 16 — task templates — is new and unrun.** Put a
+`task/bug.md` under the template library folder, confirm it appears in the
+create-task modal's **Template** chooser, that selecting it changes the
+previewed bytes, that a project mapping for the same variant wins over it, that
+a deliberately broken one shows its diagnostic and refuses rather than falling
+back, and that **Packaged minimal** always renders the packaged template. With
+only one variant, no chooser should appear at all.
+
+**Check 15 — create project — is new and unrun.** Project creation reaches the
+vault through the same commit path task creation does, and its preview and
+modal have automated coverage, but nothing has exercised it in Obsidian. Run
+it in a disposable vault: the target path under an indexed folder, a title
+matching an existing folder yielding a numbered folder with a notice, an
+unusable title yielding a diagnostic, the created project appearing in the
+workbench picker after the index refreshes, a task created in it landing under
+its own `Tasks` folder, and the **New project** button on an empty vault's
+workbench.
 
 **Check 14 — mobile** is deferred until a mobile device or emulator is
 available, and is not required for desktop acceptance. Nothing in the workbench
@@ -203,14 +222,40 @@ Verified against the committed tree; none blocks the manual checks:
   replacement runtime in `src/main.ts` instead of mutating the reader.
 - The template resolver, proposal service, allocator, renderer, and commit
   coordinator all have a runtime caller through the preview command.
-- Only task creation is writable. Editing an existing note, rank rebalancing,
-  and further note kinds have no write path, by design.
-- The project kind has a renderer and a path allocator but no proposal,
-  preview, commit, or UI, so nothing can create a project note yet. Both are
-  pure and tested; `dist/main.js` contains neither, so the running plugin is
-  unchanged apart from the packaged project template, which the bundle now
-  carries at a cost of 479 bytes. ADR 0012 settles where a created project note
-  lands and why its collision unit is the folder rather than the note.
+- Only creation is writable, and only of tasks and projects. Editing an
+  existing note, rank rebalancing, and the remaining note kinds have no write
+  path, by design.
+- Project creation is complete through the UI: a **Create project** command,
+  and a **New project** button on the workbench's empty state. It uses the one
+  write path, which now takes its expected kind from the proposal rather than
+  assuming a task. ADR 0012 settles where a created project note lands and why
+  its collision unit is the folder rather than the note. Unlike task creation,
+  it is unverified in Obsidian itself — see check 15 below.
+- ADR 0013's creation profiles are implemented and have a runtime caller: both
+  renderers apply them, so a template that declares no frontmatter still
+  produces a valid note. This changes the bytes of a note created from a
+  template that omitted the planning properties, and leaves the packaged
+  templates' bytes untouched.
+- ADR 0013's vault template library and composite reader now have a runtime
+  caller through task creation: a `task/<variant>.md` under the template
+  library folder is selectable in the create-task modal, and precedence runs
+  project mapping, vault, then packaged per variant. The merged-catalog model
+  in `src/application/template-catalog.ts` is still unused — the resolver
+  merges the two configured sources directly, and the catalog type earns its
+  place when a second kind reads the library. The ADR stays proposed until the
+  normative template contract in Plan Addendum 005 and Design 18 matches it.
+- Project creation reads `project/default.md` from the library when it exists.
+  There is no project template chooser: a second project variant has nowhere to
+  be selected from, since the project note is what creation produces.
+- Nothing verifies the template chooser in Obsidian itself; see check 16.
+- Tasks carry an optional `category`, validated against a vault-wide vocabulary
+  from settings when one is configured (ADR 0014). Created tasks now carry a
+  `category: null` line, so the bytes of a created task changed again — checks
+  12 and 13 already needed re-running after ADR 0010, and this folds into the
+  same re-run. The per-project vocabulary considered in ADR 0014 is deferred.
+- Project creation offers no status field. The packaged template ships
+  `status: planned`, and the renderer accepts a status the caller chooses, but
+  no caller chooses one.
 - The commit coordinator handles exactly one created file. Multi-file
   proposals, and the partial-success reporting design 10 requires for them,
   are not implemented.
@@ -251,12 +296,11 @@ Verified against the committed tree; none blocks the manual checks:
   action per vault. Unconfirmed: what a vault that meets `due_date` as null
   before any real date registers it as. Check that when a clean vault is next
   seeded.
-- No fixture task in `tests/fixtures/vault/` sets the planning properties, so
-  the committed fixture alone still does not teach Obsidian `due_date`. The
-  seeder injects due dates into the vault it materializes, which does, and
-  creating one task through the plugin does too. Check 5's setup step still
-  adds `priority`, `owner`, `epic`, and `milestone` by hand; none of those
-  needs to be relative to the day of the check, so none needs seeding.
+- The fixture now carries an epic, a milestone, and one task that references
+  them with an owner and a priority, so every workbench filter has values
+  without a hand edit. Due dates are still injected at seed time, since a
+  committed date cannot be today. Generated `--scale` tasks carry the full
+  planning shape, which also teaches Obsidian every property in one seeding.
 - The seeded vault is the committed fixture plus due dates, so it is no longer
   byte-identical to `tests/fixtures/vault/`. A committed date cannot be
   today, and **Due today** has to be checkable. The automated tests read the
@@ -264,9 +308,9 @@ Verified against the committed tree; none blocks the manual checks:
   expects to date is no longer in the fixture.
 - `templateClockFromLocalDate` exists for a future caller. Nothing calls it
   yet.
-- `templates/default/task.md` has a runtime consumer; `templates/default/project.md`
-  is embedded and rendered by the project renderer but reaches no user yet. The
-  other five packaged starter templates remain inputs for later kinds.
+- `templates/default/task.md` and `templates/default/project.md` both have
+  runtime consumers. The other five packaged starter templates remain inputs
+  for later kinds.
 - The renderer normalizes CRLF template bodies to LF so identical requests
   render identical bytes.
 - A static frontmatter property whose template value is explicitly empty
@@ -279,12 +323,20 @@ Verified against the committed tree; none blocks the manual checks:
 
 ## Next decision point
 
-1. Run the three outstanding items above in one session against the installed
-   0.4.0 build, and record what was observed — including any defect — before
-   treating the workbench as accepted.
-2. Finish the project kind: proposal, preview, commit, and the UI that picks a
-   root when settings name more than one. The renderer and allocator are in
-   place and unreachable until then.
-3. Keep any edit path behind the accepted creation flow. Multi-file proposals
-   need the partial-success reporting design 10 requires before any bulk
-   operation ships.
+1. Export and install the current source into the disposable test vault, reset
+   it to the seeded baseline, then run the outstanding desktop items in one
+   session: check 5, the remaining check 11 states, both focus-style fixes,
+   check 15, and check 16. Record what was observed — including any defect —
+   before treating the affected workbench, project-creation, or template flows
+   as accepted.
+2. Finish ADR 0013 with the previewed **Add Template** flow, vault-backed
+   `project/default`, and the normative Plan Addendum 005/Design 18 update.
+   Accept the ADR only after its catalog contract and manual acceptance are
+   truthful.
+3. Follow the dependency-ordered remaining roadmap in
+   `docs/IMPLEMENTATION_ORDER.md`, beginning with the shared read/action
+   services and read-only agent boundary after the creation/template flow is
+   accepted.
+4. Keep every edit path behind the accepted creation flow. Multi-file proposals
+   need the preflight and partial-success reporting Design 10 requires before
+   any bulk operation ships.

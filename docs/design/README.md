@@ -54,7 +54,10 @@ These are unresolved design inputs, not evidence that implementation has not
 started. Recheck the current work handoff and nearby ADRs before resolving
 them.
 
-- Exact folder defaults and filename collision policy.
+- Exact folder defaults and filename collision policy for the kinds that have
+  no creation path yet — epic, milestone, planning period, and document. ADR
+  0008 settles them for tasks and ADR 0012 for projects; ADR 0013 proposes
+  where templates themselves live.
 - Whether task-edit commands use a modal form, property editor handoff, or both.
 
 These decisions change implementation mechanics, not the behavior specified here.

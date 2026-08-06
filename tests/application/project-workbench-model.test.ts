@@ -919,3 +919,84 @@ function task(
     ].join('\n'),
   );
 }
+
+describe('task category filter', () => {
+  const PROJECT = 'Projects/Game/Project.md';
+
+  function vault(): readonly SourceNote[] {
+    return [
+      sourceNote(PROJECT, 'type: project'),
+      task('Projects/Game/Tasks/One.md', 'Projects/Game/Project', 'todo', [
+        'category: bug',
+      ]),
+      task('Projects/Game/Tasks/Two.md', 'Projects/Game/Project', 'todo', [
+        'category: Bug',
+      ]),
+      task('Projects/Game/Tasks/Three.md', 'Projects/Game/Project', 'todo', [
+        'category: feature',
+      ]),
+      task('Projects/Game/Tasks/Four.md', 'Projects/Game/Project', 'todo'),
+    ];
+  }
+
+  function model(
+    taskCategory: string | null,
+    taskCategories: readonly string[] = [],
+  ) {
+    const notes = vault();
+    return buildProjectWorkbenchModel({
+      publication: {
+        publicationId: 1,
+        runtimeGeneration: 1,
+        publishedAt: 0,
+        snapshot: new IndexBuilder().build(notes, {
+          revision: 1,
+          taskCategories,
+        }),
+      },
+      selectedProjectPath: PROJECT,
+      readyDisplayLimit: 10,
+      taskCategory,
+      taskCategories,
+    });
+  }
+
+  it('matches a category case-insensitively', () => {
+    const filtered = model('bug');
+
+    expect(filtered.state).toBe('project');
+    if (filtered.state !== 'project') {
+      return;
+    }
+    expect(filtered.allTasks.items.map((item) => item.title).sort()).toEqual([
+      'One',
+      'Two',
+    ]);
+  });
+
+  it('offers configured categories first, then values only tasks use', () => {
+    const filtered = model(null, ['bug', 'chore']);
+
+    expect(filtered.state).toBe('project');
+    if (filtered.state !== 'project') {
+      return;
+    }
+    // chore is declared but unused; feature is used but undeclared, and stays
+    // offered so the task carrying its diagnostic can still be found.
+    expect(
+      filtered.allTasks.filterOptions.categories.map((one) => one.value),
+    ).toEqual(['bug', 'chore', 'feature']);
+  });
+
+  it('derives options from usage when nothing is configured', () => {
+    const filtered = model(null);
+
+    expect(filtered.state).toBe('project');
+    if (filtered.state !== 'project') {
+      return;
+    }
+    expect(
+      filtered.allTasks.filterOptions.categories.map((one) => one.value),
+    ).toEqual(['bug', 'feature']);
+  });
+});
