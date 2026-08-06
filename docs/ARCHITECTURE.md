@@ -126,8 +126,9 @@ import Obsidian, Node, Electron, views, or future MCP code.
   through to different bytes. ADR 0013 records the decision. The index reader
   stays scoped to the project roots; `CompositeVaultReader` in src/ports lets
   creation re-read a template outside them without widening what indexing sees.
-  Task creation composes the two readers at the composition root; project
-  creation still resolves only the packaged template.
+  Both creation flows compose the two readers at the composition root: task
+  creation resolves a variant across all three rungs, and project creation
+  reads `project/default.md` before falling back to the packaged template.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another

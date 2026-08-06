@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { NoteCreationCommitService } from '../../src/application/note-creation-commit';
 import { ProjectCreationPreviewService } from '../../src/application/project-creation-preview';
 import { ProjectCreationProposalService } from '../../src/application/project-creation-proposal';
+import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import type { IndexSnapshot } from '../../src/indexing/index-snapshot';
@@ -63,7 +64,10 @@ const CLOCK = {
   second: 7,
 } as const;
 
-function build(notes: readonly SourceNote[] = []): {
+function build(
+  notes: readonly SourceNote[] = [],
+  libraryFolder: string | null = null,
+): {
   previews: ProjectCreationPreviewService;
   vault: MemoryVault;
   snapshot: () => IndexSnapshot;
@@ -75,7 +79,13 @@ function build(notes: readonly SourceNote[] = []): {
     previews: new ProjectCreationPreviewService(
       getSnapshot,
       vault,
-      new ProjectCreationProposalService(getSnapshot, vault),
+      new ProjectCreationProposalService(
+        getSnapshot,
+        vault,
+        libraryFolder === null
+          ? null
+          : new VaultTemplateLibrary(vault, libraryFolder),
+      ),
     ),
     vault,
     snapshot: () => snapshot,
@@ -240,5 +250,99 @@ describe('ProjectCreationPreviewService', () => {
     expect(!result.ok && result.allocation?.targetPath).toBe(
       'Projects/Travel Planner/Project.md',
     );
+  });
+});
+
+describe('ProjectCreationPreviewService with a vault template library', () => {
+  const LIBRARY = 'Templates/Project Weave';
+
+  function projectTemplate(templateFor = 'project', heading = 'House style') {
+    return sourceNote(
+      `${LIBRARY}/project/default.md`,
+      [
+        'weave_template: true',
+        'template_schema: 1',
+        `template_for: ${templateFor}`,
+      ].join('\n'),
+      [`# {{title}}`, '', `## ${heading}`, ''].join('\n'),
+    );
+  }
+
+  it('prefers the vault project template over the packaged one', async () => {
+    const note = projectTemplate();
+    const { previews } = build([note], LIBRARY);
+
+    const result = await previews.preview({
+      root: 'Projects',
+      title: 'Travel Planner',
+      clock: CLOCK,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.proposal.template.source).toBe('vault');
+    expect(result.content).toContain('## House style');
+    // The creation profile still supplies what makes it a project.
+    expect(result.content).toContain('type: project');
+    expect(result.content).toContain('title: Travel Planner');
+    expect(result.content).toContain('status: planned');
+    // A vault template is re-read at commit, so it is in the read set.
+    expect(result.proposal.read_set).toEqual([
+      { role: 'template', path: note.path, fingerprint: note.fingerprint },
+    ]);
+  });
+
+  it('falls back to the packaged template when the library has none', async () => {
+    const { previews } = build([], LIBRARY);
+
+    const result = await previews.preview({
+      root: 'Projects',
+      title: 'Travel Planner',
+      clock: CLOCK,
+    });
+
+    expect(result.ok && result.proposal.template.source).toBe('packaged');
+  });
+
+  it('refuses a vault template declared for another kind', async () => {
+    const { previews } = build([projectTemplate('task')], LIBRARY);
+
+    const result = await previews.preview({
+      root: 'Projects',
+      title: 'Travel Planner',
+      clock: CLOCK,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(
+      !result.ok && result.diagnostics.map((issue) => issue.code),
+    ).toContain('template.kind_mismatch');
+  });
+
+  it('refuses to commit when the vault template changed after the preview', async () => {
+    const { previews, vault, snapshot } = build([projectTemplate()], LIBRARY);
+    const writer = new RecordingWriter();
+    const commits = new NoteCreationCommitService(snapshot, vault, writer);
+
+    const preview = await previews.preview({
+      root: 'Projects',
+      title: 'Travel Planner',
+      clock: CLOCK,
+    });
+    expect(preview.ok).toBe(true);
+    if (!preview.ok) {
+      return;
+    }
+
+    vault.add(projectTemplate('project', 'Rewritten while the modal was open'));
+    const outcome = await commits.commit(preview.proposal);
+
+    expect(outcome.ok).toBe(false);
+    expect(!outcome.ok && outcome.diagnostics[0]?.code).toBe(
+      'commit.read_set.changed',
+    );
+    expect(writer.written).toEqual([]);
   });
 });

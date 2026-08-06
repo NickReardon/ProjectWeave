@@ -467,6 +467,12 @@ picker after the index refreshes; the task created in it lands under
 **Note:** with one indexed folder there is no folder chooser, by design. To see
 it, add a second indexed project folder in settings first.
 
+**Then:** add `Templates/Project Weave/project/default.md` with
+`template_for: project` and a distinctive heading, and create another project.
+The preview must render that template's body, and the created note must still
+carry `type`, `title`, and a status — those come from the creation profile, not
+the template.
+
 ---
 
 ### 16. Task template chooser — unrun

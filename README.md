@@ -137,8 +137,13 @@ exists, listing the merged variants plus **Packaged minimal** as an explicit
 escape hatch, and re-previews when you change it. With one variant there is no
 choice to make, so there is no control.
 [ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md)
-records the design. Project creation still uses the packaged project template;
-reading `project/default.md` from the library is a later step of the same ADR.
+records the design.
+
+A created project uses `<template library folder>/project/default.md` when it
+exists, and the packaged project template otherwise, on the same fail-closed
+terms. There is no chooser: a project note is where a project's own template
+mapping would live, so one house style per vault is the only choice there is to
+make.
 
 What a created note carries because of its kind does not depend on its
 template. A task always gets its title, status, project relation, and the seven

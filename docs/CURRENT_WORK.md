@@ -244,8 +244,9 @@ Verified against the committed tree; none blocks the manual checks:
   merges the two configured sources directly, and the catalog type earns its
   place when a second kind reads the library. The ADR stays proposed until the
   normative template contract in Plan Addendum 005 and Design 18 matches it.
-- Project creation still uses the packaged project template. Reading
-  `project/default.md` from the library is ADR 0013 step 5.
+- Project creation reads `project/default.md` from the library when it exists.
+  There is no project template chooser: a second project variant has nowhere to
+  be selected from, since the project note is what creation produces.
 - Nothing verifies the template chooser in Obsidian itself; see check 16.
 - Project creation offers no status field. The packaged template ships
   `status: planned`, and the renderer accepts a status the caller chooses, but

@@ -12,7 +12,10 @@ import {
   PACKAGED_MINIMAL_TEMPLATE_ID,
 } from '../domain/templates/packaged-templates';
 import { renderProjectTemplate } from '../domain/templates/project-template';
-import type { TemplateClock } from '../domain/templates/model';
+import { hasError } from '../domain/templates/model';
+import { parseTemplateDocument } from '../domain/templates/template-parser';
+import type { VaultTemplateLibrary } from './vault-template-library';
+import type { TemplateClock, TemplateSource } from '../domain/templates/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { VaultReader } from '../ports/vault-reader';
 
@@ -46,7 +49,7 @@ export interface ProjectCreationProposal {
   }[];
   readonly template: {
     readonly kind: 'project';
-    readonly source: 'packaged';
+    readonly source: 'packaged' | 'vault';
     readonly variant: string;
     readonly reference: string;
     readonly path: string;
@@ -98,10 +101,16 @@ export type ProjectCreationProposalResult =
 export class ProjectCreationProposalService {
   readonly #getSnapshot: () => IndexSnapshot;
   readonly #vault: VaultReader;
+  readonly #library: VaultTemplateLibrary | null;
 
-  public constructor(getSnapshot: () => IndexSnapshot, vault: VaultReader) {
+  public constructor(
+    getSnapshot: () => IndexSnapshot,
+    vault: VaultReader,
+    library: VaultTemplateLibrary | null = null,
+  ) {
     this.#getSnapshot = getSnapshot;
     this.#vault = vault;
+    this.#library = library;
   }
 
   public async propose(
@@ -132,8 +141,13 @@ export class ProjectCreationProposalService {
       ]);
     }
 
+    const selected = await this.#selectTemplate();
+    if (!selected.ok) {
+      return failure(snapshot, operationId, selected.diagnostics);
+    }
+
     const rendered = renderProjectTemplate({
-      template: PACKAGED_MINIMAL_PROJECT_TEMPLATE,
+      template: selected.template,
       context: {
         title: input.title,
         clock: input.clock,
@@ -181,7 +195,10 @@ export class ProjectCreationProposalService {
       return failure(snapshot, operationId, diagnostics);
     }
 
-    const reference = PACKAGED_MINIMAL_TEMPLATE_ID;
+    const reference =
+      selected.source === 'packaged'
+        ? PACKAGED_MINIMAL_TEMPLATE_ID
+        : selected.template.path;
     return {
       ok: true,
       operation_id: operationId,
@@ -198,17 +215,17 @@ export class ProjectCreationProposalService {
       ],
       template: {
         kind: 'project',
-        source: 'packaged',
+        source: selected.source,
         variant: 'default',
         reference,
-        path: PACKAGED_MINIMAL_PROJECT_TEMPLATE.path,
-        fingerprint: PACKAGED_PROJECT_FINGERPRINT,
+        path: selected.template.path,
+        fingerprint: selected.fingerprint,
       },
       read_set: [
         {
           role: 'template',
-          path: PACKAGED_MINIMAL_PROJECT_TEMPLATE.path,
-          fingerprint: PACKAGED_PROJECT_FINGERPRINT,
+          path: selected.template.path,
+          fingerprint: selected.fingerprint,
         },
       ],
       preconditions: [{ kind: 'path_absent', path: rendered.note.targetPath }],
@@ -225,6 +242,69 @@ export class ProjectCreationProposalService {
       diagnostics,
     };
   }
+
+  /**
+   * The vault library's `project/default.md`, or the packaged template.
+   *
+   * A vault template that cannot be used refuses the creation rather than
+   * falling back, on the same grounds as a task variant: the user configured
+   * that template, and quietly writing different bytes is worse than not
+   * writing.
+   */
+  async #selectTemplate(): Promise<
+    SelectedProjectTemplate | RejectedProjectTemplate
+  > {
+    const loaded =
+      this.#library === null
+        ? null
+        : await this.#library.load('project', 'default');
+    if (loaded === null) {
+      return {
+        ok: true,
+        source: 'packaged',
+        template: PACKAGED_MINIMAL_PROJECT_TEMPLATE,
+        fingerprint: PACKAGED_PROJECT_FINGERPRINT,
+      };
+    }
+
+    const document = parseTemplateDocument(loaded.template);
+    const diagnostics: Diagnostic[] = [...document.diagnostics];
+    if (
+      document.metadata.templateFor !== null &&
+      document.metadata.templateFor !== 'project'
+    ) {
+      diagnostics.push(
+        diagnostic(
+          loaded.template.path,
+          'template.kind_mismatch',
+          `The template declares ${document.metadata.templateFor}, not project.`,
+          'template_for',
+          'Move the template to the folder for its own kind, or correct its template_for value.',
+        ),
+      );
+    }
+    if (hasError(diagnostics)) {
+      return { ok: false, diagnostics };
+    }
+    return {
+      ok: true,
+      source: 'vault',
+      template: loaded.template,
+      fingerprint: loaded.fingerprint,
+    };
+  }
+}
+
+interface SelectedProjectTemplate {
+  readonly ok: true;
+  readonly source: 'packaged' | 'vault';
+  readonly template: TemplateSource;
+  readonly fingerprint: string;
+}
+
+interface RejectedProjectTemplate {
+  readonly ok: false;
+  readonly diagnostics: readonly Diagnostic[];
 }
 
 function failure(

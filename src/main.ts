@@ -479,17 +479,19 @@ export default class ProjectWeavePlugin extends Plugin {
       return;
     }
 
+    const { reader, library } = this.#creationReaders(runtime);
     const previews = new ProjectCreationPreviewService(
       () => this.#readSource.current.snapshot,
-      runtime.reader,
+      reader,
       new ProjectCreationProposalService(
         () => this.#readSource.current.snapshot,
-        runtime.reader,
+        reader,
+        library,
       ),
     );
     const commits = new NoteCreationCommitService(
       () => this.#readSource.current.snapshot,
-      runtime.reader,
+      reader,
       new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),
     );
 
