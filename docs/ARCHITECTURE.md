@@ -60,9 +60,9 @@ import Obsidian, Node, Electron, views, or future MCP code.
   function of its request: it reads no clock, environment, network, or file.
   Precedence runs template static values, context defaults and explicit typed
   inputs, then the entity-type and selected-project invariant overlay. The
-  packaged minimal task template is embedded as a plugin asset, and every
-  rendered note is re-parsed with the ordinary entity parser before it is
-  returned. The renderer produces content only; it has no write capability and
+  packaged minimal task and project templates are embedded as plugin assets,
+  and every rendered note is re-parsed with the ordinary entity parser before
+  it is returned. The renderer produces content only; it has no write capability and
   no proposal, path-allocation, or template-map resolution behavior; those
   concerns stay in application services. A project renderer sits beside the task
   one on the same terms and with the smaller context a project carries — no

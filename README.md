@@ -109,15 +109,22 @@ so a fresh vault does not have to be bootstrapped by hand.
 
 ## Note templates
 
-`templates/default/` holds the packaged starter templates. Only
-`templates/default/task.md` is currently used by code; the plugin embeds a
-copy so rendering works without filesystem access, and a test keeps the two
-byte-identical. The remaining files are inputs for later slices.
+`templates/default/` holds the packaged starter templates.
+`templates/default/task.md` and `templates/default/project.md` are used by
+code; the plugin embeds a copy of each so rendering works without filesystem
+access, and a test keeps each pair byte-identical. The remaining files are
+inputs for later slices.
+
 For tasks, a project may map default and named variants under
 `weave.templates.task`. References resolve relative to the project note using
 the same link semantics as indexing. Missing configuration uses the packaged
 minimal task template; an explicit broken, ambiguous, malformed, or
-wrong-kind reference fails without silently falling back.
+wrong-kind reference fails without silently falling back. Only the `default`
+variant is reachable from the UI today — the create-task modal has no variant
+chooser — and a created project always uses the packaged project template.
+[ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md)
+proposes the vault-wide template catalog that closes both gaps; it is a
+proposal, not implemented behavior.
 
 A template is an ordinary Markdown note marked `weave_template: true` with a
 `template_for` kind. Marked templates are excluded from entity indexing, so a

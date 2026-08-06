@@ -222,10 +222,12 @@ Verified against the committed tree; none blocks the manual checks:
   assuming a task. ADR 0012 settles where a created project note lands and why
   its collision unit is the folder rather than the note. Unlike task creation,
   it is unverified in Obsidian itself — see check 15 below.
-- A created project can only use the packaged project template. A
-  project-owned template mapping lives in the project note, so the note being
-  created cannot name its own template; a vault-wide default would be a new
-  setting and a compatibility surface.
+- A created project can only use the packaged project template, and only the
+  `default` task variant is reachable from the UI: a project may map `bug` or
+  `test` under `weave.templates.task`, but no chooser selects one and
+  `templateVariant` has no runtime caller. ADR 0013 proposes the layered
+  catalog that closes both, and is proposed rather than accepted — nothing in
+  it is implemented.
 - Project creation offers no status field. The packaged template ships
   `status: planned`, and the renderer accepts a status the caller chooses, but
   no caller chooses one.
@@ -303,6 +305,10 @@ Verified against the committed tree; none blocks the manual checks:
 2. Run check 15 against a disposable vault before treating project creation as
    accepted. It is the first write path that has never been exercised in
    Obsidian itself.
-3. Keep any edit path behind the accepted creation flow. Multi-file proposals
+3. Then start ADR 0013's follow-up work, beginning with the catalog and the
+   template-library reader boundary. Accepting that ADR supersedes how ADR 0010
+   keeps its guarantee, and its later steps need target-path rules for the
+   kinds ADRs 0008 and 0012 do not cover.
+4. Keep any edit path behind the accepted creation flow. Multi-file proposals
    need the partial-success reporting design 10 requires before any bulk
    operation ships.

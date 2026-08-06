@@ -1,8 +1,15 @@
 # ADR 0010: Render the planning properties even when unset
 
-- Status: accepted
+- Status: accepted; mechanism revisited by ADR 0013 (proposed)
 - Date: 2026-08-05
 - Owners: Project Weave
+
+> ADR 0013 proposes moving this guarantee from the packaged template into a
+> domain creation profile, so a body-only template still produces a task
+> carrying its planning shape. The outcome below is what that profile must
+> preserve; the mechanism — declaring the seven properties as empty statics in
+> `templates/default/task.md` — is what it would replace. Nothing changes until
+> ADR 0013 is accepted and its profiles land.
 
 ## Context
 
