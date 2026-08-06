@@ -318,16 +318,20 @@ Verified against the committed tree; none blocks the manual checks:
 
 ## Next decision point
 
-1. Run the three outstanding items above in one session against the installed
-   0.4.0 build, and record what was observed — including any defect — before
-   treating the workbench as accepted.
-2. Run check 15 against a disposable vault before treating project creation as
-   accepted. It is the first write path that has never been exercised in
-   Obsidian itself.
-3. Then start ADR 0013's follow-up work, beginning with the catalog and the
-   template-library reader boundary. Accepting that ADR supersedes how ADR 0010
-   keeps its guarantee, and its later steps need target-path rules for the
-   kinds ADRs 0008 and 0012 do not cover.
-4. Keep any edit path behind the accepted creation flow. Multi-file proposals
-   need the partial-success reporting design 10 requires before any bulk
-   operation ships.
+1. Export and install the current source into the disposable test vault, reset
+   it to the seeded baseline, then run the outstanding desktop items in one
+   session: check 5, the remaining check 11 states, both focus-style fixes,
+   check 15, and check 16. Record what was observed — including any defect —
+   before treating the affected workbench, project-creation, or template flows
+   as accepted.
+2. Finish ADR 0013 with the previewed **Add Template** flow, vault-backed
+   `project/default`, and the normative Plan Addendum 005/Design 18 update.
+   Accept the ADR only after its catalog contract and manual acceptance are
+   truthful.
+3. Follow the dependency-ordered remaining roadmap in
+   `docs/IMPLEMENTATION_ORDER.md`, beginning with the shared read/action
+   services and read-only agent boundary after the creation/template flow is
+   accepted.
+4. Keep every edit path behind the accepted creation flow. Multi-file proposals
+   need the preflight and partial-success reporting Design 10 requires before
+   any bulk operation ships.

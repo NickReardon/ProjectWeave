@@ -13,7 +13,8 @@ Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
 defines the branch and small-commit workflow. Validation evidence, remaining
 manual checks, and the next decision point are in
 [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md); commit history is the record of
-what changed.
+what changed. The dependency-ordered remaining roadmap is in
+[docs/IMPLEMENTATION_ORDER.md](docs/IMPLEMENTATION_ORDER.md).
 
 ## Current status
 
@@ -69,7 +70,7 @@ The implemented slices are:
   per-key precedence and a composite reader that reaches templates outside the
   indexed project folders without widening what indexing sees;
 - fixture-backed parser, index, query, dashboard projection, template
-  rendering, incremental-update, lifecycle, and release-inventory tests.
+  rendering, incremental-update, lifecycle, and release-inventory tests;
 - CI runs the same complete check on supported Node.js versions.
 
 **New task** in the workbench, or **Create task** in the command palette,
@@ -195,9 +196,10 @@ folder per kind and one file per variant, such as `task/bug.md`. It is a local
 preference: saving it never creates or edits vault content, an empty value uses
 the packaged templates only, and a folder nobody has created simply holds no
 templates. Project notes may still map their own variants under
-`weave.templates`, which travel with the project and take precedence. Reading
-the library is what ADR 0013's later steps add; today the folder is discovered
-but not yet consulted during creation.
+`weave.templates`, which travel with the project and take precedence. Task
+creation reads `task/<variant>.md` from this folder and merges it with project
+overrides and the packaged default. Project creation still uses its packaged
+template; vault-backed `project/default.md` is a later ADR 0013 step.
 
 Open the dashboard from the left ribbon, **Project Weave: Open project
 workbench** in the command palette, or **Open dashboard** on the settings page.
