@@ -118,16 +118,26 @@ code; the plugin embeds a copy of each so rendering works without filesystem
 access, and a test keeps each pair byte-identical. The remaining files are
 inputs for later slices.
 
-For tasks, a project may map default and named variants under
-`weave.templates.task`. References resolve relative to the project note using
-the same link semantics as indexing. Missing configuration uses the packaged
-minimal task template; an explicit broken, ambiguous, malformed, or
-wrong-kind reference fails without silently falling back. Only the `default`
-variant is reachable from the UI today — the create-task modal has no variant
-chooser — and a created project always uses the packaged project template.
+A task template is chosen per variant from three places, in order:
+
+1. the project note's own `weave.templates.task.<variant>` mapping;
+2. `<template library folder>/task/<variant>.md`;
+3. the packaged minimal template, for `default` only.
+
+Precedence applies per variant, so a project can override `bug` while still
+using the vault's `default`. A broken, ambiguous, malformed, or wrong-kind
+template blocks the variant that selected it rather than falling back to
+another source — falling back would create bytes other than the ones the
+chosen template describes. A variant that exists nowhere is reported instead of
+becoming the default by accident.
+
+The create-task modal shows a **Template** chooser once more than one variant
+exists, listing the merged variants plus **Packaged minimal** as an explicit
+escape hatch, and re-previews when you change it. With one variant there is no
+choice to make, so there is no control.
 [ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md)
-proposes the vault-wide template catalog that closes both gaps; it is a
-proposal, not implemented behavior.
+records the design. Project creation still uses the packaged project template;
+reading `project/default.md` from the library is a later step of the same ADR.
 
 What a created note carries because of its kind does not depend on its
 template. A task always gets its title, status, project relation, and the seven

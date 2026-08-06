@@ -95,9 +95,12 @@ import Obsidian, Node, Electron, views, or future MCP code.
   exact read-only
   navigation. Unassigned diagnostics cover malformed entities and unresolved
   ownership without guessing from folder layout.
-- **Creation proposals:** TaskTemplateResolver reads project-owned task
-  mappings through the existing read-only ports, resolves default/named
-  variants, and fails closed on explicit reference errors.
+- **Creation proposals:** TaskTemplateResolver resolves a task template per
+  variant across the three ADR 0013 rungs — the project's own mapping, the
+  vault template library, then the packaged default — through the existing
+  read-only ports. It fails closed on a broken candidate rather than falling
+  through to another rung, and lists the merged variants so a chooser can be
+  populated before any preview exists.
   TaskCreationProposalService renders one exact create proposal with
   fingerprints, target-absence and index-freshness preconditions, exact
   frontmatter/content, and expected postconditions. Neither service can write.
@@ -123,8 +126,8 @@ import Obsidian, Node, Electron, views, or future MCP code.
   through to different bytes. ADR 0013 records the decision. The index reader
   stays scoped to the project roots; `CompositeVaultReader` in src/ports lets
   creation re-read a template outside them without widening what indexing sees.
-  Neither has a runtime caller yet: resolution and the chooser are later steps
-  of the same ADR.
+  Task creation composes the two readers at the composition root; project
+  creation still resolves only the packaged template.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another

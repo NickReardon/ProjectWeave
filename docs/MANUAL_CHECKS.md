@@ -469,6 +469,50 @@ it, add a second indexed project folder in settings first.
 
 ---
 
+### 16. Task template chooser — unrun
+
+**This check writes to the vault.** Use the disposable vault.
+
+**Why:** the chooser is the first control whose value changes the bytes a
+confirmed create writes. Precedence and fail-closed behavior are automated;
+what is not is that the right thing reaches the modal in Obsidian.
+
+**Setup:** in the vault, create `Templates/Project Weave/task/bug.md`:
+
+```markdown
+---
+weave_template: true
+template_schema: 1
+template_for: task
+---
+
+# {{title}}
+
+## Steps to reproduce
+
+## Expected
+```
+
+1. Open **Create task**. Read the **Template** chooser.
+2. Select `bug`, type a title, and read the previewed bytes.
+3. Select **Packaged minimal** and read them again.
+4. Add `weave: {templates: {task: {bug: "[[Some other template]]"}}}` to the
+   project note, reopen the modal, and select `bug`.
+5. Break the vault template — change `template_for` to `epic` — reopen, and
+   select `bug`.
+6. Remove `bug.md`, leaving only the packaged default, and reopen.
+
+**Pass:** the chooser lists `default`, `bug`, and **Packaged minimal**; the
+preview follows the selection each time; the project mapping wins over the
+vault template for `bug`; the broken template shows `template.kind_mismatch`
+with creation disabled, and does not quietly render the packaged template; and
+with one variant the chooser is absent rather than showing a single option.
+
+**Note:** a body-only template still produces full task frontmatter — that is
+the creation profile, not the template.
+
+---
+
 ## Recording results
 
 After a session, update `docs/CURRENT_WORK.md`:

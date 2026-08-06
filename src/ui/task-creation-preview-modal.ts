@@ -26,7 +26,16 @@ export interface TaskCreationPreviewContext {
   readonly commit: TaskCreationCommitRunner;
   /** Opens the created note; called only when the user asked for it. */
   readonly openNote: (path: string) => Promise<void>;
+  /**
+   * Template variants this project can create from, `default` first. Resolved
+   * before the modal opens, since a chooser cannot wait for a preview it is
+   * meant to control.
+   */
+  readonly templateVariants?: readonly string[];
 }
+
+/** Selects the packaged template explicitly, whatever else is configured. */
+const PACKAGED_TEMPLATE_VARIANT = 'builtin:minimal';
 
 /**
  * The create-task form: a title that becomes a filename, an optional subfolder
@@ -40,6 +49,7 @@ export class TaskCreationPreviewModal extends CreationPreviewModal<TaskCreationP
   #title = '';
   #subfolder = '';
   #createOnBoard = false;
+  #templateVariant = 'default';
 
   public constructor(app: App, context: TaskCreationPreviewContext) {
     super(app);
@@ -90,6 +100,24 @@ export class TaskCreationPreviewModal extends CreationPreviewModal<TaskCreationP
         });
       });
 
+    // One template is not a choice, so it does not get a control.
+    const variants = this.#context.templateVariants ?? [];
+    if (variants.length > 1) {
+      new Setting(container)
+        .setName('Template')
+        .setDesc('Which template this task is rendered from.')
+        .addDropdown((dropdown) => {
+          for (const variant of variants) {
+            dropdown.addOption(variant, variant);
+          }
+          dropdown.addOption(PACKAGED_TEMPLATE_VARIANT, 'Packaged minimal');
+          dropdown.setValue(this.#templateVariant).onChange((value) => {
+            this.#templateVariant = value;
+            this.schedulePreview();
+          });
+        });
+    }
+
     new Setting(container)
       .setName('Create directly on board')
       .setDesc('Starts the task in todo instead of backlog.')
@@ -105,6 +133,9 @@ export class TaskCreationPreviewModal extends CreationPreviewModal<TaskCreationP
     return await this.#context.run({
       title: this.#title,
       ...(this.#subfolder.trim() === '' ? {} : { subfolder: this.#subfolder }),
+      ...(this.#templateVariant === 'default'
+        ? {}
+        : { templateVariant: this.#templateVariant }),
       createOnBoard: this.#createOnBoard,
     });
   }

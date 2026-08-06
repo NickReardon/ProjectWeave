@@ -183,8 +183,17 @@ Outstanding, all runnable against the installed 0.4.0 build:
   those two controls, leaving the keyboard focus ring intact. No automated
   check covers how Obsidian draws focus, so confirm both in the app.
 
-Those three, and check 15 below, are what desktop acceptance is waiting on. Task creation is
+Those three, and checks 15 and 16 below, are what desktop acceptance is
+waiting on. Task creation is
 manually accepted, so the write path is no longer gated behind it.
+
+**Check 16 — task templates — is new and unrun.** Put a
+`task/bug.md` under the template library folder, confirm it appears in the
+create-task modal's **Template** chooser, that selecting it changes the
+previewed bytes, that a project mapping for the same variant wins over it, that
+a deliberately broken one shows its diagnostic and refuses rather than falling
+back, and that **Packaged minimal** always renders the packaged template. With
+only one variant, no chooser should appear at all.
 
 **Check 15 — create project — is new and unrun.** Project creation reaches the
 vault through the same commit path task creation does, and its preview and
@@ -227,17 +236,17 @@ Verified against the committed tree; none blocks the manual checks:
   produces a valid note. This changes the bytes of a note created from a
   template that omitted the planning properties, and leaves the packaged
   templates' bytes untouched.
-- ADR 0013's vault template library, merged catalog, and composite reader are
-  implemented and tested but have no runtime caller: creation still resolves
-  templates exactly as before. `dist/main.js` contains none of the three, so
-  the running plugin is unchanged. The ADR stays proposed until the normative
-  template contract in Plan Addendum 005 and Design 18 matches it.
-- A created project can only use the packaged project template, and only the
-  `default` task variant is reachable from the UI: a project may map `bug` or
-  `test` under `weave.templates.task`, but no chooser selects one and
-  `templateVariant` has no runtime caller. ADR 0013 proposes the layered
-  catalog that closes both, and is proposed rather than accepted — nothing in
-  it is implemented.
+- ADR 0013's vault template library and composite reader now have a runtime
+  caller through task creation: a `task/<variant>.md` under the template
+  library folder is selectable in the create-task modal, and precedence runs
+  project mapping, vault, then packaged per variant. The merged-catalog model
+  in `src/application/template-catalog.ts` is still unused — the resolver
+  merges the two configured sources directly, and the catalog type earns its
+  place when a second kind reads the library. The ADR stays proposed until the
+  normative template contract in Plan Addendum 005 and Design 18 matches it.
+- Project creation still uses the packaged project template. Reading
+  `project/default.md` from the library is ADR 0013 step 5.
+- Nothing verifies the template chooser in Obsidian itself; see check 16.
 - Project creation offers no status field. The packaged template ships
   `status: planned`, and the renderer accepts a status the caller chooses, but
   no caller chooses one.

@@ -2,6 +2,8 @@ import { Notice, Plugin, TFile } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 
 import { ObsidianNoteWriter } from './adapters/obsidian/obsidian-note-writer';
+import { CompositeVaultReader } from './ports/composite-vault-reader';
+import type { VaultReader } from './ports/vault-reader';
 import {
   ObsidianLinkResolver,
   ObsidianVaultReader,
@@ -12,6 +14,7 @@ import { NoteCreationCommitService } from './application/note-creation-commit';
 import { ProjectCreationPreviewService } from './application/project-creation-preview';
 import { ProjectCreationProposalService } from './application/project-creation-proposal';
 import { TaskCreationPreviewService } from './application/task-creation-preview';
+import { VaultTemplateLibrary } from './application/vault-template-library';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
 import { templateClockFromLocalDate } from './domain/templates/model';
@@ -340,6 +343,30 @@ export default class ProjectWeavePlugin extends Plugin {
   }
 
   /**
+   * The readers a creation flow needs: the project-scoped one it shares with
+   * indexing, plus a second scoped to the template library.
+   *
+   * ADR 0013 keeps them separate on purpose. Indexing must not start reading
+   * notes outside the configured project folders, and creation must be able to
+   * read a template that lives outside them, so the two are composed here
+   * rather than by widening the index reader's scope.
+   */
+  #creationReaders(runtime: ProjectWeaveRuntime): {
+    readonly reader: VaultReader;
+    readonly library: VaultTemplateLibrary | null;
+  } {
+    const folder = this.settings.templateScaffoldFolder;
+    if (folder.trim().length === 0) {
+      return { reader: runtime.reader, library: null };
+    }
+    const libraryReader = new ObsidianVaultReader(this.app.vault, [folder]);
+    return {
+      reader: new CompositeVaultReader([runtime.reader, libraryReader]),
+      library: new VaultTemplateLibrary(libraryReader, folder),
+    };
+  }
+
+  /**
    * Opens the create-task flow. A caller that already knows the project — the
    * workbench does — passes it, so the flow never guesses from the active
    * note and never refuses because no project note happens to be open.
@@ -382,39 +409,50 @@ export default class ProjectWeavePlugin extends Plugin {
 
     // Each preview reads the publication current when it runs, so a rebuild
     // while the modal is open is reflected rather than silently stale.
+    const { reader, library } = this.#creationReaders(runtime);
     const previews = new TaskCreationPreviewService(
       () => this.#readSource.current.snapshot,
-      runtime.reader,
+      reader,
       new TaskCreationProposalService(
         () => this.#readSource.current.snapshot,
-        runtime.reader,
+        reader,
         new TaskTemplateResolver(
-          runtime.reader,
+          reader,
           new ObsidianLinkResolver(this.app.metadataCache),
+          library,
         ),
       ),
     );
 
-    // The writer is scoped to the same project roots the reader indexes, so a
-    // path outside them is refused by the adapter regardless of what asks.
+    // The writer is scoped to the project roots, not to whatever the readers
+    // can see, so no template folder becomes a writable location.
     const commits = new NoteCreationCommitService(
       () => this.#readSource.current.snapshot,
-      runtime.reader,
+      reader,
       new ObsidianNoteWriter(this.app.vault, this.settings.projectRoots),
     );
 
-    new TaskCreationPreviewModal(this.app, {
-      projectTitle: project.title,
-      projectPath: project.path,
-      run: (request) =>
-        previews.preview({
-          ...request,
+    void previews
+      .listTemplateVariants(project.path)
+      .catch((error: unknown) => {
+        console.error('Project Weave could not list task templates', error);
+        return ['default'] as readonly string[];
+      })
+      .then((templateVariants) => {
+        new TaskCreationPreviewModal(this.app, {
+          projectTitle: project.title,
           projectPath: project.path,
-          clock: templateClockFromLocalDate(new Date()),
-        }),
-      commit: (proposal) => commits.commit(proposal),
-      openNote: (path) => this.#openCreatedNote(path),
-    }).open();
+          templateVariants,
+          run: (request) =>
+            previews.preview({
+              ...request,
+              projectPath: project.path,
+              clock: templateClockFromLocalDate(new Date()),
+            }),
+          commit: (proposal) => commits.commit(proposal),
+          openNote: (path) => this.#openCreatedNote(path),
+        }).open();
+      });
   }
 
   /**

@@ -8,12 +8,16 @@ import { hasError, templateDiagnostic } from '../domain/templates/model';
 import type { TemplateSource } from '../domain/templates/model';
 import { parseTemplateDocument } from '../domain/templates/template-parser';
 import type { LinkResolver, VaultReader } from '../ports/vault-reader';
+import type { VaultTemplateLibrary } from './vault-template-library';
 
 const TEMPLATE_KEY_PATTERN = /^[a-z0-9_-]+$/u;
 const PACKAGED_TASK_FINGERPRINT = 'builtin:minimal/task@schema-1';
 
+/** The kind folder a task template lives in, inside the template library. */
+const TASK_TEMPLATE_KIND = 'task';
+
 export interface TaskTemplateSelection {
-  readonly source: 'packaged' | 'project';
+  readonly source: 'packaged' | 'vault' | 'project';
   readonly variant: string;
   readonly reference: string;
   readonly fingerprint: string;
@@ -35,10 +39,40 @@ export interface TaskTemplateResolution {
 export class TaskTemplateResolver {
   readonly #vault: VaultReader;
   readonly #links: LinkResolver;
+  readonly #library: VaultTemplateLibrary | null;
 
-  public constructor(vault: VaultReader, links: LinkResolver) {
+  public constructor(
+    vault: VaultReader,
+    links: LinkResolver,
+    library: VaultTemplateLibrary | null = null,
+  ) {
     this.#vault = vault;
     this.#links = links;
+    this.#library = library;
+  }
+
+  /**
+   * Every variant a caller could ask for, `default` first.
+   *
+   * Listed rather than derived from one resolution, because a chooser has to
+   * show what exists before anything is selected. A key that exists at any rung
+   * is offered; whether it works is decided when it is resolved.
+   */
+  public async listVariants(
+    project: ProjectEntity,
+  ): Promise<readonly string[]> {
+    const fromProject = readTaskMap(project).availableVariants;
+    const fromVault =
+      this.#library === null
+        ? []
+        : (await this.#library.list()).entries
+            .filter((entry) => entry.kind === TASK_TEMPLATE_KIND)
+            .map((entry) => entry.variant);
+    const variants = new Set(['default', ...fromProject, ...fromVault]);
+    return [
+      'default',
+      ...[...variants].filter((variant) => variant !== 'default').sort(),
+    ];
   }
 
   public async resolve(
@@ -68,24 +102,22 @@ export class TaskTemplateResolver {
     if (parsed.map === null) {
       return hasError(diagnostics)
         ? failed(parsed.availableVariants, diagnostics)
-        : packaged(diagnostics);
+        : await this.#resolveBelowProject(
+            variant,
+            project,
+            parsed.availableVariants,
+            diagnostics,
+          );
     }
 
     const rawReference = parsed.map[variant];
     if (rawReference === undefined) {
-      if (variant === 'default') {
-        return packaged(diagnostics, parsed.availableVariants);
-      }
-      diagnostics.push(
-        issue(
-          project.path,
-          'template.variant.not_found',
-          `Task template variant ${variant} is not configured.`,
-          `weave.templates.task.${variant}`,
-          'Select an available variant or explicitly use the packaged minimal template.',
-        ),
+      return await this.#resolveBelowProject(
+        variant,
+        project,
+        parsed.availableVariants,
+        diagnostics,
       );
-      return failed(parsed.availableVariants, diagnostics);
     }
 
     const link =
@@ -180,6 +212,74 @@ export class TaskTemplateResolver {
       availableVariants: parsed.availableVariants,
       diagnostics,
     };
+  }
+
+  /**
+   * The vault library, then the packaged default.
+   *
+   * A vault template that cannot be used blocks its variant rather than
+   * falling through to the packaged one: falling through would create bytes
+   * other than the ones the configured template describes, which is the
+   * failure mode ADR 0013 exists to prevent.
+   */
+  async #resolveBelowProject(
+    variant: string,
+    project: ProjectEntity,
+    availableVariants: readonly string[],
+    diagnostics: Diagnostic[],
+  ): Promise<TaskTemplateResolution> {
+    const loaded =
+      this.#library === null
+        ? null
+        : await this.#library.load(TASK_TEMPLATE_KIND, variant);
+
+    if (loaded !== null) {
+      const document = parseTemplateDocument(loaded.template);
+      diagnostics.push(...document.diagnostics);
+      if (
+        document.metadata.templateFor !== null &&
+        document.metadata.templateFor !== TASK_TEMPLATE_KIND
+      ) {
+        diagnostics.push(
+          issue(
+            loaded.template.path,
+            'template.kind_mismatch',
+            `The template declares ${document.metadata.templateFor}, not task.`,
+            'template_for',
+            'Move the template to the folder for its own kind, or correct its template_for value.',
+          ),
+        );
+      }
+      if (hasError(diagnostics)) {
+        return failed(availableVariants, diagnostics);
+      }
+      return {
+        ok: true,
+        selected: {
+          source: 'vault',
+          variant,
+          reference: loaded.template.path,
+          fingerprint: loaded.fingerprint,
+          template: loaded.template,
+        },
+        availableVariants,
+        diagnostics,
+      };
+    }
+
+    if (variant === 'default') {
+      return packaged(diagnostics, availableVariants);
+    }
+    diagnostics.push(
+      issue(
+        project.path,
+        'template.variant.not_found',
+        `Task template variant ${variant} is not configured.`,
+        `weave.templates.task.${variant}`,
+        'Select an available variant or explicitly use the packaged minimal template.',
+      ),
+    );
+    return failed(availableVariants, diagnostics);
   }
 }
 
