@@ -440,6 +440,15 @@ describe('renderTaskTemplate precedence and invariants', () => {
         'integration:',
         '  tracker: internal',
         '  ticket: 42',
+        // The seven planning properties arrive from the task creation profile
+        // rather than the template, appended after what the template declared.
+        'epic: null',
+        'milestone: null',
+        'sprint: null',
+        'owner: null',
+        'priority: null',
+        'points: null',
+        'due_date: null',
         '',
       ].join('\n'),
     );
@@ -528,6 +537,13 @@ describe('renderTaskTemplate precedence and invariants', () => {
         'type: task',
         'title: Implement travel request',
         'status: todo',
+        'epic: null',
+        'milestone: null',
+        'sprint: null',
+        'owner: null',
+        'priority: null',
+        'points: null',
+        'due_date: null',
         '---',
         '',
       ].join('\n'),
@@ -771,5 +787,83 @@ describe('renderTaskTemplate body rendering', () => {
     const result = body(['{{date:MMMM Do}}', ''].join('\n'));
 
     expect(codes(result)).toEqual(['template.variable.format_invalid']);
+  });
+});
+
+describe('the task creation profile', () => {
+  const bodyOnly = [
+    'weave_template: true',
+    'template_schema: 1',
+    'template_for: task',
+  ].join('\n');
+
+  it('renders a valid task from a template that declares no frontmatter', () => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(
+          bodyOnly,
+          ['# {{title}}', '', '## Problem', ''].join('\n'),
+        ),
+        context: context({ rank: 5000 }),
+      }),
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    const rendered = content(result);
+    // Identity from the invariants, everything else from the profile.
+    expect(rendered).toContain('type: task');
+    expect(rendered).toContain('project: "[[Projects/Game/Project]]"');
+    expect(rendered).toContain('title: Implement travel request');
+    expect(rendered).toContain('status: todo');
+    expect(rendered).toContain('rank: 5000');
+    for (const key of [
+      'epic',
+      'milestone',
+      'sprint',
+      'owner',
+      'priority',
+      'points',
+      'due_date',
+    ]) {
+      expect(rendered).toContain(`${key}: null`);
+    }
+    // Absence carries meaning for these two, so they stay omitted.
+    expect(rendered).not.toContain('depends_on');
+    expect(rendered).not.toContain('origin');
+
+    const parsed = parseMarkdownEntity({
+      path: TARGET_PATH,
+      content: rendered,
+      fingerprint: 'render',
+    });
+    expect(parsed.entity?.kind).toBe('task');
+    expect(parsed.diagnostics).toEqual([]);
+  });
+
+  it('leaves a template that declares the planning shape byte-identical', () => {
+    // The packaged template declares all seven, so the profile must add
+    // nothing: this is the guard that ADR 0010's bytes did not move.
+    const packaged = renderTaskTemplate(request());
+
+    expect(packaged.diagnostics).toEqual([]);
+    expect(
+      content(packaged)
+        .split('---\n')[1]
+        ?.split('\n')
+        .filter((line) => line.endsWith(': null')),
+    ).toHaveLength(7);
+  });
+
+  it('supplies a context value for a field the template omits', () => {
+    const result = renderTaskTemplate(
+      request({
+        template: template(bodyOnly),
+        context: context({ owner: 'Robin', priority: 'high' }),
+      }),
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(content(result)).toContain('owner: Robin');
+    expect(content(result)).toContain('priority: high');
   });
 });

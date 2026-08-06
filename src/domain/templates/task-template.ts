@@ -2,6 +2,10 @@ import { parseWikiLink } from '../markdown-parser';
 import type { Diagnostic, TaskPriority, TaskStatus } from '../model';
 import type { ResolvedInput } from './creation-context';
 import {
+  applyCreationProfile,
+  TASK_CREATION_PROFILE,
+} from './creation-profile';
+import {
   applyContextPrecedence,
   applyInvariants,
   createResolver,
@@ -152,8 +156,15 @@ export function renderTaskTemplate(
     CONTEXT_OWNED_PROPERTIES,
   );
   const resolved = resolveProperties(path, properties, resolve, diagnostics);
-  const overlaid = applyInvariants(
+  const profiled = applyCreationProfile(
     resolved,
+    TASK_CREATION_PROFILE,
+    resolve,
+    path,
+    diagnostics,
+  );
+  const overlaid = applyInvariants(
+    profiled,
     [
       { key: 'type', value: 'task' },
       { key: 'project', value: invariants.projectLink },

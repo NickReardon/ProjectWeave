@@ -222,6 +222,11 @@ Verified against the committed tree; none blocks the manual checks:
   assuming a task. ADR 0012 settles where a created project note lands and why
   its collision unit is the folder rather than the note. Unlike task creation,
   it is unverified in Obsidian itself — see check 15 below.
+- ADR 0013's creation profiles are implemented and have a runtime caller: both
+  renderers apply them, so a template that declares no frontmatter still
+  produces a valid note. This changes the bytes of a note created from a
+  template that omitted the planning properties, and leaves the packaged
+  templates' bytes untouched.
 - ADR 0013's vault template library, merged catalog, and composite reader are
   implemented and tested but have no runtime caller: creation still resolves
   templates exactly as before. `dist/main.js` contains none of the three, so

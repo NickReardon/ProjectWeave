@@ -129,6 +129,13 @@ chooser — and a created project always uses the packaged project template.
 proposes the vault-wide template catalog that closes both gaps; it is a
 proposal, not implemented behavior.
 
+What a created note carries because of its kind does not depend on its
+template. A task always gets its title, status, project relation, and the seven
+planning properties; a project always gets its title and a status. A template
+that declares one of those keeps its own value and position, so a template you
+already use renders exactly the bytes it did before, while a template that is
+only a heading and some sections still produces a valid note.
+
 A template is an ordinary Markdown note marked `weave_template: true` with a
 `template_for` kind. Marked templates are excluded from entity indexing, so a
 template never appears as a task. Rendering removes the template-only keys

@@ -174,3 +174,57 @@ describe('renderProjectTemplate', () => {
     expect(codes(result)).toContain('template.variable.unknown');
   });
 });
+
+describe('creation property profiles', () => {
+  it('renders a valid project from a template with no frontmatter of its own', () => {
+    const result = renderProjectTemplate(
+      request({
+        template: template(
+          ['weave_template: true', 'template_for: project'].join('\n'),
+          '# {{title}}\n',
+        ),
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+    // Identity from the invariants, title and status from the profile.
+    expect(result.note?.content).toContain('type: project');
+    expect(result.note?.content).toContain('title: Travel Planner');
+    expect(result.note?.content).toContain('status: planned');
+
+    const parsed = parseMarkdownEntity({
+      path: TARGET_PATH,
+      content: result.note?.content ?? '',
+      fingerprint: 'render',
+    });
+    expect(parsed.entity?.kind).toBe('project');
+    expect(parsed.diagnostics).toEqual([]);
+  });
+
+  it('leaves a status the template or context chose alone', () => {
+    const fromContext = renderProjectTemplate(
+      request({
+        template: template(
+          ['weave_template: true', 'template_for: project'].join('\n'),
+        ),
+        context: context({ status: 'active' }),
+      }),
+    );
+    expect(fromContext.note?.content).toContain('status: active');
+    expect(fromContext.note?.content).not.toContain('status: planned');
+
+    const fromTemplate = renderProjectTemplate(
+      request({
+        template: template(
+          [
+            'weave_template: true',
+            'template_for: project',
+            'status: paused',
+          ].join('\n'),
+        ),
+      }),
+    );
+    expect(fromTemplate.note?.content).toContain('status: paused');
+  });
+});

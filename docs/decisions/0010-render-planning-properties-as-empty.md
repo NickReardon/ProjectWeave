@@ -1,15 +1,15 @@
 # ADR 0010: Render the planning properties even when unset
 
-- Status: accepted; mechanism revisited by ADR 0013 (proposed)
+- Status: accepted; mechanism superseded by ADR 0013's task creation profile
 - Date: 2026-08-05
 - Owners: Project Weave
 
-> ADR 0013 proposes moving this guarantee from the packaged template into a
-> domain creation profile, so a body-only template still produces a task
-> carrying its planning shape. The outcome below is what that profile must
-> preserve; the mechanism — declaring the seven properties as empty statics in
-> `templates/default/task.md` — is what it would replace. Nothing changes until
-> ADR 0013 is accepted and its profiles land.
+> The outcome below still holds, and no longer depends on the packaged
+> template. ADR 0013's task creation profile supplies the seven properties for
+> every created task, from any template, so a body-only template produces the
+> same planning shape. `templates/default/task.md` still declares them, which
+> is now redundant rather than load-bearing: the profile leaves a template's
+> own declarations exactly where they are, so its bytes are unchanged.
 
 ## Context
 

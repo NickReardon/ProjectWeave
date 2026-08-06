@@ -70,6 +70,14 @@ import Obsidian, Node, Electron, views, or future MCP code.
   clock variables, the precedence rewrite, the invariant overlay, and the
   target-path guard — lives in src/domain/templates/creation-context; what makes
   a kind a kind stays in its own renderer.
+- **Creation profiles:** src/domain/templates/creation-profile states what a
+  created note carries because of its kind rather than because its template
+  said so: a task's title, status, and the seven planning properties ADR 0010
+  keeps visible; a project's title and defaulted status. The profile fills only
+  the gaps a template leaves, in a fixed order and after the template's own
+  properties, so an existing template renders exactly the bytes it did before
+  while a body-only template still parses as its kind. Templates own
+  presentation, body, declared inputs, and any other property.
 - **Indexing:** IndexBuilder deterministically publishes a complete immutable
   snapshot. IndexCoordinator owns asynchronous rebuilds, coalesced targeted
   reads, revisions, stale-last-good state, and unload cancellation.
