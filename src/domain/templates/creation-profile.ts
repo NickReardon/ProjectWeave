@@ -45,7 +45,7 @@ export interface CreationProfile {
 
 /**
  * Task fields the kind owns. `epic` through `due_date` are ADR 0010's seven
- * planning properties: visible even when unset, because their absence means
+ * planning properties, plus ADR 0014's `category`: visible even when unset, because their absence means
  * "not set yet" and Obsidian only learns a property from notes that carry it.
  * `depends_on` and `origin` stay omitted, because their absence carries
  * meaning — a task with no prerequisites is not a task with unknown ones.
@@ -59,6 +59,7 @@ export const TASK_CREATION_PROFILE: CreationProfile = {
     { key: 'milestone', token: 'milestone_link', presence: 'visible' },
     { key: 'sprint', token: 'planning_period_link', presence: 'visible' },
     { key: 'owner', token: 'owner', presence: 'visible' },
+    { key: 'category', token: 'category', presence: 'visible' },
     { key: 'priority', token: 'priority', presence: 'visible' },
     { key: 'points', token: 'points', presence: 'visible' },
     // Optional here, and allocated by the application for every created task:

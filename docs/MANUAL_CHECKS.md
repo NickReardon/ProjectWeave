@@ -91,14 +91,16 @@ committed with the fixture: a fixed date cannot be **today**. Reset before
 checking due states if the vault was seeded on an earlier day.
 
 **Blocked request** carries the planning properties the other tasks leave
-unset: `epic`, `milestone`, `owner: Robin`, and `priority: high`. That is what
-gives the epic, milestone, owner, and priority selectors something to offer,
-and it is why no check has to add those fields by hand.
+unset: `epic`, `milestone`, `owner: Robin`, `category: bug`, and
+`priority: high`. That is what gives the epic, milestone, owner, priority, and
+category selectors something to offer, and it is why no check has to add those
+fields by hand.
 
 Also present: `Projects/Game/Design/Travel.md` and `Templates/Task.md`.
 
 `--scale` generates tasks carrying the full planning shape — every property
-set, statuses, owners, priorities, points, and due dates cycling by index — so
+set, statuses, owners, categories, priorities, points, and due dates cycling by
+index — so
 a large seeded project exercises the filters rather than repeating one task.
 
 So the expected baseline is: **Implement request** is the only Ready task
@@ -194,7 +196,8 @@ The default scope is `backlog`, `todo`, `in-progress`, `waiting`, and `review`.
 ### 5. Search and the advanced filters — partially passed
 
 **Setup:** none. The seeded vault carries due dates, and **Blocked request**
-carries the epic, milestone, owner, and priority the selectors need.
+carries the epic, milestone, owner, priority, and category the selectors
+need.
 
 1. Search `external` — confirm case-insensitive title matching. Search a
    fragment of the vault path, such as `Game/Tasks`, and confirm path matching.
@@ -216,6 +219,14 @@ carries the epic, milestone, owner, and priority the selectors need.
 **Blocked request**; each due state matches exactly the task above; **Reset
 filters** returns to the non-terminal default status set and clears the search
 and selectors; **Due today** matches against your local calendar date, not UTC.
+
+**Then, for categories:** filter by **Category** and confirm `bug` isolates
+**Blocked request**. Add `bug` and `chore` under **Settings → Task categories**,
+change the task's category to `feature`, and confirm it is reported as
+`task.category.invalid` listing the allowed values while the task still appears
+and still says `feature`. Confirm the selector offers `chore` even though no
+task uses it, and `feature` even though nothing declares it. Remove both
+categories and confirm the diagnostic disappears.
 
 **Then:** `npm run test-vault:reset`.
 

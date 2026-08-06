@@ -9,12 +9,18 @@ export type IndexListener = (snapshot: IndexSnapshot) => void;
 export interface IndexCoordinatorOptions {
   readonly linkResolver?: LinkResolver;
   readonly debounceMilliseconds?: number;
+  /**
+   * The vault's configured task categories, read on each publication so a
+   * settings change reaches the next rebuild without replacing the runtime.
+   */
+  readonly taskCategories?: () => readonly string[];
 }
 
 export class IndexCoordinator {
   readonly #reader: VaultReader;
   readonly #builder: IndexBuilder;
   readonly #linkResolver?: LinkResolver;
+  readonly #taskCategories: () => readonly string[];
   readonly #debounceMilliseconds: number;
   readonly #listeners = new Set<IndexListener>();
   readonly #sources = new Map<string, SourceNote>();
@@ -36,6 +42,7 @@ export class IndexCoordinator {
     this.#reader = reader;
     this.#builder = builder;
     this.#linkResolver = options.linkResolver;
+    this.#taskCategories = options.taskCategories ?? (() => []);
     this.#debounceMilliseconds = options.debounceMilliseconds ?? 150;
   }
 
@@ -204,6 +211,7 @@ export class IndexCoordinator {
   #publishBuild(): void {
     const next = this.#builder.build([...this.#sources.values()], {
       revision: this.#snapshot.revision + 1,
+      taskCategories: this.#taskCategories(),
       ...(this.#linkResolver === undefined
         ? {}
         : { resolver: this.#linkResolver }),

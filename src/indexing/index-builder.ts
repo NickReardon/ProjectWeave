@@ -19,6 +19,41 @@ import { IndexSnapshot, originKey } from './index-snapshot';
 export interface IndexBuildOptions {
   readonly revision: number;
   readonly resolver?: LinkResolver;
+  /**
+   * Allowed task categories for this vault. Empty leaves `category`
+   * unconstrained, which is the default and the whole behavior until someone
+   * configures a vocabulary.
+   */
+  readonly taskCategories?: readonly string[];
+}
+
+/**
+ * A task whose category is not in the configured vocabulary.
+ *
+ * Reported, never repaired: the value is what the note says, and an unexpected
+ * one usually means a typo or a list that needs another entry. An empty
+ * vocabulary reports nothing at all.
+ */
+function categoryDiagnostic(
+  entity: EntityRecord,
+  allowed: ReadonlySet<string>,
+  configured: readonly string[],
+): Diagnostic | null {
+  if (allowed.size === 0 || !isTask(entity) || entity.category === null) {
+    return null;
+  }
+  if (allowed.has(entity.category.trim().toLowerCase())) {
+    return null;
+  }
+  return {
+    path: entity.path,
+    code: 'task.category.invalid',
+    severity: 'error',
+    message:
+      '`' + entity.category + "` is not one of this vault's task categories.",
+    field: 'category',
+    recovery: 'Use one of: ' + configured.join(', ') + '.',
+  };
 }
 
 export class IndexBuilder {
@@ -36,14 +71,40 @@ export class IndexBuilder {
     const globalDiagnostics: Diagnostic[] = [];
     const parsedEntities = new Map<string, EntityRecord>();
 
+    // Configured rather than domain-fixed, so it is applied here where the
+    // configuration reaches, not in the parser, which knows nothing of
+    // settings.
+    const allowedCategories = new Set(
+      (options.taskCategories ?? []).map((category) =>
+        category.trim().toLowerCase(),
+      ),
+    );
+
     for (const source of sources) {
       const parsed = parseMarkdownEntity(source);
       if (parsed.entity === null) {
         globalDiagnostics.push(...parsed.diagnostics);
         continue;
       }
-      parsedEntities.set(parsed.entity.path, parsed.entity);
-      diagnosticsByPath.set(parsed.entity.path, [...parsed.diagnostics]);
+      const categoryIssue = categoryDiagnostic(
+        parsed.entity,
+        allowedCategories,
+        options.taskCategories ?? [],
+      );
+      // Entities are immutable, so a configured-vocabulary failure is folded
+      // in by rebuilding the record rather than mutating the parsed one.
+      const entity =
+        categoryIssue === null
+          ? parsed.entity
+          : {
+              ...parsed.entity,
+              diagnostics: [...parsed.entity.diagnostics, categoryIssue],
+            };
+      parsedEntities.set(entity.path, entity);
+      diagnosticsByPath.set(entity.path, [
+        ...parsed.diagnostics,
+        ...(categoryIssue === null ? [] : [categoryIssue]),
+      ]);
     }
 
     const resolvedEntities = new Map<string, EntityRecord>();

@@ -248,6 +248,11 @@ Verified against the committed tree; none blocks the manual checks:
   There is no project template chooser: a second project variant has nowhere to
   be selected from, since the project note is what creation produces.
 - Nothing verifies the template chooser in Obsidian itself; see check 16.
+- Tasks carry an optional `category`, validated against a vault-wide vocabulary
+  from settings when one is configured (ADR 0014). Created tasks now carry a
+  `category: null` line, so the bytes of a created task changed again — checks
+  12 and 13 already needed re-running after ADR 0010, and this folds into the
+  same re-run. The per-project vocabulary considered in ADR 0014 is deferred.
 - Project creation offers no status field. The packaged template ships
   `status: planned`, and the renderer accepts a status the caller chooses, but
   no caller chooses one.

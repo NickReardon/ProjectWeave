@@ -119,6 +119,12 @@ export interface TaskEntity extends BaseEntity {
   readonly milestone: WikiLink | null;
   readonly planningPeriod: WikiLink | null;
   readonly owner: string | null;
+  /**
+   * Free-form grouping such as `bug` or `chore`. The domain only carries it;
+   * whether a value is allowed depends on the vault's configured vocabulary,
+   * which indexing applies (ADR 0014).
+   */
+  readonly category: string | null;
   readonly points: number | null;
   readonly rank: number | null;
   readonly priority: TaskPriority | null;

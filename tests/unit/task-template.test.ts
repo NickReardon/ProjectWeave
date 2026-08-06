@@ -98,6 +98,7 @@ describe('renderTaskTemplate with the packaged minimal template', () => {
         'milestone: null',
         'sprint: null',
         'owner: null',
+        'category: null',
         'priority: null',
         'points: null',
         'due_date: null',
@@ -157,6 +158,7 @@ describe('renderTaskTemplate with the packaged minimal template', () => {
         'milestone: null',
         'sprint: null',
         'owner: nick',
+        'category: null',
         'priority: high',
         'points: 3',
         'rank: 2000',
@@ -446,6 +448,7 @@ describe('renderTaskTemplate precedence and invariants', () => {
         'milestone: null',
         'sprint: null',
         'owner: null',
+        'category: null',
         'priority: null',
         'points: null',
         'due_date: null',
@@ -541,6 +544,7 @@ describe('renderTaskTemplate precedence and invariants', () => {
         'milestone: null',
         'sprint: null',
         'owner: null',
+        'category: null',
         'priority: null',
         'points: null',
         'due_date: null',
@@ -851,7 +855,7 @@ describe('the task creation profile', () => {
         .split('---\n')[1]
         ?.split('\n')
         .filter((line) => line.endsWith(': null')),
-    ).toHaveLength(7);
+    ).toHaveLength(8);
   });
 
   it('supplies a context value for a field the template omits', () => {

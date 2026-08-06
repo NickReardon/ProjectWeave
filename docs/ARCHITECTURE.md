@@ -78,6 +78,12 @@ import Obsidian, Node, Electron, views, or future MCP code.
   properties, so an existing template renders exactly the bytes it did before
   while a body-only template still parses as its kind. Templates own
   presentation, body, declared inputs, and any other property.
+- **Configured validation:** the parser reads `category` as an optional task
+  string and knows nothing of settings; IndexBuilder applies the vault's
+  configured vocabulary and attaches `task.category.invalid` where a value is
+  not listed. Configuration reaches indexing, so the domain stays a pure
+  function of the note, and an empty vocabulary validates nothing. ADR 0014
+  records why the vocabulary is vault-wide.
 - **Indexing:** IndexBuilder deterministically publishes a complete immutable
   snapshot. IndexCoordinator owns asynchronous rebuilds, coalesced targeted
   reads, revisions, stale-last-good state, and unload cancellation.
@@ -87,7 +93,7 @@ import Obsidian, Node, Electron, views, or future MCP code.
   indexing runtimes. The pure Project Workbench projection derives all visible
   counts, selection states, bounded project and unassigned diagnostics, Ready
   ordering, and bounded task results filtered by status, text, priority, epic,
-  milestone, owner, and due state from one publication. The UI injects its
+  milestone, owner, category, and due state from one publication. The UI injects its
   current local calendar date; application filtering does not read a clock.
   Task results remain project-scoped and deterministically order canonical
   status, explicit rank, priority, then normalized path. Diagnostic details

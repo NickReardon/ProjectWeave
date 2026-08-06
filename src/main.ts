@@ -25,6 +25,7 @@ import {
   loadProjectWeaveSettings,
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
+  normalizeTaskCategories,
 } from './settings/project-weave-settings';
 import type { ProjectWeaveSettings } from './settings/project-weave-settings';
 import {
@@ -63,15 +64,20 @@ export default class ProjectWeavePlugin extends Plugin {
     this.registerView(
       PROJECT_WORKBENCH_VIEW_TYPE,
       (leaf: WorkspaceLeaf) =>
-        new ProjectWorkbenchView(leaf, this.#readSource, {
-          rebuildIndex: () => this.rebuildIndex(false),
-          createTask: (projectPath) => {
-            this.#openTaskCreationPreview(projectPath);
+        new ProjectWorkbenchView(
+          leaf,
+          this.#readSource,
+          {
+            rebuildIndex: () => this.rebuildIndex(false),
+            createTask: (projectPath) => {
+              this.#openTaskCreationPreview(projectPath);
+            },
+            createProject: () => {
+              this.#openProjectCreationPreview();
+            },
           },
-          createProject: () => {
-            this.#openProjectCreationPreview();
-          },
-        }),
+          () => this.settings.taskCategories,
+        ),
     );
     this.addSettingTab(new ProjectWeaveSettingTab(this.app, this));
 
@@ -172,6 +178,20 @@ export default class ProjectWeavePlugin extends Plugin {
     return await this.#rebuildRuntime(next, false);
   }
 
+  /**
+   * Replaces the vault's task category vocabulary and rebuilds, since the
+   * index carries the diagnostics that depend on it.
+   */
+  public async updateTaskCategories(
+    taskCategories: readonly string[],
+  ): Promise<void> {
+    const normalized = normalizeTaskCategories(taskCategories);
+    const nextSettings = { ...this.settings, taskCategories: normalized };
+    await this.saveData(nextSettings);
+    this.settings = nextSettings;
+    await this.rebuildIndex(false);
+  }
+
   public async updateTemplateScaffoldFolder(
     templateScaffoldFolder: string,
   ): Promise<void> {
@@ -212,6 +232,7 @@ export default class ProjectWeavePlugin extends Plugin {
     const reader = new ObsidianVaultReader(this.app.vault, projectRoots);
     const coordinator = new IndexCoordinator(reader, {
       linkResolver: new ObsidianLinkResolver(this.app.metadataCache),
+      taskCategories: () => this.settings.taskCategories,
     });
     return {
       reader,

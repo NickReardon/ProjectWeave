@@ -28,7 +28,8 @@ The implemented slices are:
 - bounded project context, task context, and Ready Now application queries;
 - a persistent Obsidian Project Workbench with a project picker, project
   summary, live index state, bounded Ready Now list, and a project-scoped All
-  Tasks list with status, priority, epic, milestone, owner, due-state, and
+  Tasks list with status, priority, epic, milestone, owner, category,
+  due-state, and
   title/path filters;
 - visible project and unassigned diagnostic sections grouped by affected note,
   with severity, error code, field, recovery guidance, related-note links, and
@@ -108,6 +109,25 @@ that decision.
 
 With nothing indexed yet, the workbench's empty state offers **New project**,
 so a fresh vault does not have to be bootstrapped by hand.
+
+## Task categories
+
+Tasks may carry an optional `category` such as `bug` or `chore`, filterable in
+the workbench beside owner and priority. It is free-form by default: with no
+configuration, any value is accepted and the filter offers whatever tasks use.
+
+Listing categories under **Settings → Task categories** turns on validation —
+anything else is reported as `task.category.invalid` naming the allowed values,
+without changing the note. Matching ignores case, a declared category is
+offered even before a task uses it, and an undeclared value in use stays
+offered so the task carrying the diagnostic remains findable.
+
+The vocabulary is vault-wide rather than per project, because Obsidian's own
+property suggestions are vault-wide; two lists would contradict each other in
+adjacent editors. A `task/bug.md` template that declares `category: bug` is how
+choosing a template assigns one.
+[ADR 0014](docs/decisions/0014-group-tasks-with-a-vault-wide-category.md)
+records the decision, including why a `bug` entity type was rejected.
 
 ## Note templates
 

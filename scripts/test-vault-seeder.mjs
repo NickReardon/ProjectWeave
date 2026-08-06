@@ -55,6 +55,7 @@ const BULK_RANK_BASE = 100000;
  * randomness the seeder must not have.
  */
 const BULK_OWNERS = ['Robin', 'Sam', 'Ash'];
+const BULK_CATEGORIES = ['bug', 'chore', 'feature', 'spike'];
 const BULK_PRIORITIES = ['critical', 'high', 'normal', 'low'];
 const BULK_STATUSES = ['backlog', 'todo', 'in-progress', 'review', 'waiting'];
 /** Day offsets from the seed date, covering every due state including none. */
@@ -82,6 +83,7 @@ export function bulkTaskNote(index, seedDate = new Date()) {
     "milestone: '[[Projects/Game/Milestones/Alpha]]'",
     'sprint:',
     'owner: ' + BULK_OWNERS[index % BULK_OWNERS.length],
+    'category: ' + BULK_CATEGORIES[index % BULK_CATEGORIES.length],
     'priority: ' + BULK_PRIORITIES[index % BULK_PRIORITIES.length],
     'points: ' + String((index % 8) + 1),
     'rank: ' + String(rank),

@@ -46,6 +46,7 @@ export interface TaskTemplateContext {
   readonly planningPeriodLink?: string | null;
   readonly originLink?: string | null;
   readonly owner?: string | null;
+  readonly category?: string | null;
   readonly priority?: TaskPriority | null;
   readonly points?: number | null;
   readonly rank?: number | null;
@@ -87,6 +88,7 @@ const BUILTIN_TASK_VARIABLES = new Set([
   'milestone_link',
   'planning_period_link',
   'owner',
+  'category',
   'priority',
   'points',
   'rank',
@@ -107,6 +109,7 @@ const CONTEXT_OWNED_PROPERTIES: Readonly<Record<string, string>> = {
   milestone: 'milestone_link',
   sprint: 'planning_period_link',
   owner: 'owner',
+  category: 'category',
   priority: 'priority',
   points: 'points',
   rank: 'rank',
@@ -276,6 +279,8 @@ function resolveBuiltin(
       return optionalText(context.planningPeriodLink);
     case 'owner':
       return optionalText(context.owner);
+    case 'category':
+      return optionalText(context.category);
     case 'priority':
       return optionalText(context.priority);
     case 'due_date':

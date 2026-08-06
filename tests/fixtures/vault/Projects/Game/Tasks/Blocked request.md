@@ -6,6 +6,7 @@ rank: 4000
 epic: '[[Projects/Game/Epics/Travel system]]'
 milestone: '[[Projects/Game/Milestones/Alpha]]'
 owner: Robin
+category: bug
 priority: high
 depends_on:
   - '[[Projects/Game/Tasks/External prerequisite]]'
