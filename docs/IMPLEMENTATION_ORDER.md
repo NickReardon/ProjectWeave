@@ -65,9 +65,10 @@ Then finish ADR 0013 in this order:
 1. Add **Add Template** as a previewed create-only operation. It chooses a kind
    and variant, copies a plugin/minimal starting point into the configured
    library, refuses collisions, commits one file, and opens the created note.
-2. Resolve `project/default` through the vault catalog before the packaged
-   project default. A broken configured winner fails closed; an absent vault
-   candidate falls through normally.
+2. ~~Resolve `project/default` through the vault catalog before the packaged
+   project default.~~ Landed: a broken configured winner fails closed, an
+   absent vault candidate falls through, and the commit re-reads the vault
+   template by fingerprint. Only its manual acceptance in step 4 remains.
 3. Update Plan Addendum 005 and Design 18 to match the layered catalog and
    kind-owned creation-profile precedence, then accept ADR 0013.
 4. Complete manual acceptance for adding/selecting a task variant, project

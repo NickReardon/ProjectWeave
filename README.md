@@ -104,9 +104,7 @@ its tasks land in `Projects/Travel Planner/Tasks/` under the rule above, and a
 folder already in use yields a numbered folder rather than a shared one — two
 projects in one folder would mingle their tasks.
 [ADR 0012](docs/decisions/0012-give-each-project-its-own-folder.md) records
-that decision. Project notes use the packaged project template: a
-project-owned template mapping lives in the project note, which is the note
-being created.
+that decision.
 
 With nothing indexed yet, the workbench's empty state offers **New project**,
 so a fresh vault does not have to be bootstrapped by hand.
@@ -203,8 +201,10 @@ the packaged templates only, and a folder nobody has created simply holds no
 templates. Project notes may still map their own variants under
 `weave.templates`, which travel with the project and take precedence. Task
 creation reads `task/<variant>.md` from this folder and merges it with project
-overrides and the packaged default. Project creation still uses its packaged
-template; vault-backed `project/default.md` is a later ADR 0013 step.
+overrides and the packaged default, and project creation reads
+`project/default.md` from it before falling back to the packaged template. A
+project note cannot map its own project template, since it is the note being
+created.
 
 Open the dashboard from the left ribbon, **Project Weave: Open project
 workbench** in the command palette, or **Open dashboard** on the settings page.
