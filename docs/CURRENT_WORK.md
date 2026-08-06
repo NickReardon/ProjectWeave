@@ -291,12 +291,11 @@ Verified against the committed tree; none blocks the manual checks:
   action per vault. Unconfirmed: what a vault that meets `due_date` as null
   before any real date registers it as. Check that when a clean vault is next
   seeded.
-- No fixture task in `tests/fixtures/vault/` sets the planning properties, so
-  the committed fixture alone still does not teach Obsidian `due_date`. The
-  seeder injects due dates into the vault it materializes, which does, and
-  creating one task through the plugin does too. Check 5's setup step still
-  adds `priority`, `owner`, `epic`, and `milestone` by hand; none of those
-  needs to be relative to the day of the check, so none needs seeding.
+- The fixture now carries an epic, a milestone, and one task that references
+  them with an owner and a priority, so every workbench filter has values
+  without a hand edit. Due dates are still injected at seed time, since a
+  committed date cannot be today. Generated `--scale` tasks carry the full
+  planning shape, which also teaches Obsidian every property in one seeding.
 - The seeded vault is the committed fixture plus due dates, so it is no longer
   byte-identical to `tests/fixtures/vault/`. A committed date cannot be
   today, and **Due today** has to be checkable. The automated tests read the

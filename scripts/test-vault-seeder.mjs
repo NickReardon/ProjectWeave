@@ -48,14 +48,47 @@ export const SEEDED_DUE_DATES = {
 const BULK_RANK_GAP = 1000;
 const BULK_RANK_BASE = 100000;
 
-export function bulkTaskNote(index) {
+/**
+ * Values the bulk tasks cycle through, so a large seeded project exercises the
+ * filters rather than being 250 copies of one task. Every list is short and
+ * coprime-ish with the others, which spreads combinations without needing
+ * randomness the seeder must not have.
+ */
+const BULK_OWNERS = ['Robin', 'Sam', 'Ash'];
+const BULK_PRIORITIES = ['critical', 'high', 'normal', 'low'];
+const BULK_STATUSES = ['backlog', 'todo', 'in-progress', 'review', 'waiting'];
+/** Day offsets from the seed date, covering every due state including none. */
+const BULK_DUE_OFFSETS = [-7, -1, 0, 3, 21, null];
+
+/**
+ * One generated task, carrying the full planning shape a real task has.
+ *
+ * Every property a task can hold is present, so Obsidian learns them all from
+ * a seeded vault and the workbench's filters have something to filter. Values
+ * cycle by index rather than repeating, and the epic and milestone are the
+ * fixture's own, so every link resolves and a scaled vault stays free of
+ * diagnostics.
+ */
+export function bulkTaskNote(index, seedDate = new Date()) {
   const rank = BULK_RANK_BASE + index * BULK_RANK_GAP;
+  const dueOffset = BULK_DUE_OFFSETS[index % BULK_DUE_OFFSETS.length];
+  const status = BULK_STATUSES[index % BULK_STATUSES.length];
   return [
     '---',
     'type: task',
     "project: '[[Projects/Game/Project]]'",
-    'status: todo',
+    'status: ' + status,
+    "epic: '[[Projects/Game/Epics/Travel system]]'",
+    "milestone: '[[Projects/Game/Milestones/Alpha]]'",
+    'sprint:',
+    'owner: ' + BULK_OWNERS[index % BULK_OWNERS.length],
+    'priority: ' + BULK_PRIORITIES[index % BULK_PRIORITIES.length],
+    'points: ' + String((index % 8) + 1),
     'rank: ' + String(rank),
+    dueOffset === null
+      ? 'due_date:'
+      : 'due_date: ' + localIsoDate(seedDate, dueOffset),
+    'origin:',
     '---',
     '',
     '# Bulk ' + paddedIndex(index),
@@ -166,7 +199,11 @@ export async function seedTestVault({
       'Tasks',
       'Bulk ' + paddedIndex(index) + '.md',
     );
-    await writeVaultFile(vaultRoot, relativePath, bulkTaskNote(index));
+    await writeVaultFile(
+      vaultRoot,
+      relativePath,
+      bulkTaskNote(index, seedDate),
+    );
     seededFiles.push(toManifestPath(relativePath));
   }
 

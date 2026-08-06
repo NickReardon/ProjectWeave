@@ -83,12 +83,23 @@ The seeded vault contains:
 | `Projects/Game/Tasks/Implement request.md` | task | `todo` | 2000 | Define request | today |
 | `Projects/Game/Tasks/External prerequisite.md` | task | `in-progress` | 3000 | — | 3 days ago |
 | `Projects/Game/Tasks/Blocked request.md` | task | `todo` | 4000 | External prerequisite | in 7 days |
+| `Projects/Game/Epics/Travel system.md` | epic | `active` | — | — | — |
+| `Projects/Game/Milestones/Alpha.md` | milestone | `planned` | — | — | 2026-09-30 |
 
 The due dates are written by the seeder relative to the day you seed, not
 committed with the fixture: a fixed date cannot be **today**. Reset before
 checking due states if the vault was seeded on an earlier day.
 
+**Blocked request** carries the planning properties the other tasks leave
+unset: `epic`, `milestone`, `owner: Robin`, and `priority: high`. That is what
+gives the epic, milestone, owner, and priority selectors something to offer,
+and it is why no check has to add those fields by hand.
+
 Also present: `Projects/Game/Design/Travel.md` and `Templates/Task.md`.
+
+`--scale` generates tasks carrying the full planning shape — every property
+set, statuses, owners, priorities, points, and due dates cycling by index — so
+a large seeded project exercises the filters rather than repeating one task.
 
 So the expected baseline is: **Implement request** is the only Ready task
 (its one dependency is `done`); **Blocked request** is todo but blocked by an
@@ -182,22 +193,16 @@ The default scope is `backlog`, `todo`, `in-progress`, `waiting`, and `review`.
 
 ### 5. Search and the advanced filters — partially passed
 
-**Setup:** the seeded vault already carries due dates. Add the other four
-fields to **one** fixture task, for example `Blocked request.md`:
-
-```yaml
-priority: high
-owner: Robin
-epic: '[[Engine]]'
-milestone: '[[Alpha]]'
-```
+**Setup:** none. The seeded vault carries due dates, and **Blocked request**
+carries the epic, milestone, owner, and priority the selectors need.
 
 1. Search `external` — confirm case-insensitive title matching. Search a
    fragment of the vault path, such as `Game/Tasks`, and confirm path matching.
    Try mixed case (`ExTeRnAl`).
 2. Open the priority, epic, milestone, and owner selectors and confirm each
-   offers the value you just added.
-3. Combine those four filters and confirm they isolate the one edited task.
+   offers **Blocked request**'s values — `high`, *Travel system*, *Alpha*, and
+   `Robin`.
+3. Combine those four filters and confirm they isolate **Blocked request**.
 4. Press **Reset filters**.
 5. Filter by each due state in turn, with the default status set plus `done`
    so every task is in scope. Expect **Past due date** to give **External
@@ -207,8 +212,8 @@ milestone: '[[Alpha]]'
    Confirm **Due today** against your machine's local calendar date — if the
    vault was seeded on an earlier day, reset it first.
 
-**Pass:** each filter narrows as expected; combining the four isolates the
-single edited task; each due state matches exactly the task above; **Reset
+**Pass:** each filter narrows as expected; combining the four isolates
+**Blocked request**; each due state matches exactly the task above; **Reset
 filters** returns to the non-terminal default status set and clears the search
 and selectors; **Due today** matches against your local calendar date, not UTC.
 
@@ -502,8 +507,8 @@ template_for: task
 1. Open **Create task**. Read the **Template** chooser.
 2. Select `bug`, type a title, and read the previewed bytes.
 3. Select **Packaged minimal** and read them again.
-4. Add `weave: {templates: {task: {bug: "[[Some other template]]"}}}` to the
-   project note, reopen the modal, and select `bug`.
+4. Add `weave: {templates: {task: {bug: "[[Templates/Task]]"}}}` to the project
+   note, reopen the modal, and select `bug`.
 5. Break the vault template — change `template_for` to `epic` — reopen, and
    select `bug`.
 6. Remove `bug.md`, leaving only the packaged default, and reopen.
