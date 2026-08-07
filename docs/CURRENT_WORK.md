@@ -5,7 +5,8 @@
 This file records only what commit history cannot: validation evidence,
 outstanding manual checks, known loose ends, and the next decision point. For
 what changed and why, read the commit history. This is operational context, not
-a product contract; `CURRENT-DESIGN.md` owns product precedence.
+a product contract; `docs/spec/` is the canonical statement of intended
+behavior.
 
 Write every branch's update as the proposed post-merge handoff: it must be
 truthful for the resulting `main` state. Do not record the current branch,
@@ -269,6 +270,18 @@ running check 11 or they will appear in every task list.
 
 Verified against the committed tree; none blocks the manual checks:
 
+- The documentation now has one authority. `docs/spec/` states intended
+  behavior with no precedence chain; `docs/archive/` is history and overrides
+  nothing. Folding the addenda in exposed three places where the owning design
+  had drifted from the implementation — the `backlog` task status, the
+  enforced-by-default dependency mode, and portfolio sprints presented as core
+  v1 — all resolved in favor of the code, which was correct in each case. No
+  spec statement was dropped in the move.
+- Three documentation choices are deliberately deferred, none blocking: whether
+  the 19 specs should merge into roughly 8 subsystem documents, whether specs
+  and ADRs should carry machine-readable frontmatter for the future agent
+  context builder, and whether `MANUAL_CHECKS.md` and
+  `PLUGIN_RELEASE_AND_TESTING.md` move under `docs/development/`.
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
 - The template resolver, proposal service, allocator, renderer, and commit
@@ -392,9 +405,9 @@ Verified against the committed tree; none blocks the manual checks:
    was observed — including any defect — before treating the affected
    workbench, project-creation, or template flows as accepted.
 2. Finish ADR 0013 with the previewed **Add Template** flow, vault-backed
-   `project/default`, and the normative Plan Addendum 005/Design 18 update.
-   Accept the ADR only after its catalog contract and manual acceptance are
-   truthful.
+   `project/default`, and the normative update to
+   `docs/spec/18-project-note-templates.md`. Accept the ADR only after its
+   catalog contract and manual acceptance are truthful.
 3. Follow the dependency-ordered remaining roadmap in
    `docs/IMPLEMENTATION_ORDER.md`, beginning with the shared read/action
    services and read-only agent boundary after the creation/template flow is
