@@ -22,16 +22,18 @@ ends, or the next decision changes — not for every code change.
 - The filterable Project Workbench and the task creation chain — allocation,
   template resolution, proposal, preview, and commit — pass the complete
   automated gate.
-- Version 0.4.1 was exported and installed into the configured disposable test
+- Version 0.5.0 was exported and installed into the configured disposable test
   vault, replacing the 0.4.0 build the earlier checks ran against. It is the
   first installed build carrying project creation, the vault template catalog
   and chooser, and task categories. Each check below records its own status,
   and the ones still outstanding mean the workbench as a whole is not yet
   manually accepted.
-- The project version is 0.4.1, but three feature slices have landed since it
-  was set: project creation through the UI, the layered template catalog with
-  its chooser, and task categories. By the sizing rule in `README.md` that is a
-  minor increment, so the next release should be 0.5.0 rather than a patch.
+- 0.5.0 takes the minor position because three feature slices landed since the
+  version was last set: project creation through the UI, the layered template
+  catalog with its chooser, and task categories — the last of which adds both a
+  frontmatter field and a diagnostic code. Any one of those is a minor by the
+  sizing rule in `README.md`. Nothing has been released; the major position
+  stays reserved for the first stable release against the full specification.
 - **Project Weave now writes to the vault.** Confirming **Create task** in the
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
@@ -140,9 +142,14 @@ that does not carry it; adding or removing a task category was the only
 settings control that failed silently, because both handlers omitted the
 try/catch every sibling has; and ADR 0014 never stated that the creation path
 does not check the vocabulary. The first two were fixed, the third recorded in
-the ADR. A further complete `npm run check` passed over all three, and the
-rebuilt bundle was reinstalled into the test vault with matching digests, so
-the installed build is the one carrying them.
+the ADR. A further complete `npm run check` passed over all three.
+
+The version then took the minor position for the three feature slices it had
+been trailing. `npm run export` produced the 71,895-byte
+`export/project-weave-0.5.0.zip`, and `npm run test-vault:update` installed it
+into the same seeded vault: SHA-256 comparison confirmed each installed file
+matched the export, and the installed manifest reported 0.5.0. That is the
+build the outstanding manual checks run against.
 
 Automated validation does not replace the manual Obsidian checks below. The
 workbench view now has DOM coverage for the states ordinary use does not reach
@@ -177,7 +184,7 @@ Ready Now, the default status scope, live refresh, the invalid-status
 diagnostic, unassigned diagnostics, the note banner, and changing indexed
 project roots. Checks 2, 8,
 9, and 10 ran against 0.3.0; the rest in a session on 2026-08-05. Nothing in
-0.4.0 or 0.4.1 changes what any of them exercises. The two cosmetic defects
+0.4.0 through 0.5.0 changes what any of them exercises. The two cosmetic defects
 that came out of that session were fixed and have since been confirmed in the
 app. Reopen any of these only if a later change touches what it covers.
 
@@ -215,7 +222,7 @@ after the review.
 task** button no longer stay lit after a mouse click, and the keyboard focus
 ring is intact.
 
-Outstanding, all runnable against the installed 0.4.1 build:
+Outstanding, all runnable against the installed 0.5.0 build:
 
 - **Check 11 — degenerate states.** 11a (multiple projects) passed. 11d (stale
   last good) needs an index rebuild that throws, which ordinary use does not
