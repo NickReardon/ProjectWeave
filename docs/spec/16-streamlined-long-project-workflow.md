@@ -1,3 +1,11 @@
+---
+type: spec
+area: workflow
+status: current
+canonical: true
+related_decisions: ["0002"]
+---
+
 # 16 — Streamlined Long-Project Workflow
 
 ## Status and precedence

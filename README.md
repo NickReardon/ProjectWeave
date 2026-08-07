@@ -360,7 +360,7 @@ each position numerically. Reaching 1.0 is gated on the specification being
 complete, never on the minor position running high.
 
 The operational channel, BRAT preview, stable release, and Community directory
-steps are in [Plugin Release and Testing](docs/PLUGIN_RELEASE_AND_TESTING.md).
+steps are in [Plugin Release and Testing](docs/development/release.md).
 
 Run `npm run export` to build and verify the plugin, then generate:
 

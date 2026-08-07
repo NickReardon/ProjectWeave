@@ -1,3 +1,11 @@
+---
+type: spec
+area: workbench
+status: current
+canonical: true
+related_decisions: ["0007", "0011"]
+---
+
 # 09 — Project Workbench
 
 ## Goal

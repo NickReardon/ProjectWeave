@@ -1,3 +1,11 @@
+---
+type: spec
+area: projects
+status: current
+canonical: true
+related_decisions: ["0012"]
+---
+
 # 04 — Projects and Epics
 
 ## Goal

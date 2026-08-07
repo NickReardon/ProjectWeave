@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0010"
+area: templates
+status: accepted
+canonical: false
+affects: ["18"]
+---
+
 # ADR 0010: Render the planning properties even when unset
 
 - Status: accepted; mechanism superseded by ADR 0013's task creation profile

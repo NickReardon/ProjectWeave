@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0008"
+area: tasks
+status: accepted
+canonical: false
+affects: ["03", "15"]
+---
+
 # ADR 0008: Derive task target paths from the project folder and allocate spaced ranks
 
 - Status: accepted

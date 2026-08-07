@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0001"
+area: scheduling
+status: accepted
+canonical: false
+affects: ["15"]
+---
+
 # ADR 0001: Add basic scheduling and milestone features to v1
 
 - Status: accepted

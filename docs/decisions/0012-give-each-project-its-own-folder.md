@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0012"
+area: projects
+status: accepted
+canonical: false
+affects: ["04"]
+---
+
 # ADR 0012: Give each created project its own folder
 
 - Status: accepted

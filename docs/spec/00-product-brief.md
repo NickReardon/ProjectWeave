@@ -1,3 +1,11 @@
+---
+type: spec
+area: product
+status: current
+canonical: true
+related_decisions: ["0002"]
+---
+
 # Project Weave v1 Product Brief
 
 ## Product promise

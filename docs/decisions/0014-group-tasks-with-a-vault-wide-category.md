@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0014"
+area: tasks
+status: accepted
+canonical: false
+affects: ["03"]
+---
+
 # ADR 0014: Group tasks with a vault-wide category vocabulary
 
 - Status: accepted

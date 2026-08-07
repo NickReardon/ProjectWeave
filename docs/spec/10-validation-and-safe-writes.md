@@ -1,3 +1,11 @@
+---
+type: spec
+area: writes
+status: current
+canonical: true
+related_decisions: ["0009"]
+---
+
 # 10 — Validation and Safe Writes
 
 ## Goal

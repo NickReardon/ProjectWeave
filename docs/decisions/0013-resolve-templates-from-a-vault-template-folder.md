@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0013"
+area: templates
+status: proposed
+canonical: false
+affects: ["18"]
+---
+
 # ADR 0013: Provide a layered note-template catalog
 
 - Status: proposed

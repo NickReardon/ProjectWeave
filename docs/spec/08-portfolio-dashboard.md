@@ -1,3 +1,11 @@
+---
+type: spec
+area: portfolio
+status: deferred
+canonical: true
+related_decisions: ["0002"]
+---
+
 # 08 — Portfolio Dashboard
 
 ## Goal

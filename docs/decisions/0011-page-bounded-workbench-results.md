@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0011"
+area: workbench
+status: accepted
+canonical: false
+affects: ["09"]
+---
+
 # ADR 0011: Page within the bounded result window
 
 - Status: accepted

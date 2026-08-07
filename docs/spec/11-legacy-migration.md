@@ -1,3 +1,11 @@
+---
+type: spec
+area: migration
+status: current
+canonical: true
+related_decisions: []
+---
+
 # 11 — Legacy Migration
 
 ## Goal

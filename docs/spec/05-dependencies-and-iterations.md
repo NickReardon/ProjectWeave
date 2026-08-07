@@ -1,3 +1,11 @@
+---
+type: spec
+area: dependencies
+status: current
+canonical: true
+related_decisions: ["0003"]
+---
+
 # 05 — Dependencies and Iterations
 
 ## Goal

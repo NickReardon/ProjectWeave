@@ -1,3 +1,9 @@
+---
+type: archive
+status: archived
+canonical: false
+---
+
 # Project Weave Plan Addendum 004
 
 > **Archived and non-authoritative.** This document is history. Current

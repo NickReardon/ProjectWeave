@@ -1,3 +1,11 @@
+---
+type: spec
+area: lifecycle
+status: current
+canonical: true
+related_decisions: ["0006"]
+---
+
 # 01 — Lifecycle and Persistence
 
 ## Goal

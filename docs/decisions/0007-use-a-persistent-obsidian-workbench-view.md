@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0007"
+area: workbench
+status: accepted
+canonical: false
+affects: ["09"]
+---
+
 # ADR 0007: Use a persistent Obsidian workbench view
 
 - Status: accepted

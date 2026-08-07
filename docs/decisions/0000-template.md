@@ -1,3 +1,9 @@
+---
+type: decision-template
+status: template
+canonical: false
+---
+
 # ADR 0000: Decision title
 
 - Status: proposed

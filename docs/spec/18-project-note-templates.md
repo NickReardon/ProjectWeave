@@ -1,3 +1,11 @@
+---
+type: spec
+area: templates
+status: current
+canonical: true
+related_decisions: ["0005", "0010", "0013"]
+---
+
 # 18 — Project-Owned Note Templates
 
 ## Status and precedence

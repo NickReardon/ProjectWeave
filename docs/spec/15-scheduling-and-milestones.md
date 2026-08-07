@@ -1,3 +1,11 @@
+---
+type: spec
+area: scheduling
+status: current
+canonical: true
+related_decisions: ["0001", "0008"]
+---
+
 # 15 — Project Lifecycle, Ranking, Scheduling, and Milestones
 
 ## Status and precedence

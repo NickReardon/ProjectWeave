@@ -1,3 +1,9 @@
+---
+type: archive
+status: archived
+canonical: false
+---
+
 # Project Weave: Historical Initial Project Plan
 
 > **Archived and non-authoritative.** This was the repository's bootstrap plan

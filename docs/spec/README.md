@@ -16,6 +16,25 @@ A new product decision updates the owning specification here. If the rationale
 is worth preserving, it also gets an ADR. It never adds another overriding
 requirements document.
 
+## Document metadata
+
+Every specification, decision record, and archived document carries frontmatter
+so tooling can select the right documents without interpreting prose:
+
+```yaml
+type: spec | decision | archive # what kind of document this is
+area: tasks # subject, shared across specs and ADRs
+status: current | deferred | accepted | proposed | archived
+canonical: true # true only for current specifications
+related_decisions: ['0003'] # spec -> ADRs
+affects: ['05', '06'] # ADR -> specs
+```
+
+`canonical: true` is the machine-checkable form of this directory's rule: it
+appears on current specifications and nowhere else. Selecting current context
+for a subject is `type: spec` plus `area:` plus `canonical: true` — no
+precedence calculus, and no need to read a governance document first.
+
 ## Conventions
 
 - **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative.
@@ -51,8 +70,7 @@ by a solo developer or a small team. Everything below serves that brief.
 | Explicit exclusions and later candidates                            | [14 — Non-goals and future features](14-non-goals-and-future-features.md) |
 | Project lifecycle, rank, priority, due dates, milestones            | [15 — Scheduling and milestones](15-scheduling-and-milestones.md)         |
 | Plan, Board, My Work, scale, progressive disclosure                 | [16 — Streamlined long-project workflow](16-streamlined-long-project-workflow.md) |
-| Shared application API and the staged agent boundary                | [17 — Agent access and MCP](17-agent-access-and-mcp.md)                   |
-| Agent security profile                                              | [17a — Agent access security profile](17a-agent-access-security-profile.md) |
+| Shared application API, staged agent boundary, agent security       | [17 — Agent access and MCP](17-agent-access-and-mcp.md)                   |
 | Project-owned note templates shared by UI and agents                | [18 — Project note templates](18-project-note-templates.md)               |
 
 Specifications 15 through 18 postdate 01 through 14 and refine them. Where they

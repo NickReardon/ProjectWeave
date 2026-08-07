@@ -1,3 +1,11 @@
+---
+type: spec
+area: non-goals
+status: current
+canonical: true
+related_decisions: ["0002"]
+---
+
 # 14 — Non-goals and Future Features
 
 ## Purpose

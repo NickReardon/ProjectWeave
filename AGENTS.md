@@ -130,7 +130,7 @@ release inventory. Use narrower commands while iterating, but run the complete
 gate before handoff when practical.
 
 Obsidian UI, workspace restoration, responsive behavior, and live vault-event
-behavior still require focused manual checks. `docs/MANUAL_CHECKS.md` is the
+behavior still require focused manual checks. `docs/development/testing.md` is the
 procedure for running them; `docs/CURRENT_WORK.md` records which have passed
 and is authoritative for status. Report automated and manual verification
 separately.

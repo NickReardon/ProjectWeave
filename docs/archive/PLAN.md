@@ -1,3 +1,9 @@
+---
+type: archive
+status: archived
+canonical: false
+---
+
 # Project Weave Implementation Plan
 
 > **Archived and non-authoritative.** This document is history. Current

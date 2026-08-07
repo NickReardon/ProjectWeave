@@ -1,3 +1,11 @@
+---
+type: spec
+area: tasks
+status: current
+canonical: true
+related_decisions: ["0008", "0014"]
+---
+
 # 03 — Task Management
 
 ## Goal

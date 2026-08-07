@@ -1,3 +1,11 @@
+---
+type: spec
+area: data-model
+status: current
+canonical: true
+related_decisions: []
+---
+
 # 02 — Data Model and Index
 
 ## Goal

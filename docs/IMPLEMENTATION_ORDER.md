@@ -69,8 +69,8 @@ Then finish ADR 0013 in this order:
    project default.~~ Landed: a broken configured winner fails closed, an
    absent vault candidate falls through, and the commit re-reads the vault
    template by fingerprint. Only its manual acceptance in step 4 remains.
-3. Update Plan Addendum 005 and Design 18 to match the layered catalog and
-   kind-owned creation-profile precedence, then accept ADR 0013.
+3. Update Design 18 to match the layered catalog and kind-owned
+   creation-profile precedence, then accept ADR 0013.
 4. Complete manual acceptance for adding/selecting a task variant, project
    override precedence, invalid-template refusal, project-default creation,
    and fingerprint refusal after an open template changes.
@@ -83,7 +83,7 @@ Governing documents:
 
 - [Design 18 — Project-Owned Note Templates](spec/18-project-note-templates.md)
 - [ADR 0013 — Layered Note-Template Catalog](decisions/0013-resolve-templates-from-a-vault-template-folder.md)
-- [Manual Checks](MANUAL_CHECKS.md)
+- [Manual Checks](development/testing.md)
 
 Exit gate: the complete automated gate passes, checks 5, 11, 15, 16 and the
 focus checks have recorded outcomes, ADR 0013 is accepted, and task/project
@@ -117,7 +117,7 @@ Governing documents:
 
 - [Design 02 — Data Model and Index](spec/02-data-model-and-index.md)
 - [Design 17 — Agent Access and MCP](spec/17-agent-access-and-mcp.md)
-- [Security Profile 17a](spec/17a-agent-access-security-profile.md)
+- [Design 17 — Initial Security Profile](spec/17-agent-access-and-mcp.md#initial-security-profile)
 
 Exit gate: UI and adapter contract tests return equivalent project context,
 focus, related work, sequence, diagnostics, and action availability; one grant
@@ -227,7 +227,7 @@ loop:
   any collision or cycle prevents every write;
 - leave the source design byte-for-byte unchanged.
 
-Expose the same service as Agent Slice B with the Security Profile 17a limit of
+Expose the same service as Agent Slice B with the initial security profile's limit of
 25 drafts. Add the Obsidian Approval Inbox, exact multi-file review, one-use
 approval, proposal polling, cancellation, expiry, and conflict results. Agent
 requests select a template kind/variant and typed inputs; they cannot submit a
@@ -329,7 +329,7 @@ document tools; their content changes remain typed operations.
 Governing documents:
 
 - [Design 17 — Agent Slice D](spec/17-agent-access-and-mcp.md#agent-slice-d--controlled-document-writes)
-- [Security Profile 17a](spec/17a-agent-access-security-profile.md)
+- [Design 17 — Initial Security Profile](spec/17-agent-access-and-mcp.md#initial-security-profile)
 - [Design 18 — Project-Owned Templates](spec/18-project-note-templates.md)
 
 Exit gate: every allowed patch produces an exact reviewed diff and preserves
@@ -367,8 +367,8 @@ Governing documents:
 - [Design 12 — Plugin Experience](spec/12-plugin-experience.md)
 - [Design 13 — Quality and Release](spec/13-quality-and-release.md)
 - [Design 17 — Project Weave Skill](spec/17-agent-access-and-mcp.md#project-weave-skill)
-- [Manual Checks](MANUAL_CHECKS.md)
-- [Plugin Release and Testing](PLUGIN_RELEASE_AND_TESTING.md)
+- [Manual Checks](development/testing.md)
+- [Plugin Release and Testing](development/release.md)
 
 Exit gate: `npm run check` passes from a clean install, the export inventory is
 exact, required manual checks are recorded, mobile compatibility is confirmed,

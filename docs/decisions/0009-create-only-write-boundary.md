@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0009"
+area: writes
+status: accepted
+canonical: false
+affects: ["10"]
+---
+
 # ADR 0009: Cross the write boundary with a create-only port and a re-checking commit service
 
 - Status: accepted

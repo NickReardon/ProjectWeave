@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0005"
+area: templates
+status: accepted
+canonical: false
+affects: ["18"]
+---
+
 # ADR 0005: Use project-owned referenced Markdown templates for note creation
 
 - Status: accepted

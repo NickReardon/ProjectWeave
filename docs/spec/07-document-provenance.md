@@ -1,3 +1,11 @@
+---
+type: spec
+area: provenance
+status: current
+canonical: true
+related_decisions: []
+---
+
 # 07 — Document Provenance
 
 ## Goal

@@ -1,3 +1,11 @@
+---
+type: spec
+area: plugin-experience
+status: current
+canonical: true
+related_decisions: ["0006"]
+---
+
 # 12 — Plugin Experience
 
 ## Goal

@@ -1,3 +1,11 @@
+---
+type: spec
+area: quality
+status: current
+canonical: true
+related_decisions: ["0006"]
+---
+
 # 13 — Quality, Compatibility, and Release
 
 ## Goal

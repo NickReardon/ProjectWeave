@@ -9,7 +9,7 @@ Nothing here overrides anything it points to.
 | ---------------------------------- | --------------------------------------------------------------------- |
 | What should be true?               | [`docs/spec/`](docs/spec/README.md)                                   |
 | What is implemented?               | [`README.md`](README.md)                                              |
-| What is verified?                  | `tests/`, plus [`docs/MANUAL_CHECKS.md`](docs/MANUAL_CHECKS.md)       |
+| What is verified?                  | `tests/`, plus [`docs/development/testing.md`](docs/development/testing.md)       |
 | Why was a choice made?             | [`docs/decisions/`](docs/decisions)                                   |
 | How do the pieces fit together?    | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                        |
 | What remains to do, in what order? | [`docs/IMPLEMENTATION_ORDER.md`](docs/IMPLEMENTATION_ORDER.md)        |

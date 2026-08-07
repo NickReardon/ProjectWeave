@@ -174,7 +174,7 @@ cap.
 
 ## Manual checks still required
 
-`docs/MANUAL_CHECKS.md` holds the step-by-step procedure, fixture baseline, and
+`docs/development/testing.md` holds the step-by-step procedure, fixture baseline, and
 pass criteria for each numbered check; this file remains authoritative for
 whether one has passed. Run them against a disposable vault seeded from
 `tests/fixtures/vault/`.
@@ -277,11 +277,17 @@ Verified against the committed tree; none blocks the manual checks:
   enforced-by-default dependency mode, and portfolio sprints presented as core
   v1 — all resolved in favor of the code, which was correct in each case. No
   spec statement was dropped in the move.
-- Three documentation choices are deliberately deferred, none blocking: whether
-  the 19 specs should merge into roughly 8 subsystem documents, whether specs
-  and ADRs should carry machine-readable frontmatter for the future agent
-  context builder, and whether `MANUAL_CHECKS.md` and
-  `PLUGIN_RELEASE_AND_TESTING.md` move under `docs/development/`.
+- Every spec, ADR, and archived document carries `type`, `status`, and
+  `canonical` frontmatter, with `area` and cross-links between specs and their
+  decisions. A future context builder can select current specs by area without
+  reading prose, and no archived document is marked canonical. The
+  frontmatter is documentation metadata only; no code reads it yet.
+- Merging the specs into fewer subsystem documents remains deliberately
+  undone, and is not blocking. The roadmap's own governing-document lists show
+  a median of three to four specs per slice, and the two most-cited specs —
+  dependencies and agent access — pair with different neighbors in each slice,
+  so a subsystem merge would relocate the cost rather than remove it. Revisit
+  only if `area` selection proves insufficient in practice.
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
 - The template resolver, proposal service, allocator, renderer, and commit

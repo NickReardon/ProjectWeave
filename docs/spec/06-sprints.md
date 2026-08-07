@@ -1,3 +1,11 @@
+---
+type: spec
+area: planning-periods
+status: current
+canonical: true
+related_decisions: ["0003"]
+---
+
 # 06 — Sprints
 
 ## Goal
