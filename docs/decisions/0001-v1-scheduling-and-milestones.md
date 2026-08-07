@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0001"
+area: scheduling
+status: accepted
+canonical: false
+affects: ["15"]
+---
+
 # ADR 0001: Add basic scheduling and milestone features to v1
 
 - Status: accepted
@@ -19,7 +28,7 @@ V1 will include:
 - `completed_at` plus reopen history for tasks transitioned to done;
 - a canonical project-scoped `milestone` note and optional task-to-milestone link.
 
-The complete behavioral contract is `docs/design/15-scheduling-and-milestones.md`.
+The complete behavioral contract is `docs/spec/15-scheduling-and-milestones.md`.
 
 ## Alternatives considered
 

@@ -11,7 +11,7 @@ const VALID_HANDOFF = `# Project Weave Current Work
 ## Operational state
 
 - The complete gate passed against source commit \`abc1234\`.
-- Detailed release steps remain in \`docs/PLUGIN_RELEASE_AND_TESTING.md\`.
+- Detailed release steps remain in \`docs/development/release.md\`.
 
 ## Next decision point
 

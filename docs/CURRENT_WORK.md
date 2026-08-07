@@ -1,3 +1,9 @@
+---
+type: status
+status: current
+canonical: false
+---
+
 # Project Weave Current Work
 
 ## Purpose
@@ -5,7 +11,8 @@
 This file records only what commit history cannot: validation evidence,
 outstanding manual checks, known loose ends, and the next decision point. For
 what changed and why, read the commit history. This is operational context, not
-a product contract; `CURRENT-DESIGN.md` owns product precedence.
+a product contract; `docs/spec/` is the canonical statement of intended
+behavior.
 
 Write every branch's update as the proposed post-merge handoff: it must be
 truthful for the resulting `main` state. Do not record the current branch,
@@ -32,8 +39,9 @@ ends, or the next decision changes — not for every code change.
   version was last set: project creation through the UI, the layered template
   catalog with its chooser, and task categories — the last of which adds both a
   frontmatter field and a diagnostic code. Any one of those is a minor by the
-  sizing rule in `README.md`. Nothing has been released; the major position
-  stays reserved for the first stable release against the full specification.
+  sizing rule in `docs/development/release.md`. Nothing has been released; the
+  major position stays reserved for the first stable release against the full
+  specification.
 - **Project Weave now writes to the vault.** Confirming **Create task** in the
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
@@ -44,7 +52,7 @@ ends, or the next decision changes — not for every code change.
   note matching its preview byte for byte.
 - Task target paths and backlog ranks are now allocated by pure application
   code. ADR 0008 settles the folder convention, filename derivation, collision
-  policy, and rank rule that `docs/design/README.md` had left open.
+  policy, and rank rule that `docs/spec/README.md` had left open.
 - Local test-vault installation and the preview/stable release workflow are
   documented and automatically exercised. Nothing has been released.
 - A disposable test vault can be seeded and reset from the committed fixture,
@@ -173,7 +181,7 @@ cap.
 
 ## Manual checks still required
 
-`docs/MANUAL_CHECKS.md` holds the step-by-step procedure, fixture baseline, and
+`docs/development/testing.md` holds the step-by-step procedure, fixture baseline, and
 pass criteria for each numbered check; this file remains authoritative for
 whether one has passed. Run them against a disposable vault seeded from
 `tests/fixtures/vault/`.
@@ -269,6 +277,29 @@ running check 11 or they will appear in every task list.
 
 Verified against the committed tree; none blocks the manual checks:
 
+- The documentation now has one authority. `docs/spec/` states intended
+  behavior with no precedence chain; `docs/archive/` is history and overrides
+  nothing. Folding the addenda in exposed three places where the owning design
+  had drifted from the implementation — the `backlog` task status, the
+  enforced-by-default dependency mode, and portfolio sprints presented as core
+  v1 — all resolved in favor of the code, which was correct in each case. No
+  spec statement was dropped in the move.
+- Every spec, ADR, and archived document carries `type`, `status`, and
+  `canonical` frontmatter, with `area` and cross-links between specs and their
+  decisions. A future context builder can select current specs by area without
+  reading prose, and no archived document is marked canonical. The
+  frontmatter is documentation metadata only; no code reads it yet.
+- Merging the specs into fewer subsystem documents remains deliberately
+  undone, and is not blocking. The roadmap's own governing-document lists show
+  a median of three to four specs per slice, and the two most-cited specs —
+  dependencies and agent access — pair with different neighbors in each slice,
+  so a subsystem merge would relocate the cost rather than remove it. Revisit
+  only if `area` selection proves insufficient in practice.
+- ADR 0015 proposes replacing this file's task-shaped content with Project
+  Weave's own notes, and records why the automated-verification evidence stays
+  in Markdown regardless. It is blocked on the typed mutation kernel and typed
+  task editing, and it leaves where a dogfood vault lives to its own decision.
+  Until those land, this file remains authoritative.
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
 - The template resolver, proposal service, allocator, renderer, and commit
@@ -392,9 +423,9 @@ Verified against the committed tree; none blocks the manual checks:
    was observed — including any defect — before treating the affected
    workbench, project-creation, or template flows as accepted.
 2. Finish ADR 0013 with the previewed **Add Template** flow, vault-backed
-   `project/default`, and the normative Plan Addendum 005/Design 18 update.
-   Accept the ADR only after its catalog contract and manual acceptance are
-   truthful.
+   `project/default`, and the normative update to
+   `docs/spec/18-project-note-templates.md`. Accept the ADR only after its
+   catalog contract and manual acceptance are truthful.
 3. Follow the dependency-ordered remaining roadmap in
    `docs/IMPLEMENTATION_ORDER.md`, beginning with the shared read/action
    services and read-only agent boundary after the creation/template flow is

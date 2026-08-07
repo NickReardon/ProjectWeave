@@ -19,7 +19,7 @@ export const TASK_FOLDER_NAME = 'Tasks';
 
 /**
  * Rank gap between consecutive new tasks
- * (docs/design/15-scheduling-and-milestones.md).
+ * (docs/spec/15-scheduling-and-milestones.md).
  */
 export const RANK_GAP = 1000;
 
@@ -149,7 +149,7 @@ export function allocateTaskPath(
 
 /**
  * Choose the backlog rank for a new task: one gap past the project's largest
- * existing rank (docs/design/15-scheduling-and-milestones.md).
+ * existing rank (docs/spec/15-scheduling-and-milestones.md).
  *
  * The maximum spans every task in the project rather than only backlog ones.
  * Design 15 keeps a rank while a task is assigned elsewhere, so a

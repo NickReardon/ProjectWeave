@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0004"
+area: agent-access
+status: accepted
+canonical: false
+affects: ["17"]
+---
+
 # ADR 0004: Design agent access now and stage MCP from read to controlled writes
 
 - Status: accepted

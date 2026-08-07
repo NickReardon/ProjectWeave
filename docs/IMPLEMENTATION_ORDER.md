@@ -1,13 +1,19 @@
+---
+type: roadmap
+status: current
+canonical: false
+---
+
 # Project Weave Approved-v1 Implementation Order
 
 ## Purpose and authority
 
 This document orders the remaining approved v1 work from the implementation
 state recorded in [README](../README.md) and
-[Current Work](CURRENT_WORK.md). It is a derived delivery roadmap, not a new
-product contract. [Current Design](../CURRENT-DESIGN.md) defines normative
-precedence; every slice below remains governed by the cited plan, design, and
-decision records.
+[Current Work](CURRENT_WORK.md). It is a derived delivery roadmap, not a
+product contract. [`docs/spec/`](spec/README.md) is the canonical statement of
+intended behavior; every slice below remains governed by the specifications and
+decision records it cites, and this document never overrides them.
 
 Commit history remains the record of what has landed. `CURRENT_WORK.md` remains
 the authority for validation evidence, outstanding manual checks, known loose
@@ -69,8 +75,8 @@ Then finish ADR 0013 in this order:
    project default.~~ Landed: a broken configured winner fails closed, an
    absent vault candidate falls through, and the commit re-reads the vault
    template by fingerprint. Only its manual acceptance in step 4 remains.
-3. Update Plan Addendum 005 and Design 18 to match the layered catalog and
-   kind-owned creation-profile precedence, then accept ADR 0013.
+3. Update Design 18 to match the layered catalog and kind-owned
+   creation-profile precedence, then accept ADR 0013.
 4. Complete manual acceptance for adding/selecting a task variant, project
    override precedence, invalid-template refusal, project-default creation,
    and fingerprint refusal after an open template changes.
@@ -81,10 +87,9 @@ creatable by itself.
 
 Governing documents:
 
-- [Plan Addendum 005](../PLAN-ADDENDUM-005.md)
-- [Design 18 — Project-Owned Note Templates](design/18-project-note-templates.md)
+- [Design 18 — Project-Owned Note Templates](spec/18-project-note-templates.md)
 - [ADR 0013 — Layered Note-Template Catalog](decisions/0013-resolve-templates-from-a-vault-template-folder.md)
-- [Manual Checks](MANUAL_CHECKS.md)
+- [Manual Checks](development/testing.md)
 
 Exit gate: the complete automated gate passes, checks 5, 11, 15, 16 and the
 focus checks have recorded outcomes, ADR 0013 is accepted, and task/project
@@ -116,10 +121,9 @@ The adapter advertises bounded read tools only; proposal tools are absent.
 
 Governing documents:
 
-- [Plan Addendum 004](../PLAN-ADDENDUM-004.md)
-- [Design 02 — Data Model and Index](design/02-data-model-and-index.md)
-- [Design 17 — Agent Access and MCP](design/17-agent-access-and-mcp.md)
-- [Security Profile 17a](design/17a-agent-access-security-profile.md)
+- [Design 02 — Data Model and Index](spec/02-data-model-and-index.md)
+- [Design 17 — Agent Access and MCP](spec/17-agent-access-and-mcp.md)
+- [Design 17 — Initial Security Profile](spec/17-agent-access-and-mcp.md#initial-security-profile)
 
 Exit gate: UI and adapter contract tests return equivalent project context,
 focus, related work, sequence, diagnostics, and action availability; one grant
@@ -151,10 +155,10 @@ write port. No generic file or arbitrary-frontmatter operation becomes public.
 
 Governing documents:
 
-- [Design 10 — Validation and Safe Writes](design/10-validation-and-safe-writes.md)
-- [Design 03 — Task Management](design/03-task-management.md)
+- [Design 10 — Validation and Safe Writes](spec/10-validation-and-safe-writes.md)
+- [Design 03 — Task Management](spec/03-task-management.md)
 - [ADR 0009 — Create-Only Write Boundary](decisions/0009-create-only-write-boundary.md)
-- [Design 17 — Proposal Lifecycle](design/17-agent-access-and-mcp.md#proposal-lifecycle)
+- [Design 17 — Proposal Lifecycle](spec/17-agent-access-and-mcp.md#proposal-lifecycle)
 
 Exit gate: single- and multi-file proposals abort before writing when any
 preflight input changed; injected runtime failures produce exact partial
@@ -198,15 +202,12 @@ inferred from rank.
 
 Governing documents:
 
-- [Product Brief v1](PRODUCT_BRIEF-V1.md)
-- [Plan Addendum 001](../PLAN-ADDENDUM-001.md)
-- [Plan Addendum 002](../PLAN-ADDENDUM-002.md)
-- [Plan Addendum 003](../PLAN-ADDENDUM-003.md)
-- [Design 03 — Task Management](design/03-task-management.md)
-- [Design 05 — Dependencies and Iterations](design/05-dependencies-and-iterations.md)
-- [Design 09 — Project Workbench](design/09-project-workbench.md)
-- [Design 15 — Scheduling and Milestones](design/15-scheduling-and-milestones.md)
-- [Design 16 — Streamlined Workflow](design/16-streamlined-long-project-workflow.md)
+- [Product Brief v1](spec/00-product-brief.md)
+- [Design 03 — Task Management](spec/03-task-management.md)
+- [Design 05 — Dependencies and Iterations](spec/05-dependencies-and-iterations.md)
+- [Design 09 — Project Workbench](spec/09-project-workbench.md)
+- [Design 15 — Scheduling and Milestones](spec/15-scheduling-and-milestones.md)
+- [Design 16 — Streamlined Workflow](spec/16-streamlined-long-project-workflow.md)
 
 Exit gate: a project with only project/task/status data can move work from
 backlog through board completion and reopening; optional fields cause no
@@ -232,7 +233,7 @@ loop:
   any collision or cycle prevents every write;
 - leave the source design byte-for-byte unchanged.
 
-Expose the same service as Agent Slice B with the Security Profile 17a limit of
+Expose the same service as Agent Slice B with the initial security profile's limit of
 25 drafts. Add the Obsidian Approval Inbox, exact multi-file review, one-use
 approval, proposal polling, cancellation, expiry, and conflict results. Agent
 requests select a template kind/variant and typed inputs; they cannot submit a
@@ -240,11 +241,11 @@ supposedly final raw entity note.
 
 Governing documents:
 
-- [Design 07 — Document Provenance](design/07-document-provenance.md)
-- [Design 10 — Validation and Safe Writes](design/10-validation-and-safe-writes.md)
-- [Design 16 — Plan View](design/16-streamlined-long-project-workflow.md#plan-view)
-- [Design 17 — Agent Slice B](design/17-agent-access-and-mcp.md#agent-slice-b--propose-tasks-from-a-document)
-- [Design 18 — Project-Owned Templates](design/18-project-note-templates.md)
+- [Design 07 — Document Provenance](spec/07-document-provenance.md)
+- [Design 10 — Validation and Safe Writes](spec/10-validation-and-safe-writes.md)
+- [Design 16 — Plan View](spec/16-streamlined-long-project-workflow.md#plan-view)
+- [Design 17 — Agent Slice B](spec/17-agent-access-and-mcp.md#agent-slice-b--propose-tasks-from-a-document)
+- [Design 18 — Project-Owned Templates](spec/18-project-note-templates.md)
 
 Exit gate: design note to editable linked drafts to ranked backlog works in the
 UI and through an approved agent proposal; source changes invalidate an open
@@ -271,10 +272,10 @@ remain derived from task links rather than mirrored arrays.
 
 Governing documents:
 
-- [Design 04 — Projects and Epics](design/04-projects-and-epics.md)
-- [Design 05 — Dependencies and Iterations](design/05-dependencies-and-iterations.md)
-- [Design 15 — Scheduling and Milestones](design/15-scheduling-and-milestones.md)
-- [Design 18 — Project-Owned Templates](design/18-project-note-templates.md)
+- [Design 04 — Projects and Epics](spec/04-projects-and-epics.md)
+- [Design 05 — Dependencies and Iterations](spec/05-dependencies-and-iterations.md)
+- [Design 15 — Scheduling and Milestones](spec/15-scheduling-and-milestones.md)
+- [Design 18 — Project-Owned Templates](spec/18-project-note-templates.md)
 
 Exit gate: every new kind produces a valid note from a body-focused template,
 preserves project consistency through edits, and remains invisible as process
@@ -303,12 +304,11 @@ frontmatter.
 
 Governing documents:
 
-- [Plan Addendum 003](../PLAN-ADDENDUM-003.md)
-- [Design 05 — Dependencies and Iterations](design/05-dependencies-and-iterations.md)
-- [Design 06 — Sprints](design/06-sprints.md), limited by later
+- [Design 05 — Dependencies and Iterations](spec/05-dependencies-and-iterations.md)
+- [Design 06 — Sprints](spec/06-sprints.md), limited by later
   single-project-first precedence
-- [Design 16 — Optional Planning Periods](design/16-streamlined-long-project-workflow.md#optional-planning-periods-and-estimates)
-- [Design 17 — Agent Slice C](design/17-agent-access-and-mcp.md#agent-slice-c--typed-task-editing)
+- [Design 16 — Optional Planning Periods](spec/16-streamlined-long-project-workflow.md#optional-planning-periods-and-estimates)
+- [Design 17 — Agent Slice C](spec/17-agent-access-and-mcp.md#agent-slice-c--typed-task-editing)
 
 Exit gate: no period is required to use the board; activation/close conflicts
 cannot overwrite external edits; UI and agent operations return equivalent
@@ -334,10 +334,9 @@ document tools; their content changes remain typed operations.
 
 Governing documents:
 
-- [Plan Addendum 004](../PLAN-ADDENDUM-004.md)
-- [Design 17 — Agent Slice D](design/17-agent-access-and-mcp.md#agent-slice-d--controlled-document-writes)
-- [Security Profile 17a](design/17a-agent-access-security-profile.md)
-- [Design 18 — Project-Owned Templates](design/18-project-note-templates.md)
+- [Design 17 — Agent Slice D](spec/17-agent-access-and-mcp.md#agent-slice-d--controlled-document-writes)
+- [Design 17 — Initial Security Profile](spec/17-agent-access-and-mcp.md#initial-security-profile)
+- [Design 18 — Project-Owned Templates](spec/18-project-note-templates.md)
 
 Exit gate: every allowed patch produces an exact reviewed diff and preserves
 untouched bytes; all entity, template, path, and approval bypass attempts fail
@@ -371,11 +370,11 @@ and mobile checks before claiming support.
 
 Governing documents:
 
-- [Design 12 — Plugin Experience](design/12-plugin-experience.md)
-- [Design 13 — Quality and Release](design/13-quality-and-release.md)
-- [Design 17 — Project Weave Skill](design/17-agent-access-and-mcp.md#project-weave-skill)
-- [Manual Checks](MANUAL_CHECKS.md)
-- [Plugin Release and Testing](PLUGIN_RELEASE_AND_TESTING.md)
+- [Design 12 — Plugin Experience](spec/12-plugin-experience.md)
+- [Design 13 — Quality and Release](spec/13-quality-and-release.md)
+- [Design 17 — Project Weave Skill](spec/17-agent-access-and-mcp.md#project-weave-skill)
+- [Manual Checks](development/testing.md)
+- [Plugin Release and Testing](development/release.md)
 
 Exit gate: `npm run check` passes from a clean install, the export inventory is
 exact, required manual checks are recorded, mobile compatibility is confirmed,

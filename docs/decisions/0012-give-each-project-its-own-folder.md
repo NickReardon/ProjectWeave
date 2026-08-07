@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0012"
+area: projects
+status: accepted
+canonical: false
+affects: ["04"]
+---
+
 # ADR 0012: Give each created project its own folder
 
 - Status: accepted
@@ -19,7 +28,7 @@ a convention that already shipped. Two projects whose notes sit in one folder
 would share one `Tasks` folder, and their tasks would mingle with no way to tell
 them apart by path.
 
-`docs/design/README.md` leaves project scaffolding unresolved, and the packaged
+`docs/spec/README.md` leaves project scaffolding unresolved, and the packaged
 `templates/default/project.md` has never had a consumer.
 
 ## Decision

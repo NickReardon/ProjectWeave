@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0002"
+area: workflow
+status: accepted
+canonical: false
+affects: ["16", "00", "14"]
+---
+
 # ADR 0002: Make v1 single-project-first with progressive workflow
 
 - Status: accepted

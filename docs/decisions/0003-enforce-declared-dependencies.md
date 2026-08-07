@@ -1,3 +1,12 @@
+---
+type: decision
+id: "0003"
+area: dependencies
+status: accepted
+canonical: false
+affects: ["05", "06"]
+---
+
 # ADR 0003: Enforce declared same-project dependencies by default
 
 - Status: accepted

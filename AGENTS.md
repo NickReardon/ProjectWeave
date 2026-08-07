@@ -5,21 +5,23 @@
 Project Weave is a Markdown-first Obsidian project workbench. Before changing
 code or product behavior, read these files in order:
 
-1. `CURRENT-DESIGN.md` for the authoritative product-contract reading order
-   and precedence rules.
-2. `README.md` for implemented behavior, setup, commands, and manual checks.
+1. `CURRENT-DESIGN.md` for the one-page map of where each kind of truth lives.
+2. `README.md` for implemented behavior, setup, and commands.
 3. Recent history on the current branch (`git log --oneline -20`) for what has
    changed and why. History is the primary record of work in progress.
 4. `docs/CURRENT_WORK.md` for validation status, outstanding manual checks, and
    the next decision point — the state Git cannot carry.
 5. `docs/ARCHITECTURE.md` for dependency direction and implemented boundaries.
-6. The owning document under `docs/design/` and any relevant record under
+6. The owning specification under `docs/spec/` and any relevant record under
    `docs/decisions/`.
 7. Nearby source, tests, and fixtures for the behavior being changed.
 
-When documents conflict, follow the precedence defined in
-`CURRENT-DESIGN.md`. Implementation-status claims belong in `README.md` and
-`docs/CURRENT_WORK.md`, not in older planning documents.
+`docs/spec/` is the single canonical statement of intended behavior; there is
+no precedence chain and no document outside it overrides it. When the spec and
+the code disagree, that is a defect in one of them — say which, and fix it.
+Implementation-status claims belong in `README.md` and `docs/CURRENT_WORK.md`.
+Nothing under `docs/archive/` is authoritative; do not cite it as a
+requirement.
 
 ## Repository map
 
@@ -31,9 +33,10 @@ When documents conflict, follow the precedence defined in
 - `src/ui/`: Obsidian views, modals, and settings surfaces.
 - `tests/`: unit, application, integration, helpers, and fixture-vault coverage.
 - `templates/default/`: built-in Markdown templates.
-- `docs/design/`: normative feature behavior, subject to the current-design
-  precedence rules.
-- `docs/decisions/`: accepted architectural and product decisions.
+- `docs/spec/`: the canonical specification of intended behavior.
+- `docs/decisions/`: accepted architectural and product decisions — rationale
+  and history, never a source of current behavior.
+- `docs/archive/`: superseded plans and briefs, authoritative over nothing.
 - `scripts/`: version, build-output, export, and ZIP tooling.
 
 ## Engineering constraints
@@ -64,6 +67,10 @@ When documents conflict, follow the precedence defined in
   log output.
 - Prefer the smallest change that follows neighboring patterns. Update focused
   tests and fixtures with behavior changes.
+- A new product decision updates the owning specification in `docs/spec/`, and
+  adds an ADR under `docs/decisions/` when the rationale is worth preserving.
+  Never add a document that overrides the spec — no addenda, no plan revisions,
+  no second requirements file. If the spec is wrong, change the spec.
 - Record material architectural or product choices in a concise ADR using
   `docs/decisions/0000-template.md`. Preserve superseded decisions as history.
 - Update `docs/CURRENT_WORK.md` only for state the commit history cannot
@@ -77,8 +84,8 @@ When documents conflict, follow the precedence defined in
   or task conversation. A commit may be named only as immutable validation
   evidence, such as the source commit against which a command passed.
 - Update `README.md` and `docs/ARCHITECTURE.md` when implemented or released
-  boundaries change. Do not use `docs/PROJECT_PLAN.md` as current guidance; it
-  is retained as a historical bootstrap plan.
+  boundaries change. Do not use anything under `docs/archive/` as current
+  guidance; it is retained only to preserve decision history.
 
 ## Version control
 
@@ -104,7 +111,8 @@ enough that prose documentation does not need to restate it.
   passes its exit gate, or when a compatibility surface changes — product
   terms, frontmatter fields, controlled values, diagnostic codes, or persisted
   workspace state. Do not claim a minor when work on a chunk begins; the
-  version describes what a build contains. `README.md` holds the full rule.
+  version describes what a build contains.
+  `docs/development/release.md` holds the full rule.
   Resolve genuine ambiguity upward and say why; a change you can fully describe
   as a fix or a refactor is not ambiguous.
 
@@ -123,7 +131,7 @@ release inventory. Use narrower commands while iterating, but run the complete
 gate before handoff when practical.
 
 Obsidian UI, workspace restoration, responsive behavior, and live vault-event
-behavior still require focused manual checks. `docs/MANUAL_CHECKS.md` is the
+behavior still require focused manual checks. `docs/development/testing.md` is the
 procedure for running them; `docs/CURRENT_WORK.md` records which have passed
 and is authoritative for status. Report automated and manual verification
 separately.

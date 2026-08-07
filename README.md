@@ -6,8 +6,9 @@ connects design notes to a ranked backlog, dependency-aware board work, and a
 clear Ready Now sequence without requiring sprints, estimates, owners, or
 other process features a project does not use.
 
-The current product direction and normative reading order are in
-[CURRENT-DESIGN.md](CURRENT-DESIGN.md).
+This file records what is implemented. What Project Weave is specified to do is
+in [docs/spec/](docs/spec/README.md); [CURRENT-DESIGN.md](CURRENT-DESIGN.md) is
+a one-page map of where each kind of truth lives.
 
 Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
 defines the branch and small-commit workflow. Validation evidence, remaining
@@ -18,66 +19,48 @@ what changed. The dependency-ordered remaining roadmap is in
 
 ## Current status
 
-The implemented slices are:
+Implemented today:
 
-- strict TypeScript Obsidian plugin and production bundle;
-- asynchronous, non-writing Markdown indexing behind read-only ports;
-- project, epic, task, milestone, planning-period, relation, and diagnostic
-  parsing;
-- dependency readiness, reverse edges, provenance, and deterministic ordering;
-- bounded project context, task context, and Ready Now application queries;
-- a persistent Obsidian Project Workbench with a project picker, project
-  summary, live index state, bounded Ready Now list, and a project-scoped All
-  Tasks list with status, priority, epic, milestone, owner, category,
-  due-state, and
-  title/path filters;
-- visible project and unassigned diagnostic sections grouped by affected note,
-  with severity, error code, field, recovery guidance, related-note links, and
-  exact-note navigation;
-- compact, live diagnostic banners above affected Markdown notes in editing
-  and reading modes without modifying note content;
-- ribbon, command-palette, and settings entry points for the workbench;
-- workspace-restored project selection and task navigation that preserves the
-  dashboard tab;
-- an Obsidian **Open Ready Now** command and modal for the compact flow;
-- a persisted Obsidian settings tab for project-folder discovery and the
-  template library location;
-- a plugin-lifetime read publication layer that keeps open views current when
-  indexed project folders replace the indexing runtime;
-- a deterministic task-template renderer in the domain, covering template
-  parsing, typed variable substitution, optional-field omission, conditional
-  body blocks, and entity-type/project invariants;
-- a read-only application resolver for project task-template defaults and named
-  variants, with explicit packaged fallback and fail-closed broken references;
-- an exact one-file task-creation proposal service carrying project/template
-  fingerprints, target-absence preconditions, frontmatter changes, rendered
-  bytes, and expected indexing postconditions;
-- pure task target-path and rank allocation that derives a `Tasks` folder from
-  the project note's location, accepts an optional organizing subfolder,
-  sanitizes a title into a safe filename, suggests the first free path, and
-  spaces ranks 1000 apart;
-- a **Create task** command and modal showing the allocated path and
-  rank, resolved template, preconditions, read set, expected postconditions,
-  and exact rendered bytes, with an explicit **Create task** action;
-- a **Create project** command and modal on the same terms, allocating a
-  folder of the project's own and offering a chooser when settings name more
-  than one indexed folder;
-- a commit coordinator that re-reads the proposal's inputs, compares
-  fingerprints, re-checks target absence, and re-validates the produced note
-  before writing it once;
-- a create-only note-writing port with no way to express overwrite, move, or
-  delete, implemented over Obsidian's Vault API;
-- a vault template library and merged template catalog per ADR 0013, with
-  per-key precedence and a composite reader that reaches templates outside the
-  indexed project folders without widening what indexing sees;
-- fixture-backed parser, index, query, dashboard projection, template
-  rendering, incremental-update, lifecycle, and release-inventory tests;
-- CI runs the same complete check on supported Node.js versions.
+- **Indexing** — asynchronous, non-writing Markdown indexing behind read-only
+  ports, parsing projects, epics, tasks, milestones, planning periods,
+  relations, and diagnostics. Dependency readiness, reverse edges, provenance,
+  and deterministic ordering are derived rather than stored, and a
+  plugin-lifetime publication layer keeps open views current when the indexed
+  folders replace the indexing runtime.
+- **Queries** — bounded project context, task context, and Ready Now
+  application queries, each explicitly project-scoped.
+- **Workbench** — a persistent Obsidian Project Workbench with a project
+  picker, project summary, live index state, a bounded Ready Now list, and a
+  project-scoped All Tasks list filterable by status, priority, epic,
+  milestone, owner, category, due state, and title or path. Ribbon,
+  command-palette, and settings entry points open it, and Obsidian restores it
+  with the workspace.
+- **Diagnostics** — project and unassigned diagnostic sections grouped by
+  affected note, carrying severity, error code, field, recovery guidance,
+  related-note links, and exact-note navigation, plus compact live banners
+  above affected Markdown notes in editing and reading modes. Neither modifies
+  note content.
+- **Creation** — a deterministic template renderer in the domain; a read-only
+  resolver for project template defaults and named variants with explicit
+  packaged fallback and fail-closed broken references; pure target-path and
+  rank allocation; exact one-file creation proposals carrying fingerprints,
+  target-absence preconditions, rendered bytes, and expected postconditions;
+  **Create task** and **Create project** commands and modals showing all of it
+  before you confirm; and a commit coordinator that re-reads its inputs,
+  compares fingerprints, and re-validates before writing once.
+- **Templates** — a vault template library and merged catalog per
+  [ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md),
+  with per-key precedence and a composite reader that reaches templates outside
+  the indexed project folders without widening what indexing sees.
+- **Tests** — fixture-backed parser, index, query, dashboard projection,
+  template rendering, incremental-update, lifecycle, and release-inventory
+  coverage. CI runs the same complete check on supported Node.js versions.
 
 **New task** in the workbench, or **Create task** in the command palette,
-exercises this chain end to end: it allocates a path and rank, resolves the template, shows the exact bytes
-that would be written along with the preconditions and expected
-postconditions, and creates the note when you confirm.
+exercises this chain end to end: it allocates a path and rank, resolves the
+template, shows the exact bytes that would be written along with the
+preconditions and expected postconditions, and creates the note when you
+confirm.
 
 Creation is the only thing Project Weave writes. Indexing, plugin load,
 settings changes, navigation, and the dashboard never modify vault content.
@@ -90,6 +73,8 @@ rather than writing something you did not see.
 Editing existing notes, rank rebalancing and reorder, the remaining note
 kinds, full Plan/Board/My Work perspectives, portfolio views, and agent/MCP
 transport remain later slices.
+
+### Where notes are created
 
 New task notes are placed in a `Tasks` folder beside the project note, so
 `Projects/Game/Project.md` gives `Projects/Game/Tasks/`. A caller may pass a
@@ -154,8 +139,6 @@ The create-task modal shows a **Template** chooser once more than one variant
 exists, listing the merged variants plus **Packaged minimal** as an explicit
 escape hatch, and re-previews when you change it. With one variant there is no
 choice to make, so there is no control.
-[ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md)
-records the design.
 
 A created project uses `<template library folder>/project/default.md` when it
 exists, and the packaged project template otherwise, on the same fail-closed
@@ -172,25 +155,14 @@ only a heading and some sections still produces a valid note.
 
 A template is an ordinary Markdown note marked `weave_template: true` with a
 `template_for` kind. Marked templates are excluded from entity indexing, so a
-template never appears as a task. Rendering removes the template-only keys
-(`weave_template`, `template_schema`, `template_for`, `template_name`,
-`template_description`, `template_inputs`) and keeps every other property.
+template never appears as a task. Rendering removes the template-only keys and
+keeps every other property. The renderer executes nothing and reads nothing: it
+has no clock, network, environment, or file access, and every value comes from
+the creation context its caller supplies.
 
-Frontmatter placeholders must occupy a whole value, such as
-`points: "{{points}}"`. They are replaced with the typed value, and a property
-whose optional variable is unset is omitted rather than left empty. Body
-placeholders insert Markdown, `{{#if variable}}` / `{{/if}}` blocks are the
-only control construct and cannot nest, and `\{{` writes a literal `{{`.
-`{{date}}`, `{{time}}`, and `{{datetime}}` accept formats built from `YYYY`,
-`MM`, `DD`, `HH`, `mm`, and `ss` with bracketed literals, for example
-`{{date:YYYY-MM-DD}}`.
-
-The renderer executes nothing and reads nothing: it has no clock, network,
-environment, or file access, and every value comes from the creation context
-its caller supplies. Unknown variables, malformed or unmatched directives,
-invalid metadata or input types, undeclared inputs, an unsafe target path, and
-a template that contradicts the entity type or selected project are all
-errors, and no note is produced.
+Template metadata keys, frontmatter and body placeholder syntax, the
+`{{#if}}` construct, and the date and time formats are specified in
+[Design 18 — Project note templates](docs/spec/18-project-note-templates.md).
 
 ## Development
 
@@ -205,97 +177,39 @@ Use `npm run dev` for a watching development bundle. A production build writes
 exactly `main.js`, `manifest.json`, and `styles.css` to `dist/`. Install
 those files only in a disposable development vault.
 
-## Obsidian settings and manual test
+Manual checks against Obsidian — the procedure, the disposable test vault, and
+the recorded results — are in
+[docs/development/testing.md](docs/development/testing.md). Release channels and
+the version-sizing rule are in
+[docs/development/release.md](docs/development/release.md).
 
-Open **Settings → Community plugins → Project Weave**. The plugin indexes only
-the configured **Indexed project folders**; a fresh install defaults to
-`Projects`. Add a narrower root such as `Projects/Game` when only one project
-should be visible. Removing every root intentionally produces an empty index.
-Changing roots replaces the current runtime and rebuilds without retaining
-out-of-scope notes.
+## Obsidian settings
 
-The **Template library folder** names where vault-wide templates live, one
-folder per kind and one file per variant, such as `task/bug.md`. It is a local
+Open **Settings → Community plugins → Project Weave**.
+
+**Indexed project folders** decides what Project Weave reads. A fresh install
+defaults to `Projects`. Add a narrower root such as `Projects/Game` when only
+one project should be visible. Removing every root intentionally produces an
+empty index. Changing roots replaces the current runtime and rebuilds without
+retaining out-of-scope notes.
+
+**Template library folder** names where vault-wide templates live, one folder
+per kind and one file per variant, such as `task/bug.md`. It is a local
 preference: saving it never creates or edits vault content, an empty value uses
 the packaged templates only, and a folder nobody has created simply holds no
 templates. Project notes may still map their own variants under
-`weave.templates`, which travel with the project and take precedence. Task
-creation reads `task/<variant>.md` from this folder and merges it with project
-overrides and the packaged default, and project creation reads
-`project/default.md` from it before falling back to the packaged template. A
-project note cannot map its own project template, since it is the note being
-created.
+`weave.templates`, which travel with the project and take precedence. A project
+note cannot map its own project template, since it is the note being created.
 
-Open the dashboard from the left ribbon, **Project Weave: Open project
+Open the workbench from the left ribbon, **Project Weave: Open project
 workbench** in the command palette, or **Open dashboard** on the settings page.
-After the view has been opened once, Obsidian restores it as part of the
-workspace. With multiple indexed projects, use the project selector in the
-view; with one project, the dashboard selects it automatically. Ready Now and
-All Tasks buttons open exact existing task notes in another tab, leaving the
-dashboard open. All Tasks initially includes `backlog`, `todo`, `in-progress`,
-`waiting`, and `review`; select `done` or `cancelled` when searching terminal
-history. Search matches task titles and vault paths without case sensitivity.
-Priority, epic, milestone, owner, and due-state selectors can be combined with
-the status and text filters. Due state compares canonical `due_date` values to
-the user's current local calendar date.
-
-For the dashboard and Ready Now walking-slice test, copy the contents of
-`tests/fixtures/vault/` into a disposable vault. Its project is nested under
-`Projects/Game/`, with the canonical project note at
-`Projects/Game/Project.md`. Open the workbench and confirm **Implement request**
-is the one Ready task. In All Tasks, confirm both todo tasks and **External
-prerequisite** (`in-progress`) are visible, search for `external`, and then
-select `done` to retrieve **Define request**. Open a result and confirm it uses
-another tab without replacing the workbench. Edit a task dependency or status
-and confirm both task sections refresh after index publication. The older
-**Open Ready Now** command remains available as a compact modal.
-
-For an advanced-filter check, temporarily add `priority: high`, `owner: Robin`,
-`epic: "[[Engine]]"`, `milestone: "[[Alpha]]"`, and a valid `due_date` to one
-fixture task. Confirm each value appears in its selector, combine all five
-filters to isolate that task, then use **Reset filters**. Set `due_date` to
-today's local date to verify **Due today**.
-
-To test diagnostics, temporarily set a task to an invalid value such as
-`status: complete`. The workbench lists the affected note and
-`task.status.invalid`, including the allowed values. Change it to
-`status: done` and confirm the issue disappears after the live index refresh.
-Status-dependent validation suppresses redundant follow-on errors when the
-status itself could not be parsed.
-
-Open the affected task note and confirm the same severity, error code, field,
-message, and available recovery guidance appear in a banner above the note.
-Switch between editing and reading modes, then correct the status and confirm
-the banner disappears. Jump-to-field behavior and inline field highlighting
-are intentionally deferred.
-
-Malformed notes and notes whose project link cannot resolve appear in the
-prominent **Unassigned diagnostics** section, so every indexed error remains
-findable even when Project Weave cannot safely infer project ownership.
-
-To check the creation preview, press **New task** in the workbench, or open a
-project or task note and run **Project Weave: Create task**. The workbench
-button uses the project already selected there; the command infers one from
-the active note. Type a title and confirm the target path
-resolves under `Projects/Game/Tasks/`, the rank is 1000 past the largest
-existing rank, and the rendered note matches that path and rank. Add a
-subfolder such as `Combat` and confirm it nests. Enter a title matching an
-existing task and confirm a numbered name is suggested with an explicit notice
-rather than an overwrite. Try a title such as `///` and confirm a diagnostic
-appears instead of a filename. Closing the modal creates nothing.
-
-**Use a disposable vault for the creation check, because it writes.** Confirm
-**Create task** creates exactly the previewed path with the previewed bytes,
-creating the `Tasks` folder if it was missing, and that the new task appears
-in the dashboard after the index refreshes. With the modal open, edit the
-project note in another tab, then confirm: the commit must refuse with a
-message about the note having changed, and create nothing.
-
-Run **Project Weave: Create project** for the project kind. Confirm the target
-path is `Projects/<Title>/Project.md`, that a title matching an existing
-folder yields a numbered folder with an explicit notice, and that the created
-project appears in the workbench picker after the index refreshes. Creating a
-task in it should then land under its own `Tasks` folder.
+After it has been opened once, Obsidian restores it as part of the workspace.
+With multiple indexed projects, use the project selector in the view; with one
+project, it is selected automatically. Ready Now and All Tasks open exact
+existing task notes in another tab, leaving the workbench open. All Tasks
+starts with the non-terminal statuses and can be filtered by status, priority,
+epic, milestone, owner, category, due state, and text across titles and paths;
+[Design 09](docs/spec/09-project-workbench.md) specifies the behavior in full.
 
 ## Versioning and exports
 
@@ -310,112 +224,27 @@ npm run version:major
 npm run version:set -- 1.2.3
 ```
 
-Choose the increment by the size of the change, not by how many commits it
-took. Before 1.0 the minor position carries feature weight:
+Size the increment by the change, not the commit count. Before 1.0 the minor
+position carries feature weight:
 
-- **patch** (`0.3.0` → `0.3.1`) — every exported build that carries changes.
-  This is the ordinary increment and the one used most often: fixes,
-  refactoring, documentation, tests, and interim work within a slice all land
-  here.
-- **minor** (`0.3.0` → `0.4.0`) — a numbered slice in
-  [Implementation Order](docs/IMPLEMENTATION_ORDER.md) passing its exit gate,
-  or a change to a compatibility surface: product terms, frontmatter fields,
-  controlled values, diagnostic codes, or persisted workspace state. Crossing a
-  boundary the plugin did not previously cross — the first vault write, for
-  example — is always at least a minor bump.
-- **major** (`0.4.0` → `1.0.0`) — reserved for the first stable release against
-  the full specification and, after that, for breaking changes to a
+- **patch** — every exported build that carries changes. The ordinary
+  increment.
+- **minor** — a numbered slice passing its exit gate, or a change to a
   compatibility surface.
+- **major** — reserved for the first stable release against the full
+  specification.
 
-**Bump the patch before exporting a build that differs from the last exported
-one.** A version identifies an installed build, so two builds that behave
-differently must never share a number — that is what makes "passed against the
-installed 0.5.0 build" in [Current Work](docs/CURRENT_WORK.md) mean anything.
-Re-running `npm run export` or `npm run test-vault:update` over an unchanged
-tree reinstalls the same build and needs no bump; changing source and
-reinstalling does.
-
-**Bump the minor when a slice passes its exit gate**, not when work on it
-begins. The version describes what a build contains, and a number claimed in
-advance promises a capability that is not there yet. The exception is a
-compatibility surface: those move when they move, mid-slice or not, because
-they describe what a user's notes and settings must look like rather than how
-far the roadmap has progressed.
-
-Use all three positions. A project that answers every change with a minor bump
-has thrown away the third number and, with it, the ability to tell a release
-that adds something from one that repairs it.
-
-Doubt means genuine ambiguity about whether something is a new capability or
-touches a compatibility surface — not the mild uncertainty that attends any
-judgment call. Resolve that kind of doubt upward: installed builds are
-identified by version alone, and a version that undersells a release is worse
-than one that oversells it. A change you can fully describe as a fix, a
-refactor, or documentation is not in doubt.
-
-The minor position is unbounded before 1.0. `0.9.0` is followed by `0.10.0`,
-and `0.13.0` is a perfectly ordinary version — the tooling compares and sorts
-each position numerically. Reaching 1.0 is gated on the specification being
-complete, never on the minor position running high.
-
-The operational channel, BRAT preview, stable release, and Community directory
-steps are in [Plugin Release and Testing](docs/PLUGIN_RELEASE_AND_TESTING.md).
+[docs/development/release.md](docs/development/release.md) holds the full rule,
+including when to bump relative to an export and how to resolve genuine
+ambiguity, along with the operational channel, BRAT preview, stable release,
+and Community directory steps.
 
 Run `npm run export` to build and verify the plugin, then generate:
 
 - `export/project-weave/` — the directly installable Obsidian plugin folder;
 - `export/project-weave-<version>.zip` — a ZIP containing that plugin folder.
 
-To create a disposable vault for the manual checks, seeded from
-`tests/fixtures/vault/`, and install the plugin into it:
-
-```shell
-npm run test-vault:setup
-npm run test-vault:reset
-```
-
-`setup` seeds a Git-ignored `test-vault/` with a minimal `.obsidian/` and a
-manifest of everything it wrote, points `.project-weave-test-vault` at it, then
-builds and installs. It refuses when the pointer already names a different
-vault, since that decides where the next build lands; repoint deliberately with
-`npm run test-vault:create -- --point --force`. `npm run test-vault:create`
-alone seeds without touching the pointer.
-
-Only `test-vault/` is seeded or reset. Any other vault, including a copy of a
-real one, is an install target only, through `npm run test-vault:update`.
-
-Seeded task notes carry due dates relative to the day they are seeded — one
-overdue, one due today, one due later, one undated — so the due-state filters
-have something to filter. A committed date cannot be today, so these are
-written by the seeder rather than held in the fixture, and reseeding on a later
-day moves them.
-
-The fixture also holds an epic and a milestone, and one task that references
-them along with an owner and a priority, so every workbench filter has values
-without editing notes by hand. Tasks generated by `--scale` carry the full
-planning shape, cycling statuses, owners, priorities, points, and due dates by
-index.
-
-`reset` returns the vault to its baseline between checks, preserving
-`.obsidian/` so the installed plugin survives, and reporting rather than
-deleting notes it did not seed. Pass `-- --scale 250` to seed bulk tasks for
-the truncation check. Every command refuses a directory without a manifest this
-tool wrote, and refuses a target outside the repository unless given
-`--allow-outside`.
-
-To update a local Obsidian test vault on every export, put its absolute path in
-the Git-ignored `.project-weave-test-vault` file or set
-`PROJECT_WEAVE_TEST_VAULT`. The configured folder must already contain an
-`.obsidian` directory. Export copies only `main.js`, `manifest.json`, and
-`styles.css` into `.obsidian/plugins/project-weave`, preserving `data.json`
-and other local plugin state. With no local setting, export only creates the
-ordinary artifacts. To require a configured vault and receive a failure when
-installation does not occur, run:
-
-```shell
-npm run test-vault:update
-```
-
 The entire `export/` directory is Git-ignored. `npm run release` runs the
 complete validation gate and then produces the same export artifacts and
-configured test-vault update.
+configured test-vault update. Setting up a disposable vault and installing into
+it are covered in [docs/development/testing.md](docs/development/testing.md).
