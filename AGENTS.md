@@ -97,10 +97,16 @@ enough that prose documentation does not need to restate it.
 - Do not push, merge, release, or change versions unless the user explicitly
   requests it. Committing on a branch does not imply approval for any of these.
 - When a version bump is requested, size it by the change, not the commit
-  count. A completed feature slice, a new user-visible capability, or a change
-  to a compatibility surface takes a minor bump (`0.3.x` → `0.4.0`), not a
-  patch. `README.md` holds the full rule; when in doubt, take the larger
-  increment and say why.
+  count. Bump the patch (`0.4.0` → `0.4.1`) before exporting a build that
+  differs from the last exported one; this is the ordinary increment, and two
+  builds that behave differently must never share a version. Bump the minor
+  (`0.3.x` → `0.4.0`) when a numbered slice in `docs/IMPLEMENTATION_ORDER.md`
+  passes its exit gate, or when a compatibility surface changes — product
+  terms, frontmatter fields, controlled values, diagnostic codes, or persisted
+  workspace state. Do not claim a minor when work on a chunk begins; the
+  version describes what a build contains. `README.md` holds the full rule.
+  Resolve genuine ambiguity upward and say why; a change you can fully describe
+  as a fix or a refactor is not ambiguous.
 
 ## Validation
 

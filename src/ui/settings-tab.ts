@@ -256,19 +256,27 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       new Notice('Project Weave already allows that category.');
       return;
     }
-    await this.#plugin.updateTaskCategories([...existing, trimmed]);
-    new Notice('Project Weave task category added.');
-    this.display();
+    try {
+      await this.#plugin.updateTaskCategories([...existing, trimmed]);
+      new Notice('Project Weave task category added.');
+      this.display();
+    } catch (error) {
+      new Notice('Project Weave: ' + errorMessage(error));
+    }
   }
 
   async #removeTaskCategory(category: string): Promise<void> {
-    await this.#plugin.updateTaskCategories(
-      this.#plugin.settings.taskCategories.filter(
-        (candidate) => candidate !== category,
-      ),
-    );
-    new Notice('Project Weave task category removed.');
-    this.display();
+    try {
+      await this.#plugin.updateTaskCategories(
+        this.#plugin.settings.taskCategories.filter(
+          (candidate) => candidate !== category,
+        ),
+      );
+      new Notice('Project Weave task category removed.');
+      this.display();
+    } catch (error) {
+      new Notice('Project Weave: ' + errorMessage(error));
+    }
   }
 
   async #rebuildIndex(): Promise<void> {

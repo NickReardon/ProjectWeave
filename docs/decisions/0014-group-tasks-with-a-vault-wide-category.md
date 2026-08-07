@@ -70,6 +70,17 @@ assigns one. The task creation profile (ADR 0013) keeps the property visible as
 chosen, and adding a control to every task creation for something most tasks
 leave unset is the wrong default. Additive later if a caller wants it.
 
+**Creation does not check the vocabulary.** This follows from the two decisions
+above and is stated so it is not mistaken for an oversight. The creation path —
+resolver, proposal, preview, and commit — never reads the configured list, so a
+template declaring `category: spike` against a vocabulary of `bug, chore`
+previews cleanly, commits, and is reported only once the index rebuilds. Every
+other creation failure is refused before the write; this one is not, because
+gating it would mean the write path consults settings that validation
+deliberately keeps in indexing, and because a value reported and never repaired
+is not a reason to refuse the note that carries it. A vocabulary is guidance
+about a vault's taxonomy, not a precondition for creating work.
+
 ## Alternatives considered
 
 - **A `bug` entity type:** rejected, per the context above.
@@ -101,3 +112,7 @@ leave unset is the wrong default. Additive later if a caller wants it.
   vaults' habits and from tasks in any project, since its suggestions are
   vault-wide and unaware of our vocabulary. Only the diagnostic tells the user
   they typed something undeclared.
+- Negative: a template whose category is outside the vocabulary creates a task
+  that is diagnosed the moment it is indexed, with nothing in the preview
+  warning first. The note is correct and the diagnostic is accurate; the cost
+  is that the user learns about it after the write rather than before.

@@ -91,17 +91,11 @@ export class IndexBuilder {
         allowedCategories,
         options.taskCategories ?? [],
       );
-      // Entities are immutable, so a configured-vocabulary failure is folded
-      // in by rebuilding the record rather than mutating the parsed one.
-      const entity =
-        categoryIssue === null
-          ? parsed.entity
-          : {
-              ...parsed.entity,
-              diagnostics: [...parsed.entity.diagnostics, categoryIssue],
-            };
-      parsedEntities.set(entity.path, entity);
-      diagnosticsByPath.set(entity.path, [
+      parsedEntities.set(parsed.entity.path, parsed.entity);
+      // `diagnosticsByPath` is the only carrier: every later validator appends
+      // to it, and the final entity records take their diagnostics from it
+      // wholesale. An entity's own `diagnostics` field never survives that.
+      diagnosticsByPath.set(parsed.entity.path, [
         ...parsed.diagnostics,
         ...(categoryIssue === null ? [] : [categoryIssue]),
       ]);
