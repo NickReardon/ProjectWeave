@@ -6,7 +6,7 @@ Project Weave is a Markdown-first Obsidian project workbench. Before changing
 code or product behavior, read these files in order:
 
 1. `CURRENT-DESIGN.md` for the one-page map of where each kind of truth lives.
-2. `README.md` for implemented behavior, setup, commands, and manual checks.
+2. `README.md` for implemented behavior, setup, and commands.
 3. Recent history on the current branch (`git log --oneline -20`) for what has
    changed and why. History is the primary record of work in progress.
 4. `docs/CURRENT_WORK.md` for validation status, outstanding manual checks, and
