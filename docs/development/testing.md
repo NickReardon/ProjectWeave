@@ -13,12 +13,12 @@ canonical: false
 file is the procedure for everything that cannot: the Obsidian views, workspace
 restoration, responsive behavior, live vault events, and the one write path.
 
-This file owns **how** to run each check. `docs/CURRENT_WORK.md` owns **whether**
-each one has passed, and is authoritative when the two disagree. When you finish
-a check, record the result there.
+This file owns **how** to run each check. The matching manual-check task in
+`docs/project-vault/` owns **whether** it has passed, and is authoritative
+when the two disagree. When you finish a check, update that task's status.
 
-The numbering matches `docs/CURRENT_WORK.md`. Do not renumber; add new checks at
-the end.
+The numbering matches the `Check NN - ...` task titles in
+`docs/project-vault/`. Do not renumber; add new checks at the end.
 
 ## Setup
 
@@ -547,12 +547,17 @@ the creation profile, not the template.
 
 ## Recording results
 
-After a session, update `docs/CURRENT_WORK.md`:
+After a session, update the matching `Check NN - ...` task in
+`docs/project-vault/`:
 
-- move passed checks out of the outstanding list, naming what you observed;
-- record defects rather than deferring them;
+- set passed checks to `done`, naming what you observed in the task body;
+- record defects as their own loose-end task rather than deferring them
+  unrecorded;
 - treat incidental coverage as outstanding, and say which parts were not
   reached.
+
+Status transitions are hand-edited frontmatter until Project Weave supports
+typed task editing — see ADR 0015 and ADR 0016.
 
 The workbench is not manually accepted until every check above has an explicit
 recorded result.

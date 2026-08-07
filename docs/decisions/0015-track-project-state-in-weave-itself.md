@@ -4,7 +4,7 @@ id: '0015'
 area: dogfooding
 status: proposed
 canonical: false
-affects: []
+affects: ['0016']
 ---
 
 # ADR 0015: Track Project Weave's own working state in Project Weave
@@ -58,23 +58,31 @@ the record of **whether** each has passed moves.
 
 ## Preconditions
 
-Each is blocking, in roadmap order:
-
 1. **Slice 3 — the typed mutation and proposal kernel.** Changing a task's
    status requires editing an existing note. The current create-only write
-   port has no operation that can express it.
+   port has no operation that can express it. **Not yet landed.** The
+   migration below proceeds anyway: task notes are created through the
+   existing create-only path, and status transitions are hand-edited
+   frontmatter until this lands. [ADR 0016](0016-dogfood-vault-location.md)
+   records this as a deliberate, temporary cost rather than a reproduction of
+   the maintenance burden this ADR removes.
 2. **Typed task editing (slice 5, Agent Slice C),** so a status transition runs
-   through a validated operation rather than hand-edited frontmatter. Editing
-   these notes by hand would reproduce the maintenance burden this ADR removes.
-3. **A decision on where the dogfood vault lives.** Deliberately left open here,
-   because it depends on how slice 3's write path treats paths outside indexed
-   roots. `test-vault/` cannot serve: it is Git-ignored and reset between
-   checks, so it cannot hold state that must survive. The candidates are a
-   committed vault folder in this repository indexed by a developer's Obsidian,
-   or a separate vault repository. This needs its own ADR.
+   through a validated operation rather than hand-edited frontmatter. **Not
+   yet landed**, worked around the same way as precondition 1. Automating the
+   hand-edited transitions away once this lands is tracked follow-up work.
+3. **A decision on where the dogfood vault lives.** **Satisfied** by
+   [ADR 0016](0016-dogfood-vault-location.md): `docs/project-vault/`,
+   committed to this repository, `.obsidian/` excluded.
 4. **Agent Slice A (slice 2),** if the goal includes an agent reading project
    status through the application API rather than a human reading notes. Not
-   required for the migration itself.
+   required for the migration itself, and not yet landed.
+
+The migration itself — moving `docs/CURRENT_WORK.md`'s task-shaped content
+into `docs/project-vault/` per the table above — is underway now, using
+manual hand-editing as an interim substitute for preconditions 1 and 2 rather
+than waiting on them. This ADR stays `proposed` until that hand-editing is
+replaced by real typed writes; see ADR 0016's consequences for the gap this
+leaves.
 
 ## Alternatives considered
 
@@ -113,5 +121,7 @@ Each is blocking, in roadmap order:
   current-work gate backed by `scripts/verify-current-work.mjs` and its Node
   test; both retire or retarget at the same time.
 
-Until every precondition is met, `docs/CURRENT_WORK.md` remains authoritative
-and this ADR stays `proposed`.
+`docs/CURRENT_WORK.md` now carries only the automated-verification log;
+`docs/project-vault/` is authoritative for outstanding work. This ADR stays
+`proposed` until preconditions 1 and 2 land and the hand-edited status
+transitions are replaced by real typed writes.

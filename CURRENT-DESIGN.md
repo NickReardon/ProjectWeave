@@ -13,7 +13,8 @@ Nothing here overrides anything it points to.
 | Why was a choice made?             | [`docs/decisions/`](docs/decisions)                                   |
 | How do the pieces fit together?    | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                        |
 | What remains to do, in what order? | [`docs/IMPLEMENTATION_ORDER.md`](docs/IMPLEMENTATION_ORDER.md)        |
-| What is the current handoff state? | [`docs/CURRENT_WORK.md`](docs/CURRENT_WORK.md)                        |
+| What outstanding work exists?      | [`docs/project-vault/`](docs/project-vault/), Project Weave's own dogfood vault |
+| What automated verification has run? | [`docs/CURRENT_WORK.md`](docs/CURRENT_WORK.md), an append-only evidence log |
 | How did the project get here?      | [`docs/archive/`](docs/archive/README.md) — authoritative over nothing |
 
 ## The one rule
