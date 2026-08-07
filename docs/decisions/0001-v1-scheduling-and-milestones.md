@@ -19,7 +19,7 @@ V1 will include:
 - `completed_at` plus reopen history for tasks transitioned to done;
 - a canonical project-scoped `milestone` note and optional task-to-milestone link.
 
-The complete behavioral contract is `docs/design/15-scheduling-and-milestones.md`.
+The complete behavioral contract is `docs/spec/15-scheduling-and-milestones.md`.
 
 ## Alternatives considered
 

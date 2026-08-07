@@ -6,8 +6,9 @@ connects design notes to a ranked backlog, dependency-aware board work, and a
 clear Ready Now sequence without requiring sprints, estimates, owners, or
 other process features a project does not use.
 
-The current product direction and normative reading order are in
-[CURRENT-DESIGN.md](CURRENT-DESIGN.md).
+This file records what is implemented. What Project Weave is specified to do is
+in [docs/spec/](docs/spec/README.md); [CURRENT-DESIGN.md](CURRENT-DESIGN.md) is
+a one-page map of where each kind of truth lives.
 
 Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
 defines the branch and small-commit workflow. Validation evidence, remaining

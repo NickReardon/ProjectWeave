@@ -1,11 +1,11 @@
 # Project Weave: Historical Initial Project Plan
 
-> **Archived planning context:** This was the repository's bootstrap plan
+> **Archived and non-authoritative.** This was the repository's bootstrap plan
 > before the product surface, stack, and first slices were selected. Its open
 > questions, checkboxes, backlog, and next checkpoint are not current project
-> status. Start with [`../CURRENT-DESIGN.md`](../CURRENT-DESIGN.md),
-> [`../README.md`](../README.md), and [`CURRENT_WORK.md`](CURRENT_WORK.md).
-> This document is retained to preserve decision history.
+> status. Current behavior is defined in [`docs/spec/`](../spec/README.md); see
+> [the archive index](README.md). This document is retained to preserve
+> decision history.
 
 ## Purpose
 

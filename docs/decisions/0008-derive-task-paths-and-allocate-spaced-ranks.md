@@ -7,7 +7,7 @@
 ## Context
 
 The template renderer and the task creation proposal service both accept a
-target path and a rank, but nothing decides either value. `docs/design/README.md`
+target path and a rank, but nothing decides either value. `docs/spec/README.md`
 lists "exact folder defaults and filename collision policy" as an unresolved
 design input, so no caller could assemble a creation request without inventing a
 folder convention privately. Rank is better specified — Design 15 fixes the
@@ -15,9 +15,9 @@ gap-of-1000 rule — but leaves two questions open that an implementation cannot
 avoid answering.
 
 Two normative statements about collisions also read differently depending on the
-caller. `docs/design/03-task-management.md` says a collision "blocks creation and
+caller. `docs/spec/03-task-management.md` says a collision "blocks creation and
 offers a different filename; v1 does not overwrite", while
-`docs/design/17-agent-access-and-mcp.md` says "the server chooses safe filenames
+`docs/spec/17-agent-access-and-mcp.md` says "the server chooses safe filenames
 and spaced ranks when omitted; generated values remain visible/editable in
 preview". One shared allocator needs a single rule that satisfies both.
 
@@ -58,7 +58,7 @@ input contract is unchanged.
 
 ## Alternatives considered
 
-- **A vault-wide `defaultTaskFolder` setting** (`docs/design/12-plugin-experience.md`): deferred. It adds a compatibility surface before any caller needs it, and configuration in plugin data does not travel with the project the way `weave.templates.task` does.
+- **A vault-wide `defaultTaskFolder` setting** (`docs/spec/12-plugin-experience.md`): deferred. It adds a compatibility surface before any caller needs it, and configuration in plugin data does not travel with the project the way `weave.templates.task` does.
 - **A per-project frontmatter folder override** mirroring `weave.templates.task`: deferred for the same reason — worth adding when a project actually needs a different layout, not before.
 - **Hard-failing on the first collision** rather than suggesting a suffix: rejected because Design 17 expects a generated name, and a preview that opens on a known-bad path wastes the user's turn.
 - **Auto-suffixing at commit time** instead of at allocation: rejected because the suffix would not be visible in the preview, so the user would confirm one path and receive another.

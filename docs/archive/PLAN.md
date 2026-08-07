@@ -1,5 +1,9 @@
 # Project Weave Implementation Plan
 
+> **Archived and non-authoritative.** This document is history. Current
+> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> [the archive index](README.md).
+
 ## 1. Product direction
 
 Build Project Weave as a standalone, Markdown-first Obsidian plugin for

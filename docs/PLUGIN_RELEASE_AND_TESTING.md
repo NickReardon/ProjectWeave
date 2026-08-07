@@ -5,7 +5,7 @@
 This operational plan covers local branch testing, BRAT previews, stable
 GitHub releases, and Obsidian Community Plugins publication. It does not claim
 that Project Weave is ready to release. Release readiness remains governed by
-[Design 13](design/13-quality-and-release.md) and the evidence and outstanding
+[Design 13](spec/13-quality-and-release.md) and the evidence and outstanding
 checks in [CURRENT_WORK.md](CURRENT_WORK.md).
 
 ## Channels

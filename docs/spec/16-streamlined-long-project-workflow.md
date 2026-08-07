@@ -2,7 +2,7 @@
 
 ## Status and precedence
 
-Approved v1 product/interaction design. This document implements the direction in `docs/PRODUCT_BRIEF-V1.md` and `PLAN-ADDENDUM-002.md`. It supersedes earlier v1 requirements for portfolio-first views, portfolio sprints, mandatory sprint ceremony, or hard dependency gating by default.
+Approved v1 product/interaction design. This document implements the direction in [the product brief](00-product-brief.md). It supersedes earlier v1 requirements for portfolio-first views, portfolio sprints, mandatory sprint ceremony, or hard dependency gating by default.
 
 ## Goal
 

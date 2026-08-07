@@ -56,7 +56,7 @@ export type NoteCreationCommitResult =
  * Commits one previously confirmed creation proposal, of any kind.
  *
  * This is the only path to a vault write. It implements the single-file commit
- * sequence in docs/design/10-validation-and-safe-writes.md: re-check the read
+ * sequence in docs/spec/10-validation-and-safe-writes.md: re-check the read
  * set, confirm the target is still absent, re-validate the produced note in
  * memory, then commit once.
  *

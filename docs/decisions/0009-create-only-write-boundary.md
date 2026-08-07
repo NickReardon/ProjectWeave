@@ -15,7 +15,7 @@ precondition the handoff set for building a write path.
 The risk is not that a write is wrong once. It is that a write path capable of
 modification becomes reachable from somewhere that was never reviewed for it.
 `AGENTS.md` forbids a generic write-capable vault port for exactly this reason,
-and `PLAN.md` requires every content write to be triggered by a named command
+and the original plan required every content write to be triggered by a named command
 or direct UI action.
 
 A second risk is subtler: a proposal is built from notes read at one moment and

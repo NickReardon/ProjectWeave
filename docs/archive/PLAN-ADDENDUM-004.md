@@ -1,5 +1,9 @@
 # Project Weave Plan Addendum 004
 
+> **Archived and non-authoritative.** This document is history. Current
+> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> [the archive index](README.md).
+
 ## Status
 
 Accepted v1 agent-access direction. This addendum integrates agent use into the single-project-first product plan and supersedes the earlier recommendation to wait until after the entire first vertical slice before implementing any MCP adapter.
@@ -121,4 +125,4 @@ Start with a local desktop adapter. The MCP transport/bridge is replaceable and 
 
 ## Normative design
 
-Detailed schemas, tool surface, document-write boundary, security model, and tests are defined in [Design 17](docs/design/17-agent-access-and-mcp.md).
+Detailed schemas, tool surface, document-write boundary, security model, and tests are defined in [Design 17](../spec/17-agent-access-and-mcp.md).

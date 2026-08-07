@@ -1,5 +1,9 @@
 # Project Weave Plan Addendum 005
 
+> **Archived and non-authoritative.** This document is history. Current
+> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> [the archive index](README.md).
+
 ## Status
 
 Accepted v1 template direction. This addendum makes project-owned note templates part of the shared UI and agent creation contract.
@@ -100,4 +104,4 @@ Supported date/time placeholders should align where practical with Obsidian's fa
 
 ## Normative design
 
-Detailed rendering rules, schemas, variables, safety behavior, agent contracts, and tests are defined in [Design 18](docs/design/18-project-note-templates.md).
+Detailed rendering rules, schemas, variables, safety behavior, agent contracts, and tests are defined in [Design 18](../spec/18-project-note-templates.md).

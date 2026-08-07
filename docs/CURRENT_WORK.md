@@ -44,7 +44,7 @@ ends, or the next decision changes — not for every code change.
   note matching its preview byte for byte.
 - Task target paths and backlog ranks are now allocated by pure application
   code. ADR 0008 settles the folder convention, filename derivation, collision
-  policy, and rank rule that `docs/design/README.md` had left open.
+  policy, and rank rule that `docs/spec/README.md` had left open.
 - Local test-vault installation and the preview/stable release workflow are
   documented and automatically exercised. Nothing has been released.
 - A disposable test vault can be seeded and reset from the committed fixture,

@@ -1,5 +1,9 @@
 # Project Weave Plan Addendum 003
 
+> **Archived and non-authoritative.** This document is history. Current
+> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> [the archive index](README.md).
+
 ## Status
 
 Accepted clarification of dependency, planning-period, and estimation defaults. This addendum corrects any contrary default in earlier addenda/designs.

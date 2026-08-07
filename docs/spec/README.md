@@ -1,41 +1,81 @@
-# Project Weave Feature Design Index
+# Project Weave Specification Index
 
 ## Purpose
 
-This directory contains the detailed implementation contracts for Project
-Weave v1. [`../../CURRENT-DESIGN.md`](../../CURRENT-DESIGN.md) defines the
-authoritative reading order and precedence among the original plan, later
-addenda, and these designs. These documents define behavior, boundaries, edge
-cases, and acceptance criteria only to the extent that later contracts have
-not superseded or deferred them.
+This directory is the single canonical statement of what Project Weave should
+do. There is no precedence chain: no document outside this directory overrides
+anything inside it. When a specification and an older planning document
+disagree, the specification wins and the planning document is history.
+
+- [`../../README.md`](../../README.md) records what is implemented.
+- [`../decisions/`](../decisions) records why choices were made.
+- [`../archive/`](../archive/README.md) records how the project got here and is
+  authoritative over nothing.
+
+A new product decision updates the owning specification here. If the rationale
+is worth preserving, it also gets an ADR. It never adds another overriding
+requirements document.
 
 ## Conventions
 
 - **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative.
 - A "note" is a Markdown file in the current vault.
-- An "entity" is a canonical project, epic, task, or sprint note.
+- An "entity" is a canonical project, epic, task, milestone, or sprint note.
 - A "proposal" is a complete, validated description of intended file changes created before writing.
 - All dates use `YYYY-MM-DD` calendar dates in the user's local timezone.
 - Wiki links are persisted as authored where possible and resolved relative to the containing note.
 
+## Product direction
+
+[00 — Product brief](00-product-brief.md) states the v1 promise: a streamlined,
+Markdown-first Obsidian workspace for one substantial, long-lived project, held
+by a solo developer or a small team. Everything below serves that brief.
+
 ## Feature coverage
 
-| Feature area                                                        | Owning design                                                             |
+| Feature area                                                        | Owning specification                                                      |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Installation, activation, reload, deactivation, upgrade             | [01 — Lifecycle and persistence](01-lifecycle-and-persistence.md)         |
 | Markdown parsing, schemas, link resolution, in-memory index         | [02 — Data model and index](02-data-model-and-index.md)                   |
 | Task creation, editing, status, owner, navigation                   | [03 — Task management](03-task-management.md)                             |
 | Project and epic behavior                                           | [04 — Projects and epics](04-projects-and-epics.md)                       |
-| Dependencies, readiness, cycles, next iteration                     | [05 — Dependencies and iterations](05-dependencies-and-iterations.md)     |
-| Project and portfolio sprint planning, activation, closing          | [06 — Sprints](06-sprints.md)                                             |
+| Dependencies, dependency mode, readiness, cycles, next iteration    | [05 — Dependencies and iterations](05-dependencies-and-iterations.md)     |
+| Optional planning periods, activation, closing                      | [06 — Sprints](06-sprints.md)                                             |
 | Origin links and create-from-heading                                | [07 — Document provenance](07-document-provenance.md)                     |
-| Portfolio dashboard                                                 | [08 — Portfolio dashboard](08-portfolio-dashboard.md)                     |
+| Portfolio dashboard (deferred beyond core v1)                       | [08 — Portfolio dashboard](08-portfolio-dashboard.md)                     |
 | Project workbench and saved perspectives                            | [09 — Project workbench](09-project-workbench.md)                         |
 | Validation, proposals, confirmation, concurrency, failure reporting | [10 — Validation and safe writes](10-validation-and-safe-writes.md)       |
 | Legacy `pm-task` recognition and Tethered migration                 | [11 — Legacy migration](11-legacy-migration.md)                           |
 | Commands, settings, onboarding, accessibility                       | [12 — Plugin experience](12-plugin-experience.md)                         |
 | Automated testing, compatibility, packaging, release gates          | [13 — Quality and release](13-quality-and-release.md)                     |
 | Explicit exclusions and later candidates                            | [14 — Non-goals and future features](14-non-goals-and-future-features.md) |
+| Project lifecycle, rank, priority, due dates, milestones            | [15 — Scheduling and milestones](15-scheduling-and-milestones.md)         |
+| Plan, Board, My Work, scale, progressive disclosure                 | [16 — Streamlined long-project workflow](16-streamlined-long-project-workflow.md) |
+| Shared application API and the staged agent boundary                | [17 — Agent access and MCP](17-agent-access-and-mcp.md)                   |
+| Agent security profile                                              | [17a — Agent access security profile](17a-agent-access-security-profile.md) |
+| Project-owned note templates shared by UI and agents                | [18 — Project note templates](18-project-note-templates.md)               |
+
+Specifications 15 through 18 postdate 01 through 14 and refine them. Where they
+overlap, the higher-numbered document is the one that was written against the
+current product direction; the earlier documents have been updated to agree
+rather than left to be reconciled by the reader.
+
+## Core v1 slice
+
+```text
+write or revise a Markdown design
+  -> create/edit linked task drafts
+  -> rank tasks and declare prerequisites
+  -> keep future work in backlog
+  -> add selected tasks to the board
+  -> use Ready Now / My Work
+  -> complete, reopen, and preserve history
+```
+
+Epics, milestones/releases, planning periods (Sprint/Cycle/Period), point
+estimates, owners, priorities, and due dates are optional. Same-project
+dependencies are optional but enforced by default once declared. Multi-project
+recognition and switching are supported; portfolio planning is deferred.
 
 ## Global invariants
 
