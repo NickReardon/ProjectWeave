@@ -313,19 +313,50 @@ npm run version:set -- 1.2.3
 Choose the increment by the size of the change, not by how many commits it
 took. Before 1.0 the minor position carries feature weight:
 
-- **patch** (`0.3.0` → `0.3.1`) — bug fixes, documentation, refactoring, and
-  anything a user could not describe as a new capability.
-- **minor** (`0.3.0` → `0.4.0`) — any completed feature slice or new
-  user-visible capability, and any change to a compatibility surface: product
-  terms, frontmatter fields, controlled values, diagnostic codes, or persisted
-  workspace state. Crossing a boundary the plugin did not previously cross —
-  the first vault write, for example — is always at least a minor bump.
-- **major** (`0.4.0` → `1.0.0`) — reserved for the first stable release and,
-  after that, for breaking changes to a compatibility surface.
+- **patch** (`0.3.0` → `0.3.1`) — every exported build that carries changes.
+  This is the ordinary increment and the one used most often: fixes,
+  refactoring, documentation, tests, and interim work within a slice all land
+  here.
+- **minor** (`0.3.0` → `0.4.0`) — a numbered slice in
+  [Implementation Order](docs/IMPLEMENTATION_ORDER.md) passing its exit gate,
+  or a change to a compatibility surface: product terms, frontmatter fields,
+  controlled values, diagnostic codes, or persisted workspace state. Crossing a
+  boundary the plugin did not previously cross — the first vault write, for
+  example — is always at least a minor bump.
+- **major** (`0.4.0` → `1.0.0`) — reserved for the first stable release against
+  the full specification and, after that, for breaking changes to a
+  compatibility surface.
 
-When in doubt between patch and minor, take the minor. A version that
-undersells a release is worse than one that oversells it, because installed
-builds are identified by version alone.
+**Bump the patch before exporting a build that differs from the last exported
+one.** A version identifies an installed build, so two builds that behave
+differently must never share a number — that is what makes "passed against the
+installed 0.5.0 build" in [Current Work](docs/CURRENT_WORK.md) mean anything.
+Re-running `npm run export` or `npm run test-vault:update` over an unchanged
+tree reinstalls the same build and needs no bump; changing source and
+reinstalling does.
+
+**Bump the minor when a slice passes its exit gate**, not when work on it
+begins. The version describes what a build contains, and a number claimed in
+advance promises a capability that is not there yet. The exception is a
+compatibility surface: those move when they move, mid-slice or not, because
+they describe what a user's notes and settings must look like rather than how
+far the roadmap has progressed.
+
+Use all three positions. A project that answers every change with a minor bump
+has thrown away the third number and, with it, the ability to tell a release
+that adds something from one that repairs it.
+
+Doubt means genuine ambiguity about whether something is a new capability or
+touches a compatibility surface — not the mild uncertainty that attends any
+judgment call. Resolve that kind of doubt upward: installed builds are
+identified by version alone, and a version that undersells a release is worse
+than one that oversells it. A change you can fully describe as a fix, a
+refactor, or documentation is not in doubt.
+
+The minor position is unbounded before 1.0. `0.9.0` is followed by `0.10.0`,
+and `0.13.0` is a perfectly ordinary version — the tooling compares and sorts
+each position numerically. Reaching 1.0 is gated on the specification being
+complete, never on the minor position running high.
 
 The operational channel, BRAT preview, stable release, and Community directory
 steps are in [Plugin Release and Testing](docs/PLUGIN_RELEASE_AND_TESTING.md).
