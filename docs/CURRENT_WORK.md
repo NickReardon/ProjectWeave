@@ -22,10 +22,16 @@ ends, or the next decision changes — not for every code change.
 - The filterable Project Workbench and the task creation chain — allocation,
   template resolution, proposal, preview, and commit — pass the complete
   automated gate.
-- Version 0.4.0 was exported and installed into the configured disposable test
-  vault, replacing the 0.3.0 build the earlier checks ran against. Each check
-  below records its own status, and the ones still outstanding mean the
-  workbench as a whole is not yet manually accepted.
+- Version 0.4.1 was exported and installed into the configured disposable test
+  vault, replacing the 0.4.0 build the earlier checks ran against. It is the
+  first installed build carrying project creation, the vault template catalog
+  and chooser, and task categories. Each check below records its own status,
+  and the ones still outstanding mean the workbench as a whole is not yet
+  manually accepted.
+- The project version is 0.4.1, but three feature slices have landed since it
+  was set: project creation through the UI, the layered template catalog with
+  its chooser, and task categories. By the sizing rule in `README.md` that is a
+  minor increment, so the next release should be 0.5.0 rather than a patch.
 - **Project Weave now writes to the vault.** Confirming **Create task** in the
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
@@ -112,6 +118,32 @@ reported 0.4.0. Reseeding that vault dated the fixture tasks correctly for the
 day it ran; it reported, and left in place, several notes an earlier manual
 session created.
 
+On 2026-08-06, `npm run check` passed in full against source commit `8dcfcb0`
+using Node.js 24.19.0 — the first complete-gate pass covering project creation,
+the vault template catalog and chooser, and task categories: version records
+synchronized at 0.4.1, the current-work gate, Prettier, ESLint, `tsc --noEmit`,
+28 Vitest files with 324 tests, 28 Node script tests, the production bundle,
+and a release inventory of exactly `main.js`, `manifest.json`, and
+`styles.css`, with only the expected Obsidian runtime import.
+
+`npm run export` then produced `export/project-weave` and the 71,902-byte
+`export/project-weave-0.4.1.zip`, and `npm run test-vault:setup` seeded a fresh
+`test-vault/` and installed the three runtime files. SHA-256 comparison
+confirmed each installed file matched the export, and the installed manifest
+reported 0.4.1. That vault was seeded clean, so unlike the previous one it
+carries no notes left behind by an earlier manual session.
+
+A review of the task-category slice against that build produced three findings,
+all since addressed: the index-level category diagnostic was folded into an
+entity record that the final assembly discards, so the code named a mechanism
+that does not carry it; adding or removing a task category was the only
+settings control that failed silently, because both handlers omitted the
+try/catch every sibling has; and ADR 0014 never stated that the creation path
+does not check the vocabulary. The first two were fixed, the third recorded in
+the ADR. A further complete `npm run check` passed over all three, and the
+rebuilt bundle was reinstalled into the test vault with matching digests, so
+the installed build is the one carrying them.
+
 Automated validation does not replace the manual Obsidian checks below. The
 workbench view now has DOM coverage for the states ordinary use does not reach
 — an empty scope, an unavailable restored selection and its recovery, no tasks
@@ -145,9 +177,9 @@ Ready Now, the default status scope, live refresh, the invalid-status
 diagnostic, unassigned diagnostics, the note banner, and changing indexed
 project roots. Checks 2, 8,
 9, and 10 ran against 0.3.0; the rest in a session on 2026-08-05. Nothing in
-0.4.0 changes what any of them exercises. Two cosmetic defects came out of that
-session, both since fixed and both still to be confirmed. Reopen any of these
-only if a later change touches what it covers.
+0.4.0 or 0.4.1 changes what any of them exercises. The two cosmetic defects
+that came out of that session were fixed and have since been confirmed in the
+app. Reopen any of these only if a later change touches what it covers.
 
 **Checks 12 and 13 — create task — passed in two parts.** Every branch — preview
 path and rank, subfolder nesting, the collision suggestion, an unusable title,
@@ -161,14 +193,30 @@ ADR 0010; the modal tests drive the real preview service through all of them,
 and ADR 0010 changes rendered bytes rather than which branch is taken, so this
 is accepted on that basis rather than re-run.
 
-Outstanding, all runnable against the installed 0.4.0 build:
+**Check 5 — search and the advanced filters — has passed**, in a session on
+2026-08-06 against the installed 0.4.1 build. The due states were the part
+still outstanding, and all four matched exactly one task against the local
+calendar date: past due, due today, future, and undated. The category filter
+isolated the fixture's `bug` task.
 
-- **Check 5 — due-state filters.** Search and the status, priority, epic,
-  milestone, and owner filters passed. The due states did not: no seeded task
-  carried a `due_date` at the time. The seeder now dates three of the four
-  fixture tasks relative to the day it runs, leaving the fourth undated, so all
-  four states have a task and **Due today** means today. Confirm each, against
-  the local calendar date.
+One part of it did not run: the **category vocabulary**. Configuring `bug` and
+`chore` under **Settings → Task categories**, setting the task to `feature`,
+confirming `task.category.invalid` names the allowed values while the note is
+left unchanged, confirming the selector still offers both a declared-but-unused
+value and an undeclared one in use, then clearing the list and watching the
+diagnostic go — none of that has run against any build. `updateTaskCategories`
+persists unconditionally, so a vault that has ever configured a vocabulary has
+a `data.json`; the test vault has none, which is how this was identified as
+unrun rather than passed. It is the only runtime path of ADR 0014 with no
+manual confirmation, and it now also covers the settings error handling added
+after the review.
+
+**Both cosmetic focus defects have passed.** A status checkbox and the **New
+task** button no longer stay lit after a mouse click, and the keyboard focus
+ring is intact.
+
+Outstanding, all runnable against the installed 0.4.1 build:
+
 - **Check 11 — degenerate states.** 11a (multiple projects) passed. 11d (stale
   last good) needs an index rebuild that throws, which ordinary use does not
   produce, and was not reached. 11b, 11c, 11e, 11f, and 11g are unrecorded, and
@@ -176,14 +224,9 @@ Outstanding, all runnable against the installed 0.4.0 build:
   outstanding on its new terms regardless. Everything here except narrow
   layouts is automated; a disagreement between the automated result and the app
   is a defect in the test double and should be recorded as one.
-- **The two cosmetic focus defects.** A status checkbox stayed lit after being
-  unchecked, and **New task** stayed lit after the preview modal closed. Both
-  were Obsidian styling `:focus` on a control clicked with the mouse;
-  `styles.css` now suppresses the indicator for `:focus:not(:focus-visible)` on
-  those two controls, leaving the keyboard focus ring intact. No automated
-  check covers how Obsidian draws focus, so confirm both in the app.
+- **The category vocabulary part of check 5**, described above.
 
-Those three, and checks 15 and 16 below, are what desktop acceptance is
+Those two, and checks 15 and 16 below, are what desktop acceptance is
 waiting on. Task creation is
 manually accepted, so the write path is no longer gated behind it.
 
@@ -210,9 +253,10 @@ available, and is not required for desktop acceptance. Nothing in the workbench
 is known to be desktop-only; the check is unrun, not waived. Run it before any
 release that claims mobile support.
 
-The disposable vault still holds a handful of notes an earlier manual session
-created, which the seeder reports rather than deletes. Remove them before
-running check 5 or 11, or they will appear in every task list.
+The disposable vault was reseeded from scratch on 2026-08-06 and holds only the
+committed fixture plus the seeder's injected due dates. Notes a manual session
+creates are reported by the seeder rather than deleted, so clear them before
+running check 11 or they will appear in every task list.
 
 ## Known loose ends
 
@@ -253,6 +297,16 @@ Verified against the committed tree; none blocks the manual checks:
   `category: null` line, so the bytes of a created task changed again — checks
   12 and 13 already needed re-running after ADR 0010, and this folds into the
   same re-run. The per-project vocabulary considered in ADR 0014 is deferred.
+- The creation path does not read the category vocabulary, so a template
+  declaring a category outside it previews cleanly, commits, and is diagnosed
+  only once the index rebuilds. ADR 0014 now states this as a decision and a
+  cost rather than leaving it to be inferred. It is the one creation outcome
+  that is reported after the write rather than refused before it; no test or
+  manual check covers it.
+- The settings tab still has no DOM coverage, so the failure notice that task
+  category add/remove now surfaces is unverified by any automated check. It is
+  reachable only when persisting settings rejects, which the manual checks do
+  not provoke either.
 - Project creation offers no status field. The packaged template ships
   `status: planned`, and the renderer accepts a status the caller chooses, but
   no caller chooses one.
@@ -294,8 +348,9 @@ Verified against the committed tree; none blocks the manual checks:
   file, and Obsidian's public API exposes no way to: the 1.13.1 typings have no
   property-type registration at all. Setting a type stays a one-time user
   action per vault. Unconfirmed: what a vault that meets `due_date` as null
-  before any real date registers it as. Check that when a clean vault is next
-  seeded.
+  before any real date registers it as. Reseeding does not reach it — the
+  fixture dates three tasks, so Obsidian always meets a real date first.
+  Answering it needs a vault seeded without the dated tasks.
 - The fixture now carries an epic, a milestone, and one task that references
   them with an owner and a priority, so every workbench filter has values
   without a hand edit. Due dates are still injected at seed time, since a
@@ -323,12 +378,12 @@ Verified against the committed tree; none blocks the manual checks:
 
 ## Next decision point
 
-1. Export and install the current source into the disposable test vault, reset
-   it to the seeded baseline, then run the outstanding desktop items in one
-   session: check 5, the remaining check 11 states, both focus-style fixes,
-   check 15, and check 16. Record what was observed — including any defect —
-   before treating the affected workbench, project-creation, or template flows
-   as accepted.
+1. Run the outstanding desktop items against the installed build in one
+   session: the remaining check 11 states, the category vocabulary part of
+   check 5, check 15, and check 16. The vault is seeded and the build is
+   installed, so this needs Obsidian rather than another export. Record what
+   was observed — including any defect — before treating the affected
+   workbench, project-creation, or template flows as accepted.
 2. Finish ADR 0013 with the previewed **Add Template** flow, vault-backed
    `project/default`, and the normative Plan Addendum 005/Design 18 update.
    Accept the ADR only after its catalog contract and manual acceptance are
