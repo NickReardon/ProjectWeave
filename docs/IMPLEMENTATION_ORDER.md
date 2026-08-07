@@ -1,3 +1,9 @@
+---
+type: roadmap
+status: current
+canonical: false
+---
+
 # Project Weave Approved-v1 Implementation Order
 
 ## Purpose and authority

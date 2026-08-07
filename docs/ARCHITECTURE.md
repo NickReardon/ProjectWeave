@@ -1,3 +1,10 @@
+---
+type: architecture
+area: architecture
+status: current
+canonical: false
+---
+
 # Architecture
 
 ## Status

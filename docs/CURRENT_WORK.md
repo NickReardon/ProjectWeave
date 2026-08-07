@@ -1,3 +1,9 @@
+---
+type: status
+status: current
+canonical: false
+---
+
 # Project Weave Current Work
 
 ## Purpose
@@ -33,8 +39,9 @@ ends, or the next decision changes — not for every code change.
   version was last set: project creation through the UI, the layered template
   catalog with its chooser, and task categories — the last of which adds both a
   frontmatter field and a diagnostic code. Any one of those is a minor by the
-  sizing rule in `README.md`. Nothing has been released; the major position
-  stays reserved for the first stable release against the full specification.
+  sizing rule in `docs/development/release.md`. Nothing has been released; the
+  major position stays reserved for the first stable release against the full
+  specification.
 - **Project Weave now writes to the vault.** Confirming **Create task** in the
   preview modal creates one new note. That is the only write: indexing, plugin
   load, settings changes, navigation, and the dashboard still modify nothing,
@@ -288,6 +295,11 @@ Verified against the committed tree; none blocks the manual checks:
   dependencies and agent access — pair with different neighbors in each slice,
   so a subsystem merge would relocate the cost rather than remove it. Revisit
   only if `area` selection proves insufficient in practice.
+- ADR 0015 proposes replacing this file's task-shaped content with Project
+  Weave's own notes, and records why the automated-verification evidence stays
+  in Markdown regardless. It is blocked on the typed mutation kernel and typed
+  task editing, and it leaves where a dogfood vault lives to its own decision.
+  Until those land, this file remains authoritative.
 - `ObsidianVaultReader.setProjectRoots` is unreachable. Scope changes build a
   replacement runtime in `src/main.ts` instead of mutating the reader.
 - The template resolver, proposal service, allocator, renderer, and commit
