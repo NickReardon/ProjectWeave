@@ -8,6 +8,17 @@ Represent prerequisite work as links, derive readiness consistently, prevent inv
 
 `depends_on` is a list of wiki links on the dependent task. Reverse dependents are always derived. A task with no dependencies has no `depends_on` key or an empty list; commands SHOULD remove an empty key.
 
+Declaring a dependency is optional. Once declared, it is enforced by default: adding `B depends_on A` explicitly opts B into the rule that it cannot move to `in-progress` until A is `done`.
+
+### Dependency mode
+
+A project selects its mode through `weave.dependency_mode` in the project note, defaulting to `enforced`.
+
+- **Enforced (default):** an unsatisfied same-project prerequisite blocks the start transition.
+- **Advisory:** Project Weave shows the same blockers and requires explicit acknowledgement, then permits the transition.
+
+Mode changes what a blocker prevents, never what counts as a blocker. Readiness, cycle detection, and diagnostics are identical in both modes. Cross-project dependencies remain advisory in every v1 mode regardless of this setting.
+
 ### Hard same-project dependency
 
 For tasks in the same project:
@@ -69,6 +80,7 @@ An iteration root is the first task in a chain. A root MAY omit `iteration_of` a
 ## Acceptance criteria
 
 - Same-project readiness exactly follows dependency states, including cancelled and broken targets.
+- A same-project blocker prevents the start transition under the default enforced mode and requires acknowledgement under advisory mode, with identical readiness and diagnostics in both.
 - Cross-project edges never block starting work in v1 and always expose unresolved work as warnings.
 - Self-edges and newly introduced same-project cycles cannot be saved through the UI.
 - Existing cycles produce a path-specific diagnostic without changing notes.

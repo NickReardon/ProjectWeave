@@ -11,7 +11,7 @@ The command opens a form with title, project, optional epic, optional sprint, st
 Required behavior:
 
 - Project is required and chosen explicitly unless unambiguous from the active view/note.
-- Initial status defaults to `todo`.
+- Initial status defaults to `backlog`. Creation MAY offer an explicit create-on-board choice that produces `todo` instead; Add to Board moves an existing backlog task to `todo`.
 - Epic choices are restricted to the selected project.
 - Project-sprint choices are restricted to that project; portfolio-sprint choices must include it.
 - Dependencies show same-project choices first and mark cross-project choices as warning-only.
@@ -28,7 +28,7 @@ The editor MUST NOT normalize unrelated formatting, reorder unknown keys, or rew
 
 ## Status transitions
 
-Allowed user-selected statuses are all six controlled values. Project Weave rejects starting a same-project-blocked task, defined as transition from `todo` or `waiting` to `in-progress` while an unsatisfied hard dependency exists. Other transitions are permitted with these rules:
+Allowed user-selected statuses are all seven controlled values. In the default enforced dependency mode, Project Weave rejects starting a same-project-blocked task, defined as transition from `backlog`, `todo`, or `waiting` to `in-progress` while an unsatisfied hard dependency exists. A project that selects advisory mode surfaces the same blockers and requires acknowledgement instead of rejecting the transition; see [05 — Dependencies and iterations](05-dependencies-and-iterations.md). Other transitions are permitted with these rules:
 
 - `done` is terminal for readiness calculations but may be reopened explicitly.
 - `cancelled` is terminal but does not satisfy downstream hard dependencies.
@@ -38,7 +38,8 @@ Allowed user-selected statuses are all six controlled values. Project Weave reje
 ## Assignment and planning fields
 
 - Owner is one optional free-text name in v1; clearing it removes the key.
-- Points, when present, are positive integers.
+- Points, when present, are positive integers. A missing estimate never makes a task invalid, and estimates are usable with or without a planning period. Missing-estimate warnings or requirements occur only when the project explicitly enables an estimation policy. Any total that includes estimates discloses both the estimated and unestimated task counts.
+- Priority, due date, rank, and estimates never affect dependency readiness.
 - Removing a sprint sends the task to backlog while retaining sprint history.
 - Changing the project requires preflight of epic, sprint, and dependency compatibility. Incompatible relations must be resolved explicitly in the same proposal; they are never silently dropped.
 

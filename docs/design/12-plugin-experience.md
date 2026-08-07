@@ -92,7 +92,7 @@ Use notices for concise success/failure summaries and modals/views for decisions
 
 ## Acceptance criteria
 
-- Every named write in `PLAN.md` has a command/context action and explicit confirmation point.
+- Every write named by a feature design has a command or context action and an explicit confirmation point.
 - No command silently infers ambiguous entity context.
 - First-run onboarding changes no content.
 - Invalid settings cannot write outside the normalized intended vault path.

@@ -4,6 +4,16 @@
 
 Plan and run time-bounded work for one project or a portfolio while preventing contradictory active assignments and retaining an auditable outcome history.
 
+## Scope and optionality
+
+Timeboxed planning is supported but never required. The board works with no planning period, and a project that uses none produces no warnings, empty views, or required setup.
+
+A project displays the feature as **Sprint**, **Cycle**, or **Period** through `weave.planning_period_label`, defaulting to `sprint`. The label is presentation only: one stable Markdown schema — the `sprint` type and its fields — backs all three, and notes remain portable across the choice. This document uses "sprint" for that schema.
+
+A task may be assigned to at most one current planning period. Goals, dates, activation, commitment totals, guided closing, and task history are available when the project uses them.
+
+Portfolio-scoped planning periods sit outside the single-project v1 core. The portfolio-sprint behavior below remains the specified contract for that scope; it is deferred rather than redesigned, and the same deferral applies as in [14 — Non-goals and future features](14-non-goals-and-future-features.md).
+
 ## Sprint types
 
 ### Project sprint
@@ -12,7 +22,7 @@ Has `scope: project` and exactly one `project` wiki link.
 
 ### Portfolio sprint
 
-Has `scope: portfolio` and a non-empty, unique `projects` wiki-link list. Every assigned task must belong to one participating project.
+Deferred beyond the single-project v1 core. Has `scope: portfolio` and a non-empty, unique `projects` wiki-link list. Every assigned task must belong to one participating project.
 
 Both support `planned`, `active`, `completed`, and `cancelled` status; goal; start/end date; activation commitment; and closure summary.
 

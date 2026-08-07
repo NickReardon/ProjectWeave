@@ -42,13 +42,37 @@ Parsers distinguish missing, malformed, and unsupported values so the UI can giv
 
 Required: `type: project`. Existing vault fields are preserved. Project title/path is used as the owning relation target.
 
+An optional `weave` mapping carries the project's workflow policy. Every key is
+optional and every policy is off or permissive by default, so a project note
+that omits `weave` entirely is fully valid:
+
+```yaml
+weave:
+  dependency_mode: enforced # or `advisory`; default `enforced`
+  planning_period_label: sprint # or `cycle`, `period`; default `sprint`
+  estimation: null # explicit estimation policy when the project opts in
+  owner_required_on_board: false
+  estimate_required_in_period: false
+```
+
+Enforcement policies are stored in the project note rather than in local
+settings so a small team sharing a vault shares the same rules.
+
 ### Epic
 
 Required: `type`, `project`, `status`. Supported status: `planned`, `active`, `completed`, `cancelled`. Optional: `title`, `owner`, `origin`, `created`.
 
 ### Task
 
-Required: `type`, `project`, `status`. Supported status: `todo`, `in-progress`, `waiting`, `review`, `done`, `cancelled`. Optional: `title`, `epic`, `sprint`, positive integer `points`, `owner`, `depends_on`, `iteration_of`, positive integer `iteration`, `origin`, `priority`, `created`, `sprint_history`.
+Required: `type`, `project`, `status` — and nothing else. Title falls back to the filename stem. Every other supported field is optional unless an enabled project policy explicitly requires it.
+
+Supported status: `backlog`, `todo`, `in-progress`, `waiting`, `review`, `done`, `cancelled`. A `backlog` task is planned but not on the active board; see [16 — Streamlined long-project workflow](16-streamlined-long-project-workflow.md) for the backlog/board boundary.
+
+Optional: `title`, `epic`, `sprint`, positive integer `points`, `owner`, `depends_on`, `iteration_of`, positive integer `iteration`, `origin`, `priority`, `created`, `sprint_history`. Scheduling fields — `rank`, `due_date`, `milestone`, `completed_at`, and `completion_history` — are specified in [15 — Scheduling and milestones](15-scheduling-and-milestones.md).
+
+### Milestone
+
+Required: `type`, `project`, `status`, `due_date`. Supported status: `planned`, `achieved`, `cancelled`. Field-level behavior and task membership are specified in [15 — Scheduling and milestones](15-scheduling-and-milestones.md).
 
 ### Sprint
 
@@ -92,4 +116,4 @@ Severity levels are `error`, `warning`, and `info`. Codes are stable and machine
 - Duplicate titles with explicit paths resolve correctly; ambiguous short links are diagnosed.
 - Create, modify, rename, and delete events produce the same result as a fresh full build.
 - Derived member lists are never persisted merely to accelerate queries.
-- All controlled values and relation constraints in `PLAN.md` have parser and validator tests.
+- Every controlled value and relation constraint in this document and in the owning feature designs has parser and validator tests.
