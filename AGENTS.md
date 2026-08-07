@@ -111,7 +111,8 @@ enough that prose documentation does not need to restate it.
   passes its exit gate, or when a compatibility surface changes — product
   terms, frontmatter fields, controlled values, diagnostic codes, or persisted
   workspace state. Do not claim a minor when work on a chunk begins; the
-  version describes what a build contains. `README.md` holds the full rule.
+  version describes what a build contains.
+  `docs/development/release.md` holds the full rule.
   Resolve genuine ambiguity upward and say why; a change you can fully describe
   as a fix or a refactor is not ambiguous.
 

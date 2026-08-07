@@ -1,3 +1,10 @@
+---
+type: development
+area: testing
+status: current
+canonical: false
+---
+
 # Project Weave Manual Checks
 
 ## Purpose
@@ -123,6 +130,9 @@ Reset restores every seeded note, drops the ones the seeder added, and
 preserves `.obsidian/` — so the installed plugin and its settings survive and
 you do not reinstall after every check. Notes you created yourself are reported
 and left alone rather than deleted.
+
+Every seeding command refuses a directory without a manifest this tool wrote,
+and refuses a target outside the repository unless given `--allow-outside`.
 
 - Reset between checks rather than reverting edits by hand. A check that passes
   against leftover state from the previous one has proved nothing.
