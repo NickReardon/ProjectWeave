@@ -27,6 +27,7 @@
     "test-vault:reset": "node scripts/test-vault-seeder.mjs --reset",
     "test-vault:setup": "npm run test-vault:create -- --point && npm run test-vault:update",
     "test-vault:update": "npm run export -- --require-test-vault",
+    "project-vault:install": "npm run build && node scripts/project-vault-install.mjs",
     "release": "npm run check && node scripts/export-plugin.mjs",
     "check": "npm run version:check && npm run current-work:check && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run verify:release"
   },

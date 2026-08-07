@@ -9,8 +9,10 @@ code or product behavior, read these files in order:
 2. `README.md` for implemented behavior, setup, and commands.
 3. Recent history on the current branch (`git log --oneline -20`) for what has
    changed and why. History is the primary record of work in progress.
-4. `docs/CURRENT_WORK.md` for validation status, outstanding manual checks, and
-   the next decision point — the state Git cannot carry.
+4. `docs/project-vault/`, Project Weave's own dogfood vault, for outstanding
+   manual checks, known loose ends, and the next decision point — the state
+   Git cannot carry. `docs/CURRENT_WORK.md` still carries the append-only
+   automated-verification log; see ADR 0015 and ADR 0016 for why the split.
 5. `docs/ARCHITECTURE.md` for dependency direction and implemented boundaries.
 6. The owning specification under `docs/spec/` and any relevant record under
    `docs/decisions/`.
@@ -19,9 +21,9 @@ code or product behavior, read these files in order:
 `docs/spec/` is the single canonical statement of intended behavior; there is
 no precedence chain and no document outside it overrides it. When the spec and
 the code disagree, that is a defect in one of them — say which, and fix it.
-Implementation-status claims belong in `README.md` and `docs/CURRENT_WORK.md`.
-Nothing under `docs/archive/` is authoritative; do not cite it as a
-requirement.
+Implementation-status claims belong in `README.md`; outstanding-work claims
+belong in `docs/project-vault/`. Nothing under `docs/archive/` is
+authoritative; do not cite it as a requirement.
 
 ## Repository map
 
@@ -73,16 +75,18 @@ requirement.
   no second requirements file. If the spec is wrong, change the spec.
 - Record material architectural or product choices in a concise ADR using
   `docs/decisions/0000-template.md`. Preserve superseded decisions as history.
-- Update `docs/CURRENT_WORK.md` only for state the commit history cannot
-  carry: validation evidence, outstanding manual checks, known loose ends, and
-  the next decision point. Do not restate what changed — the branch and its
-  commits are that record.
-- Treat `docs/CURRENT_WORK.md` as the proposed post-merge handoff. Before a
-  branch lands, make the file truthful for the resulting `main` state. Never
-  record the current branch, current HEAD, branch hygiene, or an instruction to
-  merge that branch there; keep pre-merge handoff details in the pull request
-  or task conversation. A commit may be named only as immutable validation
-  evidence, such as the source commit against which a command passed.
+- Update `docs/CURRENT_WORK.md` only to append validation evidence: a
+  completed `npm run check` or `npm run export` run and the source commit it
+  ran against. Do not restate what changed — the branch and its commits are
+  that record — and never record the current branch, current HEAD, branch
+  hygiene, or an instruction to merge that branch there; keep pre-merge
+  handoff details in the pull request or task conversation.
+- Track outstanding manual checks, known loose ends, and the next decision
+  point as task and project notes in `docs/project-vault/`, not in
+  `docs/CURRENT_WORK.md`. Creation goes through Project Weave's own create-task
+  flow where practical; until typed task editing exists, status transitions
+  are hand-edited frontmatter — an explicit, documented interim step per ADR
+  0016, not a precedent for hand-editing anything else.
 - Update `README.md` and `docs/ARCHITECTURE.md` when implemented or released
   boundaries change. Do not use anything under `docs/archive/` as current
   guidance; it is retained only to preserve decision history.
@@ -131,7 +135,7 @@ release inventory. Use narrower commands while iterating, but run the complete
 gate before handoff when practical.
 
 Obsidian UI, workspace restoration, responsive behavior, and live vault-event
-behavior still require focused manual checks. `docs/development/testing.md` is the
-procedure for running them; `docs/CURRENT_WORK.md` records which have passed
-and is authoritative for status. Report automated and manual verification
-separately.
+behavior still require focused manual checks. `docs/development/testing.md` is
+the procedure for running them; the manual-check tasks in
+`docs/project-vault/` record which have passed and are authoritative for
+status. Report automated and manual verification separately.

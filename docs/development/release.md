@@ -12,8 +12,9 @@ canonical: false
 This operational plan covers local branch testing, BRAT previews, stable
 GitHub releases, and Obsidian Community Plugins publication. It does not claim
 that Project Weave is ready to release. Release readiness remains governed by
-[Design 13](../spec/13-quality-and-release.md) and the evidence and outstanding
-checks in [CURRENT_WORK.md](../CURRENT_WORK.md).
+[Design 13](../spec/13-quality-and-release.md), the automated-verification
+evidence in [CURRENT_WORK.md](../CURRENT_WORK.md), and the outstanding manual
+checks tracked in [docs/project-vault/](../project-vault/).
 
 ## Versioning
 
@@ -48,7 +49,8 @@ took. Before 1.0 the minor position carries feature weight:
 **Bump the patch before exporting a build that differs from the last exported
 one.** A version identifies an installed build, so two builds that behave
 differently must never share a number — that is what makes "passed against the
-installed 0.5.0 build" in [Current Work](../CURRENT_WORK.md) mean anything.
+installed 0.5.0 build" on a manual-check task in
+[docs/project-vault/](../project-vault/) mean anything.
 Re-running `npm run export` or `npm run test-vault:update` over an unchanged
 tree reinstalls the same build and needs no bump; changing source and
 reinstalling does.
@@ -81,6 +83,7 @@ complete, never on the minor position running high.
 | Channel | Audience | Installed files come from | Update path |
 | --- | --- | --- | --- |
 | Local test vault | Developer | Current checkout's verified export | `npm run test-vault:update` |
+| Dogfood vault | Developer | Current checkout's production build | `npm run project-vault:install` |
 | BRAT preview | Invited testers and test devices | GitHub prerelease built from an explicit ref | BRAT |
 | Community stable | General users | Stable GitHub release matching the default branch | Obsidian |
 
@@ -90,7 +93,7 @@ need the three files as individual release assets.
 
 ## Release sequence
 
-1. Complete the disposable-vault UI checks in `CURRENT_WORK.md`.
+1. Complete the disposable-vault UI checks tracked in `docs/project-vault/`.
 2. Test Obsidian 1.8.0 and current stable desktop/mobile versions.
 3. Merge accepted behavior to `main`.
 4. Establish the public repository, license, author, support path, changelog,
@@ -142,7 +145,42 @@ Local testing loop:
 3. Reload Obsidian or disable and re-enable Project Weave.
 4. Perform focused manual checks and confirm passive behavior changed no
    Markdown.
-5. Record release-relevant evidence or defects in `CURRENT_WORK.md`.
+5. Record automated-verification evidence in `CURRENT_WORK.md`; record
+   check results and defects as tasks in `docs/project-vault/`.
+
+## Dogfood vault
+
+[ADR 0016](../decisions/0016-dogfood-vault-location.md) tracks Project
+Weave's own outstanding work in `docs/project-vault/`, a vault committed to
+this repository. Unlike the disposable test vault, its content is not seeded
+or reset — only the plugin's runtime files are installed into it.
+
+### Configure once
+
+Open `docs/project-vault/` as a vault in Obsidian and enable community
+plugins (**Settings → Community plugins → Turn on community plugins**). This
+creates the vault's `.obsidian/` directory, which is Git-ignored — see ADR
+0016 for why. Nothing else needs configuring; the install path is fixed at
+`docs/project-vault/`, not resolved from an environment variable or pointer
+file.
+
+### Update from the current branch
+
+```shell
+npm run project-vault:install
+```
+
+This builds the production bundle and copies the three runtime files to:
+
+```text
+docs/project-vault/.obsidian/plugins/project-weave/
+```
+
+It fails with guidance if `docs/project-vault/.obsidian/` does not exist yet.
+It creates the plugin directory when needed and preserves `data.json` and
+other local plugin state, the same as `npm run test-vault:update`. It does
+not run the automated gate or touch vault content — reload Obsidian or
+disable and re-enable Project Weave to pick up a new build.
 
 ## BRAT preview channel
 

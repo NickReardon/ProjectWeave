@@ -11,10 +11,12 @@ in [docs/spec/](docs/spec/README.md); [CURRENT-DESIGN.md](CURRENT-DESIGN.md) is
 a one-page map of where each kind of truth lives.
 
 Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
-defines the branch and small-commit workflow. Validation evidence, remaining
-manual checks, and the next decision point are in
-[docs/CURRENT_WORK.md](docs/CURRENT_WORK.md); commit history is the record of
-what changed. The dependency-ordered remaining roadmap is in
+defines the branch and small-commit workflow. Automated-validation evidence is
+in [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md); remaining manual checks,
+known loose ends, and the next decision point are tracked as tasks in
+[docs/project-vault/](docs/project-vault/), Project Weave's own dogfood vault;
+commit history is the record of what changed. The dependency-ordered
+remaining roadmap is in
 [docs/IMPLEMENTATION_ORDER.md](docs/IMPLEMENTATION_ORDER.md).
 
 ## Current status
