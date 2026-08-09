@@ -118,11 +118,12 @@ records the decision, including why a `bug` entity type was rejected.
 
 ## Note templates
 
-`templates/default/` holds the packaged starter templates.
-`templates/default/task.md` and `templates/default/project.md` are used by
-code; the plugin embeds a copy of each so rendering works without filesystem
-access, and a test keeps each pair byte-identical. The remaining files are
-inputs for later slices.
+`templates/default/` holds the packaged starter templates. The plugin embeds
+the complete set so future creation services can use them without filesystem
+access, and tests keep every embedded copy byte-identical to its editable
+source file. Task and project are the kinds with runtime creation flows today;
+epic, milestone, planning period, and document starters remain inputs for later
+slices.
 
 A task template is chosen per variant from three places, in order:
 
