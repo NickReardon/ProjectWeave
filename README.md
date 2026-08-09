@@ -15,9 +15,9 @@ defines the branch and small-commit workflow. Automated-validation evidence is
 in [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md); remaining manual checks,
 known loose ends, and the next decision point are tracked as tasks in
 [docs/project-vault/](docs/project-vault/), Project Weave's own dogfood vault;
-commit history is the record of what changed. The dependency-ordered
-remaining roadmap is in
-[docs/IMPLEMENTATION_ORDER.md](docs/IMPLEMENTATION_ORDER.md).
+commit history is the record of what changed. The dependency-ordered remaining
+roadmap is represented by the project, Epic, and milestone notes in
+[docs/project-vault/](docs/project-vault/).
 
 ## Current status
 
@@ -64,8 +64,11 @@ template, shows the exact bytes that would be written along with the
 preconditions and expected postconditions, and creates the note when you
 confirm.
 
-Creation is the only thing Project Weave writes. Indexing, plugin load,
-settings changes, navigation, and the dashboard never modify vault content.
+Creation is the only normal project-content write Project Weave performs.
+Indexing, plugin load, settings changes, navigation, and the dashboard never
+modify canonical Markdown. If **Diagnostics log folder** is configured, the
+plugin also writes its derived `diagnostics.json` report there after complete
+index publications; it never indexes that report as a project entity.
 The write path creates new notes only: it has no operation that can modify,
 move, or delete an existing note, and a target that already exists is refused
 rather than overwritten. If the project note or template changes between
@@ -143,11 +146,12 @@ exists, listing the merged variants plus **Packaged minimal** as an explicit
 escape hatch, and re-previews when you change it. With one variant there is no
 choice to make, so there is no control.
 
-A created project uses `<template library folder>/project/default.md` when it
-exists, and the packaged project template otherwise, on the same fail-closed
-terms. There is no chooser: a project note is where a project's own template
-mapping would live, so one house style per vault is the only choice there is to
-make.
+A created project resolves `project/default` through the same merged catalog:
+the vault template wins when present, and the packaged project template is the
+fallback. An ambiguous or malformed vault winner fails closed instead of
+silently changing the bytes. There is no chooser yet: a project note is where
+a project's own template mapping would live, so one house style per vault is
+the only choice there is to make.
 
 What a created note carries because of its kind does not depend on its
 template. A task always gets its title, status, project relation, and the seven
@@ -176,6 +180,26 @@ npm ci
 npm run check
 ```
 
+To inspect the current diagnostics in a vault from the command line, run the
+read-only scanner. You can pass the vault directly:
+
+```shell
+npm run diagnostics -- --vault "C:\\path\\to\\vault" --project "Projects/Game/Project.md" --out diagnostics.json --pretty
+```
+
+Or put `PROJECT_WEAVE_VAULT=C:\\path\\to\\vault` in a local `.env` file and
+run `npm run diagnostics` without `--vault`. The `.env` file is ignored by Git;
+`.env.example` shows the shape.
+
+Omit `--project` to report all diagnostics under the indexed roots. Add
+`--watch` to refresh the JSON after Markdown changes. The scanner uses the same
+parser and index validation rules as the plugin; it does not modify the vault.
+
+`npm run diagnostics:check` scans the committed dogfood vault and exits
+unsuccessfully if it contains any error-level diagnostic. The command is part
+of `npm run check`; warnings and info remain visible for review without failing
+the automated gate.
+
 Use `npm run dev` for a watching development bundle. A production build writes
 exactly `main.js`, `manifest.json`, and `styles.css` to `dist/`. Install
 those files only in a disposable development vault.
@@ -203,6 +227,12 @@ the packaged templates only, and a folder nobody has created simply holds no
 templates. Project notes may still map their own variants under
 `weave.templates`, which travel with the project and take precedence. A project
 note cannot map its own project template, since it is the note being created.
+
+**Diagnostics log folder** optionally names a vault-relative folder where
+Project Weave writes `diagnostics.json` after each complete index publication.
+The report contains diagnostics and index metadata, not note bodies. Leave it
+empty to disable the export; saving this setting may create the folder when the
+first report is published.
 
 Open the workbench from the left ribbon, **Project Weave: Open project
 workbench** in the command palette, or **Open dashboard** on the settings page.
