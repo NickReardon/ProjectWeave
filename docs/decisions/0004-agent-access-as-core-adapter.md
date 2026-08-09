@@ -45,4 +45,4 @@ The adapter is thin. UI, MCP, and tests share application services. Every agent 
 - Positive: creating tasks from evolving game-design documents becomes a first-class workflow.
 - Negative: a desktop bridge and trusted approval UI are required before agent writes can ship.
 - Negative: ordinary document editing needs a separate safe patch contract in addition to typed entity operations.
-- Follow-up: select and record the desktop bridge/transport architecture and pinned MCP protocol/SDK before implementing the adapter.
+- Follow-up: select and record the desktop bridge/transport architecture and pinned MCP protocol/SDK before implementing the adapter. Discharged by [ADR 0018](0018-agent-gateway-transport.md).
