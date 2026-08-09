@@ -164,6 +164,31 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl).setName('Diagnostics').setHeading();
+    containerEl.createEl('p', {
+      cls: 'setting-item-description',
+      text: 'Optionally write a derived diagnostics.json report after each index publication. The report contains no note bodies and is not indexed as a Project Weave entity.',
+    });
+
+    let diagnosticsLogFolderCandidate =
+      this.#plugin.settings.diagnosticsLogFolder;
+    new Setting(containerEl)
+      .setName('Diagnostics log folder')
+      .setDesc(
+        'A vault-relative folder. Leave empty to disable the JSON export; the folder is created when the first complete index is published.',
+      )
+      .addSearch((search) => {
+        search.setValue(diagnosticsLogFolderCandidate);
+        this.#configureFolderSearch(search, 'Project Weave Logs', (value) => {
+          diagnosticsLogFolderCandidate = value;
+        });
+      })
+      .addButton((button) =>
+        button.setButtonText('Save').onClick(() => {
+          void this.#saveDiagnosticsLogFolder(diagnosticsLogFolderCandidate);
+        }),
+      );
+
     new Setting(containerEl)
       .setName('Rebuild index')
       .setDesc('Re-read only the selected project folders.')
@@ -273,6 +298,16 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
         ),
       );
       new Notice('Project Weave task category removed.');
+      this.display();
+    } catch (error) {
+      new Notice('Project Weave: ' + errorMessage(error));
+    }
+  }
+
+  async #saveDiagnosticsLogFolder(value: string): Promise<void> {
+    try {
+      await this.#plugin.updateDiagnosticsLogFolder(value);
+      new Notice('Project Weave diagnostics log folder saved.');
       this.display();
     } catch (error) {
       new Notice('Project Weave: ' + errorMessage(error));

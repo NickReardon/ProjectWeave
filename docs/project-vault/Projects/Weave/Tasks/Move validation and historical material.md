@@ -4,7 +4,7 @@ title: Move validation and historical material
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-12-dogfood-vault-migration]]'
 status: backlog
-priority: medium
+priority: normal
 created: 2026-08-09
 ---
 

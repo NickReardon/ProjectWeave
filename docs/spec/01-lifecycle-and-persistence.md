@@ -16,7 +16,7 @@ Make Project Weave safe to install, enable, reload, disable, upgrade, and uninst
 
 - Installation places only `main.js`, `manifest.json`, and `styles.css` in the plugin folder.
 - First activation MAY show onboarding and MAY create plugin settings/cache through Obsidian's plugin data store.
-- Activation indexes existing notes but creates, edits, moves, renames, or deletes none of them.
+- Activation indexes existing notes but creates, edits, moves, renames, or deletes none of them unless the user has configured the derived diagnostics report; that report is the only non-creation vault output and contains no canonical note content.
 - Deactivation closes Project Weave resources cleanly and changes no content.
 - Uninstall leaves every project note readable as ordinary Markdown.
 - Upgrade may migrate plugin-owned settings but MUST NOT migrate content implicitly.
@@ -60,6 +60,9 @@ Forbidden plugin data includes the only copy of an entity, status, dependency, s
 - Event callbacks do no heavy work; repeated events for the same path are coalesced.
 - Unloading invalidates queued work through a generation token or cancellation signal.
 - The plugin does not infer write permission from an external file event.
+- A configured diagnostics log is refreshed only after a complete published
+  snapshot; a report-write failure is logged and never blocks publication or
+  changes indexed Markdown.
 
 ## Failure behavior
 

@@ -3,7 +3,6 @@ import { isTerminalTaskStatus, TASK_STATUSES } from '../domain/model';
 import type {
   Diagnostic,
   DiagnosticSeverity,
-  EntityRecord,
   IndexFreshness,
   ProjectEntity,
   TaskEntity,
@@ -11,6 +10,10 @@ import type {
   TaskStatus,
 } from '../domain/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
+import {
+  getProjectDiagnostics,
+  getUnassignedDiagnostics,
+} from './project-diagnostics';
 import { substringTaskSearch, type TaskSearchMatcher } from './task-search';
 import type { ProjectWeaveReadPublication } from './project-weave-read-source';
 
@@ -484,59 +487,6 @@ function projectOption(project: ProjectEntity): ProjectWorkbenchProjectOption {
   };
 }
 
-function getProjectDiagnostics(
-  snapshot: IndexSnapshot,
-  projectPath: string,
-): readonly Diagnostic[] {
-  const projectEntityPaths = new Set(
-    snapshot
-      .getEntities()
-      .filter((entity) => entityBelongsToProject(entity, projectPath))
-      .map((entity) => entity.path),
-  );
-  return snapshot.diagnostics
-    .filter(
-      (issue) =>
-        issue.path === projectPath || projectEntityPaths.has(issue.path),
-    )
-    .sort(compareDiagnostic);
-}
-
-function getUnassignedDiagnostics(
-  snapshot: IndexSnapshot,
-  projects: readonly ProjectEntity[],
-): readonly Diagnostic[] {
-  const assignedEntityPaths = new Set(
-    snapshot
-      .getEntities()
-      .filter((entity) =>
-        projects.some((project) =>
-          entityBelongsToProject(entity, project.path),
-        ),
-      )
-      .map((entity) => entity.path),
-  );
-  return snapshot.diagnostics
-    .filter((issue) => !assignedEntityPaths.has(issue.path))
-    .sort(compareDiagnostic);
-}
-
-function entityBelongsToProject(
-  entity: EntityRecord,
-  projectPath: string,
-): boolean {
-  if (entity.kind === 'project') {
-    return entity.path === projectPath;
-  }
-  if (entity.project?.resolvedPath === projectPath) {
-    return true;
-  }
-  return (
-    entity.kind === 'sprint' &&
-    entity.projects.some((project) => project.resolvedPath === projectPath)
-  );
-}
-
 function projectDiagnosticItem(
   diagnostic: Diagnostic,
 ): ProjectWorkbenchDiagnosticItem {
@@ -571,32 +521,6 @@ function diagnosticsModel(
     displayed: items.length,
     truncated: items.length < diagnostics.length,
   };
-}
-
-function compareDiagnostic(left: Diagnostic, right: Diagnostic): number {
-  return (
-    diagnosticSeverityOrder(left.severity) -
-      diagnosticSeverityOrder(right.severity) ||
-    comparePath(left.path, right.path) ||
-    left.code.localeCompare(right.code) ||
-    (left.field ?? '').localeCompare(right.field ?? '') ||
-    left.message.localeCompare(right.message) ||
-    (left.recovery ?? '').localeCompare(right.recovery ?? '') ||
-    (left.relatedPaths ?? [])
-      .join('\n')
-      .localeCompare((right.relatedPaths ?? []).join('\n'))
-  );
-}
-
-function diagnosticSeverityOrder(severity: DiagnosticSeverity): number {
-  switch (severity) {
-    case 'error':
-      return 0;
-    case 'warning':
-      return 1;
-    case 'info':
-      return 2;
-  }
 }
 
 function countProjectTaskDependents(

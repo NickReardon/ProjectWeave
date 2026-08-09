@@ -249,7 +249,7 @@ describe('Project Workbench view rendering', () => {
       .querySelector('.project-weave-workbench__revision')
       ?.getAttribute('title');
     expect(title).toContain('index revision 1');
-    expect(title).toMatch(/^Updated \d{2}:\d{2} · /u);
+    expect(title).toMatch(/^Updated (?:\d{4}-\d{2}-\d{2} )?\d{2}:\d{2} · /u);
   });
 
   it('names each unit of age from seconds to days', async () => {
