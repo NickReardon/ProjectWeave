@@ -56,6 +56,7 @@ Release output contains exactly:
 ```text
 main.js
 manifest.json
+project-weave-mcp.cjs
 styles.css
 ```
 
@@ -83,7 +84,7 @@ No source maps with user paths, fixture-vault content, test files, development d
 ## Acceptance criteria
 
 - A clean checkout builds and tests with documented commands.
-- Release artifacts are reproducible and limited to the three installed files.
+- Release artifacts are reproducible and limited to the four installed files.
 - No passive test lifecycle changes fixture content.
 - Every global invariant has at least one positive and negative test.
 - Mobile compatibility is proven rather than inferred from desktop behavior.

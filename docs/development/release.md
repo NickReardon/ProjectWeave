@@ -88,9 +88,10 @@ complete, never on the minor position running high.
 | BRAT preview | Invited testers and test devices | GitHub prerelease built from an explicit ref | BRAT |
 | Community stable | General users | Stable GitHub release matching the default branch | Obsidian |
 
-Every channel installs exactly `main.js`, `manifest.json`, and `styles.css`.
-A ZIP can accompany a release for manual installation, but BRAT and Obsidian
-need the three files as individual release assets.
+Every channel installs exactly `main.js`, `manifest.json`,
+`project-weave-mcp.cjs`, and `styles.css`. A ZIP can accompany a release for
+manual installation, but BRAT and Obsidian need the four files as individual
+release assets.
 
 ## Release sequence
 
@@ -127,7 +128,7 @@ npm run test-vault:update
 
 This command checks synchronized versions, builds the production bundle,
 verifies its exact inventory, regenerates `export/project-weave/` and the ZIP,
-and copies the three runtime files to:
+and copies the four runtime files to:
 
 ```text
 <vault>/.obsidian/plugins/project-weave/
@@ -171,7 +172,7 @@ file.
 npm run project-vault:install
 ```
 
-This builds the production bundle and copies the three runtime files to:
+This builds the production bundle and copies the four runtime files to:
 
 ```text
 docs/project-vault/.obsidian/plugins/project-weave/

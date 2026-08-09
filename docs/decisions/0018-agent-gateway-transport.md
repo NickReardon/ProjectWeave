@@ -76,10 +76,10 @@ plugin over authenticated local IPC.
   `isDesktopOnly: false` and mobile startup does not reach this code.
 - **Protocol and SDK are pinned.** The adapter targets MCP revision `2025-06-18`,
   the revision Design 17 already cites, using the official TypeScript SDK
-  (`@modelcontextprotocol/sdk`) at an exact version rather than a range, so a
-  protocol revision never changes underneath a tested adapter. Design 17 requires
-  proposal handles to stay independent of transport sessions, so a version bump
-  is an isolated, testable change.
+  (`@modelcontextprotocol/sdk` 1.30.0) and Zod 4.4.3 at exact versions rather
+  than ranges, so a protocol revision never changes underneath a tested
+  adapter. Design 17 requires proposal handles to stay independent of transport
+  sessions, so a version bump is an isolated, testable change.
 
 ## Alternatives considered
 
@@ -118,5 +118,6 @@ plugin over authenticated local IPC.
 - Negative: developers configure a grant secret in their environment per
   repository, which is setup friction that a vault-local arrangement would not
   have.
-- Follow-up: Design 17's `AgentGrant` gains vault identity. Slice A remains
-  blocked on the application query surface it names, not on this decision.
+- Follow-up: Design 17's `AgentGrant` gains vault identity. Slice A implements
+  the application query surface and transport; proposal capabilities remain a
+  later slice.

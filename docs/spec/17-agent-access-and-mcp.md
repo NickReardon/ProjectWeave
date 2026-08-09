@@ -10,7 +10,11 @@ related_decisions: ["0004", "0018"]
 
 ## Status and precedence
 
-Approved staged v1 design. This document extends the current single-project workflow with optional agent access. It does not make MCP, networking, or an agent runtime a requirement for the core plugin.
+Approved staged v1 design. Slice A, the bounded shared query surface and
+desktop-only read gateway, is implemented. Proposal and write slices remain
+planned. This document extends the current single-project workflow with
+optional agent access; it does not make MCP, networking, or an agent runtime a
+requirement for the core plugin.
 
 ## Goal
 
@@ -68,6 +72,7 @@ interface WorkQueryService {
   getFocus(input: FocusInput): Promise<QueryResult<FocusResult>>;
   getSequence(input: SequenceInput): Promise<QueryResult<SequenceResult>>;
   getActionContext(input: ActionContextInput): Promise<QueryResult<ActionContext>>;
+  getCreationContext(input: CreationContextInput): Promise<QueryResult<CreationContext>>;
 }
 
 interface ProposalService {
@@ -191,6 +196,7 @@ These are logical tools; exact names are versioned with the adapter:
 - `weave_focus`
 - `weave_sequence`
 - `weave_action_context`
+- `weave_creation_context`
 - `weave_diagnostics`
 
 ### Proposal slice
@@ -207,7 +213,8 @@ The adapter may return links to protected read-only resources for note sections 
 
 ## Agent Slice A — read-only behavior
 
-The local gateway is disabled by default. Enabling it requires a local access grant for specific project(s) and content roots. The agent can then:
+The local gateway is disabled by default. Enabling it requires a local access
+grant for exactly one project and optional content roots. The agent can then:
 
 - identify permitted projects;
 - read project workflow/capability context;
@@ -218,7 +225,8 @@ The local gateway is disabled by default. Enabling it requires a local access gr
 - query Ready Now, My Work (when a local owner is supplied), blockers, dependents, and derived sequence;
 - retrieve validation diagnostics and available actions.
 
-Read-only mode does not register or advertise write/proposal tools where the MCP version/client supports scoped discovery. Otherwise those tools return a stable `permission_denied` without creating proposals.
+Read-only mode registers and advertises only the ten read tools above. There is
+no write/proposal operation in the companion or local bridge inventory.
 
 ## Agent Slice B — propose tasks from a document
 
@@ -409,23 +417,24 @@ Cross-project links may return target title/project/path metadata sufficient to 
 
 ### Local grant contents
 
-A grant records in plugin-owned local settings:
+A Slice A grant records in plugin-owned local settings:
 
-- approved client/connection identity;
+- a local grant id and user-facing label;
 - the vault identity the grant applies to, so a project path stays unambiguous when more than one vault can be open;
-- one project path;
-- the connection secret the companion must present, which is never stored in a project repository;
-- allowed document files/roots;
-- task creation destination root;
-- metadata/full-body read scope;
-- task-proposal, task-edit, and document-proposal scopes;
-- creation, expiry, and revocation state.
+- one normalized project path;
+- a digest of the connection secret the companion must present; the plaintext secret is returned only at creation and is never stored in a project repository;
+- optional normalized document roots beneath that project;
+- enabled/revoked state, where revocation removes the grant.
+
+Task destinations, proposal/edit scopes, and expiry state belong to later write
+slices and are not present in the read-only grant schema.
 
 First enablement explains that granted note text may be sent by the MCP client to its configured model/provider. Project Weave itself performs no model/network call.
 
 ### Read-only slice
 
-The initial read-only adapter does not advertise proposal/write tools. If protocol/client constraints require a stable list, calls fail before proposal creation with `permission_denied`.
+The initial read-only adapter does not register or advertise proposal/write
+tools. Unknown operations fail before reaching the shared query API.
 
 Document bodies are read on demand and are not persisted into a separate MCP full-text cache. Returned Markdown is labeled `untrusted_markdown`; links, commands, approval language, or tool-shaped text inside it are inert data.
 

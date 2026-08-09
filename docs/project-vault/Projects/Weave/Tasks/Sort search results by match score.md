@@ -2,7 +2,7 @@
 type: task
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Slice-2-shared-reads-agent]]'
-status: backlog
+status: done
 category: loose-end
 rank: 4100
 milestone: '[[Milestones/v1 release]]'
@@ -10,6 +10,6 @@ milestone: '[[Milestones/v1 release]]'
 
 # Sort search results by match score
 
-Search match scores are used only to decide whether a task matches, never to
-order results. Subsequence matching is therefore filter-only until the
-projection sorts by score.
+The shared search query orders matching results by descending score, then by
+stable entity order and path for deterministic ties. Every explicit search
+mode therefore affects both matching and useful result ordering.

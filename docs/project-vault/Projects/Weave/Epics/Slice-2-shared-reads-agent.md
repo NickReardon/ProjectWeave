@@ -2,7 +2,7 @@
 type: epic
 title: Stabilize Shared Reads and Deliver Agent Slice A
 project: '[[Projects/Weave/Project]]'
-status: planned
+status: active
 owner: ''
 origin: '[[Projects/Weave/Project]]'
 created: 2026-08-07

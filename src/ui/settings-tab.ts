@@ -197,6 +197,71 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
           void this.#rebuildIndex();
         }),
       );
+
+    new Setting(containerEl).setName('Agent access').setHeading();
+    containerEl.createEl('p', {
+      cls: 'setting-item-description',
+      text: 'Optional desktop-only, read-only access for local agents. It opens no endpoint until enabled, and every connection needs a one-project grant secret.',
+    });
+    new Setting(containerEl)
+      .setName('Read-only agent gateway')
+      .setDesc(
+        this.#plugin.agentGatewayEndpoint === null
+          ? 'Disabled. No named pipe or socket is listening.'
+          : `Listening locally at ${this.#plugin.agentGatewayEndpoint}`,
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.#plugin.settings.agentGatewayEnabled)
+          .onChange((enabled) => {
+            void this.#setAgentGatewayEnabled(enabled);
+          }),
+      );
+
+    for (const grant of this.#plugin.settings.agentGrants) {
+      new Setting(containerEl)
+        .setName(grant.label)
+        .setDesc(
+          `Grant id ${grant.id} · ${grant.projectPath} · ${grant.contentRoots.length === 0 ? 'entity metadata only' : grant.contentRoots.join(', ')}`,
+        )
+        .addExtraButton((button) =>
+          button
+            .setIcon('trash')
+            .setTooltip('Revoke this agent grant')
+            .onClick(() => {
+              void this.#removeAgentGrant(grant.id);
+            }),
+        );
+    }
+
+    let grantLabel = '';
+    let grantProject = '';
+    let grantRoots = '';
+    new Setting(containerEl)
+      .setName('Create agent grant')
+      .setDesc(
+        'The secret is copied to the clipboard once. Content folders are optional comma-separated vault paths for document reads.',
+      )
+      .addText((text) =>
+        text.setPlaceholder('Repository name').onChange((value) => {
+          grantLabel = value;
+        }),
+      )
+      .addText((text) =>
+        text.setPlaceholder('Projects/Game/Project.md').onChange((value) => {
+          grantProject = value;
+        }),
+      )
+      .addText((text) =>
+        text.setPlaceholder('Projects/Game/Documents').onChange((value) => {
+          grantRoots = value;
+        }),
+      )
+      .addButton((button) =>
+        button.setButtonText('Create and copy secret').onClick(() => {
+          void this.#createAgentGrant(grantLabel, grantProject, grantRoots);
+        }),
+      );
   }
 
   #configureFolderSearch(
@@ -319,6 +384,63 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       await this.#plugin.rebuildIndex(true);
     } catch {
       // The plugin reports a non-destructive rebuild failure.
+    }
+  }
+
+  async #setAgentGatewayEnabled(enabled: boolean): Promise<void> {
+    try {
+      await this.#plugin.updateAgentGatewayEnabled(enabled);
+      new Notice(
+        enabled
+          ? 'Project Weave read-only agent gateway enabled.'
+          : 'Project Weave agent gateway disabled.',
+      );
+      this.display();
+    } catch (error) {
+      new Notice('Project Weave: ' + errorMessage(error));
+      this.display();
+    }
+  }
+
+  async #createAgentGrant(
+    label: string,
+    projectPath: string,
+    roots: string,
+  ): Promise<void> {
+    try {
+      const created = await this.#plugin.createAgentGrant({
+        label,
+        projectPath,
+        contentRoots: roots
+          .split(',')
+          .map((root) => root.trim())
+          .filter((root) => root.length > 0),
+      });
+      try {
+        await navigator.clipboard.writeText(created.secret);
+      } catch (error) {
+        await this.#plugin.removeAgentGrant(created.grant.id);
+        throw new Error(
+          'The secret could not be copied, so the grant was not kept.',
+          { cause: error },
+        );
+      }
+      new Notice(
+        `Project Weave grant created. Secret copied once; grant id ${created.grant.id}.`,
+      );
+      this.display();
+    } catch (error) {
+      new Notice('Project Weave: ' + errorMessage(error));
+    }
+  }
+
+  async #removeAgentGrant(id: string): Promise<void> {
+    try {
+      await this.#plugin.removeAgentGrant(id);
+      new Notice('Project Weave agent grant revoked.');
+      this.display();
+    } catch (error) {
+      new Notice('Project Weave: ' + errorMessage(error));
     }
   }
 

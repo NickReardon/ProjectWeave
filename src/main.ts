@@ -1,4 +1,4 @@
-import { Notice, Plugin, TFile } from 'obsidian';
+import { Notice, Platform, Plugin, TFile } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 
 import { ObsidianNoteWriter } from './adapters/obsidian/obsidian-note-writer';
@@ -19,6 +19,10 @@ import { TaskCreationPreviewService } from './application/task-creation-preview'
 import { VaultTemplateLibrary } from './application/vault-template-library';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
+import {
+  ReadOnlyAgentGateway,
+  type AgentGrant,
+} from './application/read-only-agent-gateway';
 import { isInTemplateLibrary } from './application/template-note-diagnostics';
 import { templateClockFromLocalDate } from './domain/templates/model';
 import { IndexCoordinator } from './indexing/index-coordinator';
@@ -29,6 +33,8 @@ import {
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
   normalizeTaskCategories,
+  normalizeVaultFilePath,
+  normalizeVaultFolderPath,
 } from './settings/project-weave-settings';
 import type { ProjectWeaveSettings } from './settings/project-weave-settings';
 import {
@@ -46,6 +52,11 @@ interface ProjectWeaveRuntime {
   readonly coordinator: IndexCoordinator;
 }
 
+interface AgentBridgeLifecycle {
+  readonly state: { readonly endpoint: string | null };
+  stop(): Promise<void>;
+}
+
 export default class ProjectWeavePlugin extends Plugin {
   public override settings: ProjectWeaveSettings =
     createDefaultProjectWeaveSettings();
@@ -60,11 +71,27 @@ export default class ProjectWeavePlugin extends Plugin {
   #diagnosticsLogService: DiagnosticsLogService | null = null;
   #unsubscribeDiagnosticsLog: (() => void) | null = null;
   #openingWorkbench: Promise<void> | null = null;
+  #agentBridge: AgentBridgeLifecycle | null = null;
   #unloaded = false;
 
   public override async onload(): Promise<void> {
     this.settings = loadProjectWeaveSettings(await this.loadData());
+    if (this.settings.agentVaultId.length === 0) {
+      this.settings = {
+        ...this.settings,
+        agentVaultId: randomIdentifier(),
+      };
+      await this.saveData(this.settings);
+    }
     this.#installRuntime(this.#createRuntime(this.settings.projectRoots));
+    try {
+      await this.#refreshAgentBridge();
+    } catch (error) {
+      console.error('Project Weave agent gateway could not start', error);
+      new Notice(
+        'Project Weave loaded, but its agent gateway could not start.',
+      );
+    }
     const diagnosticsLogService = new DiagnosticsLogService(
       new ObsidianDiagnosticsLogWriter(this.app.vault),
       () => this.settings.diagnosticsLogFolder,
@@ -181,6 +208,7 @@ export default class ProjectWeavePlugin extends Plugin {
     this.#diagnosticsLogService = null;
     this.#noteDiagnosticBanners?.dispose();
     this.#noteDiagnosticBanners = null;
+    void this.#stopAgentBridge();
     this.#readSource.dispose();
     this.#runtime?.coordinator.dispose();
     this.#runtime = null;
@@ -224,6 +252,7 @@ export default class ProjectWeavePlugin extends Plugin {
     };
     await this.saveData(nextSettings);
     this.settings = nextSettings;
+    if (this.#runtime !== null) this.#bindReadSource(this.#runtime);
     this.#noteDiagnosticBanners?.scheduleRefresh();
   }
 
@@ -236,6 +265,73 @@ export default class ProjectWeavePlugin extends Plugin {
     await this.saveData(nextSettings);
     this.settings = nextSettings;
     this.#diagnosticsLogService?.publish(this.#readSource.current);
+  }
+
+  public async updateAgentGatewayEnabled(enabled: boolean): Promise<void> {
+    if (enabled && !Platform.isDesktopApp) {
+      throw new Error('Agent access is available only in the desktop app.');
+    }
+    const nextSettings = { ...this.settings, agentGatewayEnabled: enabled };
+    await this.saveData(nextSettings);
+    this.settings = nextSettings;
+    await this.#refreshAgentBridge();
+  }
+
+  public async createAgentGrant(input: {
+    readonly label: string;
+    readonly projectPath: string;
+    readonly contentRoots: readonly string[];
+  }): Promise<{ readonly grant: AgentGrant; readonly secret: string }> {
+    const projectPath = normalizeVaultFilePath(input.projectPath);
+    const entity = this.#readSource.current.snapshot.getEntity(projectPath);
+    if (entity?.kind !== 'project') {
+      throw new Error('Select an indexed project note for the grant.');
+    }
+    const contentRoots = normalizeProjectRoots(
+      input.contentRoots.map(normalizeVaultFolderPath),
+    );
+    const projectRoot = projectContentRoot(projectPath);
+    if (
+      contentRoots.some(
+        (root) => root !== projectRoot && !root.startsWith(projectRoot + '/'),
+      )
+    ) {
+      throw new Error(
+        'Grant content folders must stay inside the selected project.',
+      );
+    }
+    const id = randomIdentifier();
+    const secret = `${randomIdentifier()}.${randomIdentifier()}`;
+    const grant: AgentGrant = {
+      id,
+      label:
+        input.label.trim().length === 0 ? entity.title : input.label.trim(),
+      vaultId: this.settings.agentVaultId,
+      projectPath,
+      contentRoots,
+      secretDigest: await digestSecret(secret),
+      enabled: true,
+    };
+    const nextSettings = {
+      ...this.settings,
+      agentGrants: [...this.settings.agentGrants, grant],
+    };
+    await this.saveData(nextSettings);
+    this.settings = nextSettings;
+    return { grant, secret };
+  }
+
+  public async removeAgentGrant(id: string): Promise<void> {
+    const nextSettings = {
+      ...this.settings,
+      agentGrants: this.settings.agentGrants.filter((grant) => grant.id !== id),
+    };
+    await this.saveData(nextSettings);
+    this.settings = nextSettings;
+  }
+
+  public get agentGatewayEndpoint(): string | null {
+    return this.#agentBridge?.state.endpoint ?? null;
   }
 
   public async rebuildIndex(showSuccess: boolean): Promise<void> {
@@ -277,8 +373,57 @@ export default class ProjectWeavePlugin extends Plugin {
   #installRuntime(next: ProjectWeaveRuntime): void {
     const previous = this.#runtime;
     this.#runtime = next;
-    this.#readSource.bind(next.coordinator);
+    this.#bindReadSource(next);
     previous?.coordinator.dispose();
+  }
+
+  #bindReadSource(runtime: ProjectWeaveRuntime): void {
+    this.#readSource.bind(runtime.coordinator, {
+      vault: runtime.reader,
+      taskTemplates: () => {
+        const folder = this.settings.templateScaffoldFolder;
+        if (folder.trim().length === 0) return new TaskTemplateResolver();
+        const reader = new ObsidianVaultReader(this.app.vault, [folder]);
+        return new TaskTemplateResolver(
+          new VaultTemplateLibrary(reader, folder),
+        );
+      },
+    });
+  }
+
+  async #refreshAgentBridge(): Promise<void> {
+    await this.#stopAgentBridge();
+    if (
+      !this.settings.agentGatewayEnabled ||
+      !Platform.isDesktopApp ||
+      this.#unloaded
+    )
+      return;
+    const { LocalAgentBridge, localAgentEndpoint } =
+      await import('./adapters/desktop/local-agent-bridge');
+    const gateway = new ReadOnlyAgentGateway({
+      enabled: () => this.settings.agentGatewayEnabled,
+      vaultId: () => this.settings.agentVaultId,
+      grants: () => this.settings.agentGrants,
+      queryApi: () => this.#readSource.current.queryApi,
+      digestSecret,
+    });
+    const bridge = new LocalAgentBridge(
+      gateway,
+      localAgentEndpoint(this.settings.agentVaultId),
+    );
+    await bridge.start();
+    if (this.#unloaded || !this.settings.agentGatewayEnabled) {
+      await bridge.stop();
+      return;
+    }
+    this.#agentBridge = bridge;
+  }
+
+  async #stopAgentBridge(): Promise<void> {
+    const bridge = this.#agentBridge;
+    this.#agentBridge = null;
+    await bridge?.stop();
   }
 
   #registerVaultEvents(): void {
@@ -674,4 +819,23 @@ export default class ProjectWeavePlugin extends Plugin {
 
 function isMarkdownFile(file: unknown): file is TFile {
   return file instanceof TFile && file.extension === 'md';
+}
+
+function projectContentRoot(projectPath: string): string {
+  if (projectPath.toLowerCase().endsWith('/project.md')) {
+    return projectPath.slice(0, -'/Project.md'.length);
+  }
+  return projectPath.replace(/\.md$/iu, '');
+}
+
+function randomIdentifier(): string {
+  return crypto.randomUUID().toLowerCase();
+}
+
+async function digestSecret(secret: string): Promise<string> {
+  const bytes = new TextEncoder().encode(secret);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }

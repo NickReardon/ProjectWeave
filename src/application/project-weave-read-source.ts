@@ -1,4 +1,7 @@
-import { ProjectWeaveQueryApi } from './query-api';
+import {
+  ProjectWeaveQueryApi,
+  type ProjectWeaveQueryDependencies,
+} from './query-api';
 import { IndexSnapshot } from '../indexing/index-snapshot';
 
 export interface ProjectWeaveReadRuntime {
@@ -44,6 +47,7 @@ export class ProjectWeaveReadSource {
   #detachRuntime: (() => void) | null = null;
   #notifying = false;
   #disposed = false;
+  #queryDependencies: ProjectWeaveQueryDependencies = {};
   readonly #now: ProjectWeaveClock;
 
   public constructor(
@@ -63,12 +67,16 @@ export class ProjectWeaveReadSource {
     return this.#publication;
   }
 
-  public bind(runtime: ProjectWeaveReadRuntime): void {
+  public bind(
+    runtime: ProjectWeaveReadRuntime,
+    queryDependencies: ProjectWeaveQueryDependencies = {},
+  ): void {
     if (this.#disposed) {
       return;
     }
 
     this.#runtimeGeneration += 1;
+    this.#queryDependencies = queryDependencies;
     const generation = this.#runtimeGeneration;
     this.#detachCurrentRuntime();
 
@@ -130,6 +138,7 @@ export class ProjectWeaveReadSource {
       generation,
       snapshot,
       this.#now(),
+      this.#queryDependencies,
     );
     this.#publication = publication;
     this.#pendingPublications.push({
@@ -188,13 +197,14 @@ function createPublication(
   runtimeGeneration: number,
   snapshot: IndexSnapshot,
   publishedAt: number,
+  queryDependencies: ProjectWeaveQueryDependencies = {},
 ): ProjectWeaveReadPublication {
   return Object.freeze({
     publicationId,
     runtimeGeneration,
     publishedAt,
     snapshot,
-    queryApi: new ProjectWeaveQueryApi(() => snapshot),
+    queryApi: new ProjectWeaveQueryApi(() => snapshot, queryDependencies),
   });
 }
 

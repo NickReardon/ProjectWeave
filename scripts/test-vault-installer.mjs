@@ -1,7 +1,12 @@
 import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
-export const PLUGIN_RUNTIME_FILES = ['main.js', 'manifest.json', 'styles.css'];
+export const PLUGIN_RUNTIME_FILES = [
+  'main.js',
+  'manifest.json',
+  'project-weave-mcp.cjs',
+  'styles.css',
+];
 
 const DEFAULT_CONFIG_PATH = '.project-weave-test-vault';
 const TEST_VAULT_ENVIRONMENT_KEY = 'PROJECT_WEAVE_TEST_VAULT';

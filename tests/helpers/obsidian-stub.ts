@@ -42,6 +42,7 @@ export interface StubWorkspace {
 export interface StubVault {
   readonly paths: Set<string>;
   getFileByPath(path: string): StubTFile | null;
+  getAllLoadedFiles(): readonly unknown[];
 }
 
 /** Every `new Notice(...)` raised since the last `clearNotices()`. */
@@ -202,6 +203,8 @@ export class TextComponent {
   }
 }
 
+export class SearchComponent extends TextComponent {}
+
 export class ToggleComponent {
   public readonly toggleEl: HTMLInputElement;
 
@@ -258,6 +261,18 @@ export class ButtonComponent {
         callback();
       }
     });
+    return this;
+  }
+}
+
+export class ExtraButtonComponent extends ButtonComponent {
+  public setIcon(icon: string): this {
+    this.buttonEl.dataset['icon'] = icon;
+    return this;
+  }
+
+  public setTooltip(tooltip: string): this {
+    this.buttonEl.title = tooltip;
     return this;
   }
 }
@@ -328,8 +343,18 @@ export class Setting {
     return this;
   }
 
+  public setHeading(): this {
+    this.settingEl.classList.add('setting-item-heading');
+    return this;
+  }
+
   public addText(configure: (text: TextComponent) => void): this {
     configure(new TextComponent(this.controlEl));
+    return this;
+  }
+
+  public addSearch(configure: (search: SearchComponent) => void): this {
+    configure(new SearchComponent(this.controlEl));
     return this;
   }
 
@@ -343,9 +368,66 @@ export class Setting {
     return this;
   }
 
+  public addExtraButton(
+    configure: (button: ExtraButtonComponent) => void,
+  ): this {
+    configure(new ExtraButtonComponent(this.controlEl));
+    return this;
+  }
+
   public addDropdown(configure: (dropdown: DropdownComponent) => void): this {
     configure(new DropdownComponent(this.controlEl));
     return this;
+  }
+}
+
+export class PluginSettingTab {
+  public readonly app: StubApp;
+  public readonly plugin: unknown;
+  public readonly containerEl: HTMLElement;
+
+  public constructor(app: StubApp, plugin: unknown) {
+    this.app = app;
+    this.plugin = plugin;
+    this.containerEl = document.createElement('div');
+  }
+
+  public display(): void {
+    // Overridden by the settings tab.
+  }
+}
+
+export class TFolder {
+  public readonly path: string;
+
+  public constructor(path: string) {
+    this.path = path;
+  }
+}
+
+export class AbstractInputSuggest<T> {
+  protected readonly app: StubApp;
+  protected readonly inputEl: HTMLInputElement;
+
+  public constructor(app: StubApp, inputEl: HTMLInputElement) {
+    this.app = app;
+    this.inputEl = inputEl;
+  }
+
+  public onSelect(_callback: (value: T) => void): void {
+    void _callback;
+    // Suggestions are an Obsidian integration boundary.
+  }
+
+  protected getSuggestions(_query: string): T[] {
+    void _query;
+    return [];
+  }
+
+  public renderSuggestion(_value: T, _element: HTMLElement): void {
+    void _value;
+    void _element;
+    // Overridden by the suggestion provider.
   }
 }
 
@@ -354,6 +436,9 @@ export function createStubApp(paths: readonly string[] = []): StubApp {
     paths: new Set(paths),
     getFileByPath(path) {
       return vault.paths.has(path) ? { path } : null;
+    },
+    getAllLoadedFiles() {
+      return [];
     },
   };
 
