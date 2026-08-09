@@ -154,3 +154,10 @@ using Node.js 24.19.0: version and current-work gates, Prettier, ESLint,
 `tsc --noEmit`, 30 Vitest files with 344 tests, 28 Node script tests, the
 production bundle, and a release inventory of exactly `main.js`, `manifest.json`,
 and `styles.css`.
+
+On 2026-08-09, `npm run check` passed in full against source commit `ef1db32`
+using Node.js 24.19.0: version and current-work gates, Prettier, ESLint,
+`tsc --noEmit`, 30 Vitest files with 347 tests, 29 Node script tests, the
+dogfood diagnostics gate over 61 notes with zero diagnostics, the production
+bundle, and a release inventory of exactly `main.js`, `manifest.json`, and
+`styles.css`.
