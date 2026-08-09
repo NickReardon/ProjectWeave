@@ -176,31 +176,35 @@ Template metadata keys, frontmatter and body placeholder syntax, the
 Node.js 22 or newer is required.
 
 ```shell
-npm ci
-npm run check
+./agents setup
+./agents check
 ```
+
+On Windows, use `.\agents.cmd`. `./agents help` lists diagnostics, test-vault,
+version, export, release, and focused validation verbs. The npm scripts remain
+the internal implementation surface used by the task runner.
 
 To inspect the current diagnostics in a vault from the command line, run the
 read-only scanner. You can pass the vault directly:
 
 ```shell
-npm run diagnostics -- --vault "C:\\path\\to\\vault" --project "Projects/Game/Project.md" --out diagnostics.json --pretty
+./agents diagnostics --vault "C:\\path\\to\\vault" --project "Projects/Game/Project.md" --out diagnostics.json --pretty
 ```
 
 Or put `PROJECT_WEAVE_VAULT=C:\\path\\to\\vault` in a local `.env` file and
-run `npm run diagnostics` without `--vault`. The `.env` file is ignored by Git;
+run `./agents diagnostics` without `--vault`. The `.env` file is ignored by Git;
 `.env.example` shows the shape.
 
 Omit `--project` to report all diagnostics under the indexed roots. Add
 `--watch` to refresh the JSON after Markdown changes. The scanner uses the same
 parser and index validation rules as the plugin; it does not modify the vault.
 
-`npm run diagnostics:check` scans the committed dogfood vault and exits
+`./agents diagnostics:check` scans the committed dogfood vault and exits
 unsuccessfully if it contains any error-level diagnostic. The command is part
-of `npm run check`; warnings and info remain visible for review without failing
+of `./agents check`; warnings and info remain visible for review without failing
 the automated gate.
 
-Use `npm run dev` for a watching development bundle. A production build writes
+Use `./agents dev` for a watching development bundle. A production build writes
 exactly `main.js`, `manifest.json`, and `styles.css` to `dist/`. Install
 those files only in a disposable development vault.
 
@@ -272,12 +276,12 @@ including when to bump relative to an export and how to resolve genuine
 ambiguity, along with the operational channel, BRAT preview, stable release,
 and Community directory steps.
 
-Run `npm run export` to build and verify the plugin, then generate:
+Run `./agents export` to build and verify the plugin, then generate:
 
 - `export/project-weave/` — the directly installable Obsidian plugin folder;
 - `export/project-weave-<version>.zip` — a ZIP containing that plugin folder.
 
-The entire `export/` directory is Git-ignored. `npm run release` runs the
+The entire `export/` directory is Git-ignored. `./agents release` runs the
 complete validation gate and then produces the same export artifacts and
 configured test-vault update. Setting up a disposable vault and installing into
 it are covered in [docs/development/testing.md](docs/development/testing.md).

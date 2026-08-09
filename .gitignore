@@ -10,3 +10,12 @@ Thumbs.db
 test-vault/
 .obsidian/
 docs/project-vault/.obsidian/
+
+# Generated agent-tool projections and machine-local permissions.
+CLAUDE.md
+.claude/skills/
+.claude/agents/
+.claude/settings.local.json
+.claude/worktrees/
+.mcp.json
+.cursor/mcp.json

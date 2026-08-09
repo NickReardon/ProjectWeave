@@ -1,8 +1,10 @@
 # Development Procedure
 
-How to verify and ship Project Weave. Neither document is a product contract —
+How to work on, verify, and ship Project Weave. These documents are procedure;
 [`../spec/`](../spec/README.md) is.
 
+- [agents.md](agents.md) — mandatory-context budgeting, generated tool
+  projections, the repository command entry point, and its `doctor` gate.
 - [testing.md](testing.md) — the manual-check procedure against Obsidian: the
   disposable test vault, the numbered checks, and how to record results.
   [`../CURRENT_WORK.md`](../CURRENT_WORK.md) is authoritative for which have
@@ -10,5 +12,5 @@ How to verify and ship Project Weave. Neither document is a product contract —
 - [release.md](release.md) — the version-sizing rule, release channels, BRAT
   preview, stable GitHub releases, and Community directory submission.
 
-Automated verification is `npm run check`, described in
-[`../../AGENTS.md`](../../AGENTS.md).
+Automated verification is `./agents check` (or `.\agents.cmd check` on
+Windows); `npm run check` enters the same implementation.
