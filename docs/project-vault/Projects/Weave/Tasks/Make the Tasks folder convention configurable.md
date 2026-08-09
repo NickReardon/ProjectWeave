@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-1-template-catalog]]'
 status: backlog
 category: loose-end
 rank: 4300
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Make the Tasks folder convention configurable

@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-2-shared-reads-agent]]'
 status: backlog
 category: loose-end
 rank: 4000
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Give search strategy a runtime caller

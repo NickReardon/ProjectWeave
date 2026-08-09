@@ -12,7 +12,7 @@ Nothing here overrides anything it points to.
 | What is verified?                  | `tests/`, plus [`docs/development/testing.md`](docs/development/testing.md)       |
 | Why was a choice made?             | [`docs/decisions/`](docs/decisions)                                   |
 | How do the pieces fit together?    | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                        |
-| What remains to do, in what order? | [`docs/IMPLEMENTATION_ORDER.md`](docs/IMPLEMENTATION_ORDER.md)        |
+| What remains to do, in what order? | The roadmap and linked Epic notes in [`docs/project-vault/Projects/Weave/Project.md`](docs/project-vault/Projects/Weave/Project.md) |
 | What outstanding work exists?      | [`docs/project-vault/`](docs/project-vault/), Project Weave's own dogfood vault |
 | What automated verification has run? | [`docs/CURRENT_WORK.md`](docs/CURRENT_WORK.md), an append-only evidence log |
 | How did the project get here?      | [`docs/archive/`](docs/archive/README.md) — authoritative over nothing |

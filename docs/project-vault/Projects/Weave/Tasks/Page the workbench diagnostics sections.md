@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-1-template-catalog]]'
 status: backlog
 category: loose-end
 rank: 3900
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Page the workbench diagnostics sections

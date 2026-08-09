@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-1-template-catalog]]'
 status: todo
 category: manual-check
 rank: 800
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Check 16 - Task template chooser

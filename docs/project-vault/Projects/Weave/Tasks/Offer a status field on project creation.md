@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-1-template-catalog]]'
 status: backlog
 category: loose-end
 rank: 3700
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Offer a status field on project creation
