@@ -1,5 +1,7 @@
+import type { AgentGrant } from '../application/read-only-agent-gateway';
+
 export interface ProjectWeaveSettings {
-  readonly settingsVersion: 1;
+  readonly settingsVersion: 2;
   readonly projectRoots: readonly string[];
   readonly templateScaffoldFolder: string;
   /** Empty disables the derived diagnostics JSON export. */
@@ -12,6 +14,12 @@ export interface ProjectWeaveSettings {
    * the user two different sets of options for one field.
    */
   readonly taskCategories: readonly string[];
+  /** Desktop-only local bridge. Disabled means no pipe/socket is opened. */
+  readonly agentGatewayEnabled: boolean;
+  /** Stable local identity used to bind grants to this vault. */
+  readonly agentVaultId: string;
+  /** Local-only, secret-digest-bearing grants; never vault Markdown. */
+  readonly agentGrants: readonly AgentGrant[];
 }
 
 export type ScopeTransition = 'ignore' | 'upsert' | 'remove' | 'rename';
@@ -22,11 +30,14 @@ const DRIVE_PATH_PATTERN = /^[a-z]:/iu;
 
 export function createDefaultProjectWeaveSettings(): ProjectWeaveSettings {
   return {
-    settingsVersion: 1,
+    settingsVersion: 2,
     projectRoots: [DEFAULT_PROJECT_ROOT],
     templateScaffoldFolder: DEFAULT_TEMPLATE_SCAFFOLD_FOLDER,
     diagnosticsLogFolder: '',
     taskCategories: [],
+    agentGatewayEnabled: false,
+    agentVaultId: '',
+    agentGrants: [],
   };
 }
 
@@ -37,6 +48,7 @@ export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
   }
   if (
     value.settingsVersion !== undefined &&
+    value.settingsVersion !== 1 &&
     value.settingsVersion !== defaults.settingsVersion
   ) {
     return { ...defaults, projectRoots: [] };
@@ -58,14 +70,72 @@ export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
       : defaults.diagnosticsLogFolder;
 
   return {
-    settingsVersion: 1,
+    settingsVersion: 2,
     projectRoots,
     templateScaffoldFolder,
     diagnosticsLogFolder,
     taskCategories: Array.isArray(value.taskCategories)
       ? normalizeTaskCategories(value.taskCategories)
       : defaults.taskCategories,
+    agentGatewayEnabled: value.agentGatewayEnabled === true,
+    agentVaultId:
+      typeof value.agentVaultId === 'string'
+        ? normalizeIdentifier(value.agentVaultId)
+        : '',
+    agentGrants: Array.isArray(value.agentGrants)
+      ? normalizeAgentGrants(value.agentGrants)
+      : [],
   };
+}
+
+export function normalizeAgentGrants(
+  values: readonly unknown[],
+): readonly AgentGrant[] {
+  const grants: AgentGrant[] = [];
+  const ids = new Set<string>();
+  for (const value of values) {
+    if (!isRecord(value)) continue;
+    const id = normalizeIdentifier(value.id);
+    const vaultId = normalizeIdentifier(value.vaultId);
+    const label = typeof value.label === 'string' ? value.label.trim() : '';
+    const digest =
+      typeof value.secretDigest === 'string'
+        ? value.secretDigest.toLowerCase()
+        : '';
+    if (
+      id.length === 0 ||
+      ids.has(id) ||
+      vaultId.length === 0 ||
+      !/^[a-f0-9]{64}$/u.test(digest) ||
+      typeof value.projectPath !== 'string'
+    )
+      continue;
+    let projectPath: string;
+    let contentRoots: readonly string[];
+    try {
+      projectPath = normalizeVaultFilePath(value.projectPath);
+      contentRoots = Array.isArray(value.contentRoots)
+        ? normalizeProjectRoots(
+            value.contentRoots.filter(
+              (root): root is string => typeof root === 'string',
+            ),
+          )
+        : [];
+    } catch {
+      continue;
+    }
+    ids.add(id);
+    grants.push({
+      id,
+      label: label.length === 0 ? id : label,
+      vaultId,
+      projectPath,
+      contentRoots,
+      secretDigest: digest,
+      enabled: value.enabled !== false,
+    });
+  }
+  return grants.sort((left, right) => left.id.localeCompare(right.id));
 }
 
 /**
@@ -133,6 +203,14 @@ export function normalizeVaultFolderPath(value: string): string {
   }
   if (segments[0]?.toLocaleLowerCase() === '.obsidian') {
     throw new Error('The vault configuration folder cannot be indexed.');
+  }
+  return normalized;
+}
+
+export function normalizeVaultFilePath(value: string): string {
+  const normalized = normalizeVaultFolderPath(value);
+  if (!normalized.toLowerCase().endsWith('.md')) {
+    throw new Error('Use a vault-relative Markdown note path.');
   }
   return normalized;
 }
@@ -207,4 +285,13 @@ function comparePath(left: string, right: string): number {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeIdentifier(value: unknown): string {
+  return typeof value === 'string'
+    ? value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/gu, '-')
+    : '';
 }

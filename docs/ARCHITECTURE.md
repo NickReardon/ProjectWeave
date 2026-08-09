@@ -235,9 +235,11 @@ caller exists, so nothing in the current plugin can commit a proposed note.
 ## Release boundary
 
 The repository contains source, tests, fixtures, and design material. The
-installable dist directory contains exactly main.js, manifest.json, and
-styles.css. The core plugin remains mobile-compatible; desktop-only agent
-transport must be conditionally isolated in a later adapter.
+installable dist directory contains exactly main.js, manifest.json,
+project-weave-mcp.cjs, and styles.css. The core plugin remains
+mobile-compatible; the desktop-only local bridge is conditionally imported
+only when agent access is enabled, while the companion runs as a separate
+Node.js process.
 
 The package.json version is canonical and is synchronized explicitly to the
 lockfile, Obsidian manifest, and versions.json. The ignored export directory

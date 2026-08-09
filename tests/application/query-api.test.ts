@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { ProjectWeaveQueryApi } from '../../src/application/query-api';
+import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import type { SourceNote } from '../../src/domain/model';
+import type { VaultReader } from '../../src/ports/vault-reader';
+import { PathLinkResolver } from '../../src/ports/vault-reader';
 import { sourceNote } from '../helpers/source-note';
 
 describe('ProjectWeaveQueryApi', () => {
@@ -99,7 +102,165 @@ describe('ProjectWeaveQueryApi', () => {
       'Tasks/Prerequisite.md',
     ]);
   });
+
+  it('searches with an explicit runtime strategy and relevance ordering', async () => {
+    const notes = fixture();
+    const snapshot = new IndexBuilder().build(notes, { revision: 2 });
+    const api = new ProjectWeaveQueryApi(() => snapshot);
+    const result = await api.search({
+      projectPath: 'Projects/Game.md',
+      query: 'rcr',
+      mode: 'fuzzy',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error('Expected search results');
+    expect(result.items.map((hit) => hit.title)).toContain('Ranked critical');
+    expect(
+      result.items.every((hit) => hit.path !== 'Tasks/Other project.md'),
+    ).toBe(true);
+    expect(result.items).toEqual(
+      [...result.items].sort(
+        (left, right) =>
+          right.score - left.score || left.path.localeCompare(right.path),
+      ),
+    );
+  });
+
+  it('reads only granted Markdown sections with fingerprints and byte cursors', async () => {
+    const notes = [
+      ...fixture(),
+      sourceNote(
+        'Projects/Game/Documents/Design.md',
+        '',
+        '# Design\n\nIntro.\n\n## Requirements\n\nAlpha βeta gamma.\n\n## Notes\n\nLater.',
+      ),
+    ];
+    const snapshot = new IndexBuilder().build(notes, { revision: 3 });
+    const api = new ProjectWeaveQueryApi(() => snapshot, {
+      vault: new MemoryVault(notes),
+    });
+    const first = await api.readNote({
+      projectPath: 'Projects/Game.md',
+      path: 'Projects/Game/Documents/Design.md',
+      heading: 'Requirements',
+      contentRoots: ['Projects/Game/Documents'],
+      maxBytes: 12,
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error('Expected a note read');
+    expect(first.note.fingerprint).toContain('Design.md');
+    expect(first.note.heading).toBe('Requirements');
+    expect(first.note.untrusted).toBe(true);
+    expect(first.page.truncated).toBe(true);
+
+    const second = await api.readNote({
+      projectPath: 'Projects/Game.md',
+      path: 'Projects/Game/Documents/Design.md',
+      heading: 'Requirements',
+      contentRoots: ['Projects/Game/Documents'],
+      cursor: first.page.next_cursor ?? undefined,
+      maxBytes: 100,
+    });
+    expect(second.ok && second.note.content).toContain('Alpha βeta gamma.');
+
+    const denied = await api.readNote({
+      projectPath: 'Projects/Game.md',
+      path: 'Projects/Other.md',
+      contentRoots: ['Projects/Game/Documents'],
+    });
+    expect(denied.ok).toBe(false);
+    expect(denied.ok ? '' : denied.diagnostics[0]?.code).toBe(
+      'query.read.out_of_scope',
+    );
+  });
+
+  it('returns related work, dependency sequence, actions, diagnostics, and creation context', async () => {
+    const notes = [
+      ...fixture(),
+      sourceNote(
+        'Projects/Game/Documents/Design.md',
+        '',
+        '# Design\n\n## Requirements\n',
+      ),
+      sourceNote(
+        'Tasks/Origin task.md',
+        [
+          'type: task',
+          'project: "[[Projects/Game]]"',
+          'status: backlog',
+          'origin: "[[Projects/Game/Documents/Design#Requirements]]"',
+        ].join('\n'),
+      ),
+    ];
+    const snapshot = new IndexBuilder().build(notes, {
+      revision: 4,
+      resolver: new PathLinkResolver(notes.map((note) => note.path)),
+    });
+    const api = new ProjectWeaveQueryApi(() => snapshot, {
+      taskTemplates: () => new TaskTemplateResolver(),
+    });
+    const related = await api.getRelatedWork({
+      projectPath: 'Projects/Game.md',
+      notePath: 'Projects/Game/Documents/Design.md',
+      heading: 'Requirements',
+    });
+    expect(related.ok && related.items.map((ref) => ref.path)).toEqual([
+      'Tasks/Origin task.md',
+    ]);
+
+    const sequence = await api.getSequence({ projectPath: 'Projects/Game.md' });
+    expect(sequence.ok).toBe(true);
+    if (!sequence.ok) throw new Error('Expected sequence');
+    expect(
+      sequence.items.findIndex(
+        (item) => item.ref.path === 'Tasks/Prerequisite.md',
+      ),
+    ).toBeLessThan(
+      sequence.items.findIndex((item) => item.ref.path === 'Tasks/Blocked.md'),
+    );
+
+    const actions = await api.getActionContext({
+      projectPath: 'Projects/Game.md',
+      taskPath: 'Tasks/Blocked.md',
+    });
+    expect(actions.ok && actions.actions[0]).toMatchObject({
+      enabled: false,
+      reason_code: 'task.blocked',
+    });
+
+    const diagnostics = await api.getDiagnostics({
+      projectPath: 'Projects/Game.md',
+    });
+    expect(diagnostics.ok).toBe(true);
+
+    const creation = await api.getCreationContext({
+      projectPath: 'Projects/Game.md',
+      kind: 'task',
+    });
+    expect(creation.ok && creation.available_variants).toEqual(['default']);
+  });
 });
+
+class MemoryVault implements VaultReader {
+  readonly #notes: ReadonlyMap<string, SourceNote>;
+
+  public constructor(notes: readonly SourceNote[]) {
+    this.#notes = new Map(notes.map((note) => [note.path, note]));
+  }
+
+  public async listMarkdownNotes(): Promise<readonly SourceNote[]> {
+    return [...this.#notes.values()];
+  }
+
+  public async listMarkdownPaths(): Promise<readonly string[]> {
+    return [...this.#notes.keys()];
+  }
+
+  public async readMarkdownNote(path: string): Promise<SourceNote | null> {
+    return this.#notes.get(path) ?? null;
+  }
+}
 
 function fixture(): readonly SourceNote[] {
   return [

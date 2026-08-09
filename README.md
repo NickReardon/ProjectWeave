@@ -29,8 +29,14 @@ Implemented today:
   and deterministic ordering are derived rather than stored, and a
   plugin-lifetime publication layer keeps open views current when the indexed
   folders replace the indexing runtime.
-- **Queries** — bounded project context, task context, and Ready Now
-  application queries, each explicitly project-scoped.
+- **Queries** — bounded project/task context, Ready Now and My Work, explicit
+  search modes with score ordering, exact note/heading reads, related work,
+  dependency-respecting sequences, diagnostics, Action Context, and Creation
+  Context, each explicitly project-scoped.
+- **Agent access** — an optional desktop-only, read-only gateway over an
+  authenticated local pipe/socket, plus a stdio MCP companion. It is disabled
+  by default; each grant is bound to one vault project and optional document
+  roots, and no write or proposal tools are exposed.
 - **Workbench** — a persistent Obsidian Project Workbench with a project
   picker, project summary, live index state, a bounded Ready Now list, and a
   project-scoped All Tasks list filterable by status, priority, epic,
@@ -76,8 +82,8 @@ preview and confirmation, the commit aborts and asks you to preview again,
 rather than writing something you did not see.
 
 Editing existing notes, rank rebalancing and reorder, the remaining note
-kinds, full Plan/Board/My Work perspectives, portfolio views, and agent/MCP
-transport remain later slices.
+kinds, full Plan/Board/My Work perspectives, portfolio views, and agent
+proposal/write tools remain later slices.
 
 ### Where notes are created
 
@@ -208,14 +214,32 @@ of `./agents check`; warnings and info remain visible for review without failing
 the automated gate.
 
 Use `./agents dev` for a watching development bundle. A production build writes
-exactly `main.js`, `manifest.json`, and `styles.css` to `dist/`. Install
-those files only in a disposable development vault.
+exactly `main.js`, `manifest.json`, `project-weave-mcp.cjs`, and `styles.css`
+to `dist/`. Install those files only in a disposable development vault.
 
 Manual checks against Obsidian — the procedure, the disposable test vault, and
 the recorded results — are in
 [docs/development/testing.md](docs/development/testing.md). Release channels and
 the version-sizing rule are in
 [docs/development/release.md](docs/development/release.md).
+
+## Read-only agent access
+
+On desktop, enable **Read-only agent gateway** in Project Weave settings and
+create a grant for one indexed project. The secret is shown only once. Configure
+an MCP client to launch the companion with Node.js and supply the endpoint,
+grant id, and secret through its environment:
+
+```text
+node <vault>/.obsidian/plugins/project-weave/project-weave-mcp.cjs
+PROJECT_WEAVE_ENDPOINT=<endpoint shown in settings>
+PROJECT_WEAVE_GRANT_ID=<grant id shown in settings>
+PROJECT_WEAVE_GRANT_SECRET=<secret copied at creation>
+```
+
+The companion exposes only bounded read tools. Entity metadata stays within the
+grant's project; Markdown bodies additionally require an allowed content root.
+Disabling the gateway closes the local endpoint. Mobile never starts it.
 
 ## Obsidian settings
 

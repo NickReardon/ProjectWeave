@@ -6,6 +6,7 @@ import {
   isPathInProjectRoots,
   loadProjectWeaveSettings,
   normalizeOptionalVaultFolderPath,
+  normalizeAgentGrants,
   normalizeProjectRoots,
   normalizeTaskCategories,
   normalizeVaultFolderPath,
@@ -14,11 +15,14 @@ import {
 describe('Project Weave settings', () => {
   it('defaults indexing to the Projects folder', () => {
     expect(createDefaultProjectWeaveSettings()).toEqual({
-      settingsVersion: 1,
+      settingsVersion: 2,
       projectRoots: ['Projects'],
       templateScaffoldFolder: 'Templates/Project Weave',
       diagnosticsLogFolder: '',
       taskCategories: [],
+      agentGatewayEnabled: false,
+      agentVaultId: '',
+      agentGrants: [],
     });
     expect(loadProjectWeaveSettings(null)).toEqual(
       createDefaultProjectWeaveSettings(),
@@ -81,15 +85,18 @@ describe('Project Weave settings', () => {
         templateScaffoldFolder: 'Templates',
       }),
     ).toEqual({
-      settingsVersion: 1,
+      settingsVersion: 2,
       projectRoots: [],
       templateScaffoldFolder: 'Templates',
       diagnosticsLogFolder: '',
       taskCategories: [],
+      agentGatewayEnabled: false,
+      agentVaultId: '',
+      agentGrants: [],
     });
     expect(
       loadProjectWeaveSettings({
-        settingsVersion: 2,
+        settingsVersion: 3,
         projectRoots: ['Projects'],
       }).projectRoots,
     ).toEqual([]);
@@ -100,6 +107,56 @@ describe('Project Weave settings', () => {
     expect(classifyScopeTransition(false, true)).toBe('upsert');
     expect(classifyScopeTransition(true, false)).toBe('remove');
     expect(classifyScopeTransition(true, true)).toBe('rename');
+  });
+});
+
+describe('agent gateway settings', () => {
+  it('migrates v1 settings with the gateway disabled', () => {
+    const loaded = loadProjectWeaveSettings({
+      settingsVersion: 1,
+      projectRoots: ['Projects/Game'],
+    });
+    expect(loaded).toMatchObject({
+      settingsVersion: 2,
+      projectRoots: ['Projects/Game'],
+      agentGatewayEnabled: false,
+      agentVaultId: '',
+      agentGrants: [],
+    });
+  });
+
+  it('normalizes valid local grants and drops malformed or duplicate entries', () => {
+    const digest = 'a'.repeat(64);
+    expect(
+      normalizeAgentGrants([
+        {
+          id: ' Game Agent ',
+          label: 'Game repository',
+          vaultId: ' Vault One ',
+          projectPath: 'Projects/Game/Project.md',
+          contentRoots: ['Projects/Game/Documents/'],
+          secretDigest: digest.toUpperCase(),
+          enabled: true,
+        },
+        {
+          id: 'game-agent',
+          vaultId: 'vault-one',
+          projectPath: 'Projects/Other/Project.md',
+          secretDigest: digest,
+        },
+        { id: 'broken' },
+      ]),
+    ).toEqual([
+      {
+        id: 'game-agent',
+        label: 'Game repository',
+        vaultId: 'vault-one',
+        projectPath: 'Projects/Game/Project.md',
+        contentRoots: ['Projects/Game/Documents'],
+        secretDigest: digest,
+        enabled: true,
+      },
+    ]);
   });
 });
 

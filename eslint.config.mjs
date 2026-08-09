@@ -82,4 +82,16 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['src/agent/**/*.ts', 'src/adapters/desktop/**/*.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-restricted-globals': 'off',
+      'no-restricted-imports': 'off',
+    },
+  },
 );

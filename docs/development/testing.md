@@ -30,7 +30,8 @@ npm run test-vault:setup
 
 That does the whole thing: seeds `test-vault/` at the repository root, points
 `.project-weave-test-vault` at it, builds, and installs `main.js`,
-`manifest.json`, and `styles.css` into `.obsidian/plugins/project-weave`. The
+`manifest.json`, `project-weave-mcp.cjs`, and `styles.css` into
+`.obsidian/plugins/project-weave`. The
 seeded `community-plugins.json` already enables the plugin, so it loads rather
 than waiting to be switched on.
 
@@ -538,6 +539,32 @@ note naming the folder where new tasks can be created.
 
 **Note:** a body-only template still produces full task frontmatter — that is
 the creation profile, not the template.
+
+---
+
+### 17. Read-only agent gateway — unrun
+
+**Desktop only.** This check opens a local named pipe or Unix socket while the
+gateway is enabled. It does not write vault Markdown.
+
+1. With **Read-only agent gateway** off, confirm settings say no endpoint is
+   listening and the companion cannot connect.
+2. Enable it, create a grant for `Projects/Game/Project.md`, and allow
+   `Projects/Game/Design` as its document root. Record the endpoint and grant
+   id, and place the one-time secret in the MCP client's local environment.
+3. Configure the client to run
+   `node <plugin folder>/project-weave-mcp.cjs`, then call project context,
+   search, and an exact read of `Projects/Game/Design/Travel.md`.
+4. Attempt to read a Markdown note outside the allowed root and to supply a
+   different project path in a request.
+5. Revoke the grant and confirm the existing credentials stop working. Create
+   another grant, reconnect, then disable the gateway.
+
+**Pass:** disabled means no endpoint; the ten advertised tools are read-only;
+the permitted queries return current indexed context and label Markdown as
+untrusted; the out-of-root and cross-project attempts fail; revocation denies
+the old credentials; and disabling closes the connection and removes the
+endpoint without changing any note.
 
 ---
 
