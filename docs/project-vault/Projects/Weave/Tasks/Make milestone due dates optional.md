@@ -4,7 +4,7 @@ title: Make milestone due dates optional
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-10-project-structure-and-contracts]]'
 status: backlog
-priority: medium
+priority: normal
 created: 2026-08-09
 ---
 

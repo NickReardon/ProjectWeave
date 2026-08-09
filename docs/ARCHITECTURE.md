@@ -95,6 +95,16 @@ import Obsidian, Node, Electron, views, or future MCP code.
 - **Indexing:** IndexBuilder deterministically publishes a complete immutable
   snapshot. IndexCoordinator owns asynchronous rebuilds, coalesced targeted
   reads, revisions, stale-last-good state, and unload cancellation.
+- **Diagnostics CLI:** `scripts/diagnostics-cli.ts` reads Markdown beneath
+  caller-selected vault roots, builds the same IndexBuilder snapshot, and
+  writes project-scoped or vault-wide diagnostics as JSON. It is read-only and
+  can watch for Markdown changes; it does not observe the plugin's in-memory
+  publication directly.
+- **Diagnostics export:** `DiagnosticsLogService` subscribes to the stable
+  read publication and coalesces complete-snapshot reports. The typed
+  `DiagnosticsLogWriter` port and Obsidian adapter can write only the configured
+  `diagnostics.json` report; an empty folder disables it and failures never
+  block publication.
 - **Application:** ProjectWeaveQueryApi returns schema-versioned, explicitly
   project-scoped, bounded DTOs for project context, task context, and Ready Now.
   ProjectWeaveReadSource publishes snapshot-bound query APIs across replaceable
@@ -142,7 +152,8 @@ import Obsidian, Node, Electron, views, or future MCP code.
   creation re-read a template outside them without widening what indexing sees.
   Both creation flows compose the two readers at the composition root: task
   creation resolves a variant across all three rungs, and project creation
-  reads `project/default.md` before falling back to the packaged template.
+  selects `project/default` through the same per-key merged catalog before
+  loading the exact vault path or falling back to the packaged template.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another
@@ -178,6 +189,8 @@ import Obsidian, Node, Electron, views, or future MCP code.
   Obsidian link semantics. NoteWriter is the sole write-capable port and
   exposes exactly one operation, create-a-note-that-does-not-exist; it cannot
   express overwrite, move, or delete, and only the commit service may use it.
+  DiagnosticsLogWriter is a separate typed derived-output port with no generic
+  path or content operation.
 - **Adapters:** src/adapters/obsidian is the only vault/API integration. It uses
   Vault.cachedRead, MetadataCache link resolution, and TFile metadata, and
   filters paths before content reads. ObsidianNoteWriter creates through
@@ -209,7 +222,9 @@ None of these paths has access to a write-capable vault port.
 
 Content-changing work will enter through separate typed Template, Proposal, and
 Write Coordinator services. Views and future agent adapters must call those
-services rather than acquire generic file mutation access. Template rendering,
+services rather than acquire generic file mutation access. The configured
+diagnostics export is derived output, not project content, and is the only
+other write path. Template rendering,
 project task-template resolution, and one-file task proposal construction are
 implemented. The proposal carries the read set and exact output a future
 coordinator must recheck after confirmation. No write coordinator or runtime

@@ -17,6 +17,7 @@ describe('Project Weave settings', () => {
       settingsVersion: 1,
       projectRoots: ['Projects'],
       templateScaffoldFolder: 'Templates/Project Weave',
+      diagnosticsLogFolder: '',
       taskCategories: [],
     });
     expect(loadProjectWeaveSettings(null)).toEqual(
@@ -33,6 +34,21 @@ describe('Project Weave settings', () => {
       ]),
     ).toEqual(['Projects/Game', 'Projects/Other']);
     expect(normalizeOptionalVaultFolderPath('')).toBe('');
+  });
+
+  it('loads a diagnostics log folder and fails closed for an invalid one', () => {
+    expect(
+      loadProjectWeaveSettings({
+        settingsVersion: 1,
+        diagnosticsLogFolder: ' Logs/Project Weave/ ',
+      }).diagnosticsLogFolder,
+    ).toBe('Logs/Project Weave');
+    expect(
+      loadProjectWeaveSettings({
+        settingsVersion: 1,
+        diagnosticsLogFolder: '../outside',
+      }).diagnosticsLogFolder,
+    ).toBe('');
   });
 
   it('rejects absolute, traversing, and vault-configuration paths', () => {
@@ -68,6 +84,7 @@ describe('Project Weave settings', () => {
       settingsVersion: 1,
       projectRoots: [],
       templateScaffoldFolder: 'Templates',
+      diagnosticsLogFolder: '',
       taskCategories: [],
     });
     expect(

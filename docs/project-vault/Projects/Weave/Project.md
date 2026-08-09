@@ -47,21 +47,60 @@ mutable task state would destroy the property that makes it evidence.
 - A disposable test vault can be seeded and reset from the committed fixture
   (`tests/fixtures/vault/`), so a manual check runs from a known state.
 
+## Implementation roadmap (v1)
+
+Project Weave v1 is implemented in nine ordered Epic notes. This table and the
+linked notes replace the former `docs/IMPLEMENTATION_ORDER.md` roadmap:
+
+| Slice | Epic | Status |
+|---|---|---|
+| 1. Template catalog | [[Epics/Slice-1-template-catalog]] | In progress |
+| 2. Shared reads + Agent A | [[Epics/Slice-2-shared-reads-agent]] | Not started |
+| 3. Mutation kernel | [[Epics/Slice-3-mutation-kernel]] | Not started |
+| 4. Task execution | [[Epics/Slice-4-task-execution]] | Not started |
+| 5. Design-to-task | [[Epics/Slice-5-design-to-task]] | Not started |
+| 6. Long-project org | [[Epics/Slice-6-long-project-org]] | Not started |
+| 7. Planning periods + Agent C | [[Epics/Slice-7-planning-periods]] | Not started |
+| 8. Controlled docs + Agent D | [[Epics/Slice-8-controlled-documents]] | Not started |
+| 9. Stabilize & ship v1 | [[Epics/Slice-9-stabilize-and-shipping]] | Not started |
+
+### Sequencing rules
+
+1. Finish and accept an existing write boundary before adding another.
+2. Put domain rules in shared application services before view-specific or
+   agent-specific callers.
+3. Deliver the read-only agent boundary before broad write automation; expose
+   agent writes only after the equivalent human workflow is stable.
+4. Keep optional process features progressively disclosed. A project remains
+   useful without owners, estimates, epics, milestones, or planning periods.
+5. Keep operational lists project-scoped, bounded, and deterministically
+   ordered.
+6. Introduce multi-file work only after complete preflight, deterministic write
+   order, and truthful partial-success reporting exist.
+7. Keep desktop transport conditional so the core plugin remains mobile-safe.
+
+### Representation gaps exposed by this port
+
+- Epic order is encoded by the numbered note names and the table above. Weave
+  has no typed Epic rank or dependency relation, so the sequence is not yet
+  queryable or validated.
+- The Epic notes carry a `milestone` property for the intended v1 grouping,
+  but the current Epic model does not interpret it. Milestone membership is
+  derived from task links, so Project Weave cannot yet query that all nine
+  Epics belong to the v1 milestone.
+- A milestone requires `due_date`, while the retired roadmap intentionally had
+  no release date. The v1 milestone currently carries `2026-08-14`; treat it as
+  provisional until it is explicitly confirmed, not as a commitment inferred
+  from the roadmap.
+
 ## Current focus
 
-1. Run the outstanding desktop checks against the installed build in one
-   session: the remaining Check 11 states, the category-vocabulary part of
-   Check 05, Check 15, and Check 16. Record what was observed — including any
-   defect — before treating the affected workbench, project-creation, or
-   template flows as accepted.
-2. Finish ADR 0013 with the previewed **Add Template** flow, vault-backed
-   `project/default`, and the normative update to
-   `docs/spec/18-project-note-templates.md`.
-3. Follow the dependency-ordered remaining roadmap in
-   `docs/IMPLEMENTATION_ORDER.md`, beginning with the shared read/action
-   services and read-only agent boundary once the creation/template flow is
-   accepted.
-4. Keep every edit path behind the accepted creation flow. Multi-file
+1. Finish Slice 1 Epic tasks:
+   - Wire the remaining packaged starter templates to a note kind
+   - Support multi-file proposals in the commit coordinator
+   - Implement reorder and Rebalance Backlog Ranks
+2. Move on to Slice 2 (shared reads + Agent A) once Slice-1 passes its exit gate
+3. Keep every edit path behind the accepted creation flow. Multi-file
    proposals need the preflight and partial-success reporting Design 10
    requires before any bulk operation ships.
 

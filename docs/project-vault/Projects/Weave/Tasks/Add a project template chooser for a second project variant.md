@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-1-template-catalog]]'
 status: backlog
 category: loose-end
 rank: 3300
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Add a project template chooser for a second project variant

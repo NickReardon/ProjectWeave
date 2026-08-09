@@ -10,11 +10,17 @@ import type {
 import {
   PACKAGED_MINIMAL_PROJECT_TEMPLATE,
   PACKAGED_MINIMAL_TEMPLATE_ID,
+  PACKAGED_STARTER_TEMPLATES,
 } from '../domain/templates/packaged-templates';
 import { renderProjectTemplate } from '../domain/templates/project-template';
 import { hasError } from '../domain/templates/model';
 import { parseTemplateDocument } from '../domain/templates/template-parser';
 import type { VaultTemplateLibrary } from './vault-template-library';
+import {
+  mergeTemplateCatalog,
+  variantsForKind,
+  type TemplateCatalogCandidate,
+} from './template-catalog';
 import type { TemplateClock, TemplateSource } from '../domain/templates/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { VaultReader } from '../ports/vault-reader';
@@ -25,6 +31,8 @@ import type { VaultReader } from '../ports/vault-reader';
  * skips re-reading packaged templates for that reason.
  */
 const PACKAGED_PROJECT_FINGERPRINT = 'builtin:minimal/project@schema-1';
+const PROJECT_TEMPLATE_KIND = 'project';
+const PROJECT_DEFAULT_VARIANT = 'default';
 
 export interface ProjectCreationProposalInput {
   readonly operationId: string;
@@ -254,11 +262,56 @@ export class ProjectCreationProposalService {
   async #selectTemplate(): Promise<
     SelectedProjectTemplate | RejectedProjectTemplate
   > {
-    const loaded =
-      this.#library === null
-        ? null
-        : await this.#library.load('project', 'default');
-    if (loaded === null) {
+    const candidates: TemplateCatalogCandidate[] =
+      PACKAGED_STARTER_TEMPLATES.filter(
+        (entry) => entry.kind === PROJECT_TEMPLATE_KIND,
+      ).map((entry) => ({
+        kind: entry.kind,
+        variant: entry.variant,
+        source: 'plugin',
+        reference:
+          entry.variant === PROJECT_DEFAULT_VARIANT
+            ? PACKAGED_MINIMAL_TEMPLATE_ID
+            : entry.source.path,
+        path: entry.source.path,
+      }));
+    let listingDiagnostics: readonly Diagnostic[] = [];
+
+    if (this.#library !== null) {
+      const listing = await this.#library.list();
+      listingDiagnostics = listing.diagnostics;
+      for (const entry of listing.entries) {
+        if (entry.kind !== PROJECT_TEMPLATE_KIND) {
+          continue;
+        }
+        candidates.push({
+          kind: entry.kind,
+          variant: entry.variant,
+          source: 'vault',
+          reference: entry.path,
+          path: entry.path,
+        });
+      }
+      for (const entry of listing.ambiguous) {
+        if (entry.kind !== PROJECT_TEMPLATE_KIND) {
+          continue;
+        }
+        candidates.push({
+          kind: entry.kind,
+          variant: entry.variant,
+          source: 'vault',
+          reference: entry.path,
+          path: entry.path,
+          broken: true,
+        });
+      }
+    }
+
+    const selected = variantsForKind(
+      mergeTemplateCatalog(candidates),
+      PROJECT_TEMPLATE_KIND,
+    ).find((entry) => entry.variant === PROJECT_DEFAULT_VARIANT);
+    if (selected === undefined || selected.selected.source === 'plugin') {
       return {
         ok: true,
         source: 'packaged',
@@ -266,6 +319,47 @@ export class ProjectCreationProposalService {
         fingerprint: PACKAGED_PROJECT_FINGERPRINT,
       };
     }
+
+    if (!selected.usable) {
+      const diagnostics = listingDiagnostics.filter((issue) =>
+        issue.relatedPaths?.includes(selected.selected.path),
+      );
+      return {
+        ok: false,
+        diagnostics:
+          diagnostics.length > 0
+            ? diagnostics
+            : [
+                diagnostic(
+                  selected.selected.path,
+                  'template.library.ambiguous',
+                  'More than one vault template claims `project/default`.',
+                  'variant',
+                  'Rename or remove all but one project default template, including names that differ only by case.',
+                ),
+              ],
+      };
+    }
+
+    const source = await this.#vault.readMarkdownNote(selected.selected.path);
+    if (source === null) {
+      return {
+        ok: false,
+        diagnostics: [
+          diagnostic(
+            selected.selected.path,
+            'template.reference.changed',
+            `Vault template ${selected.selected.path} is no longer readable.`,
+            'template',
+            'Refresh the template catalog and preview the project again.',
+          ),
+        ],
+      };
+    }
+    const loaded = {
+      template: { path: source.path, content: source.content },
+      fingerprint: source.fingerprint,
+    };
 
     const document = parseTemplateDocument(loaded.template);
     const diagnostics: Diagnostic[] = [...document.diagnostics];

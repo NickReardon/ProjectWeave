@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-3-mutation-kernel]]'
 status: backlog
 category: loose-end
 rank: 4200
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Implement reorder and Rebalance Backlog Ranks

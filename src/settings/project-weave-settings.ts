@@ -2,6 +2,8 @@ export interface ProjectWeaveSettings {
   readonly settingsVersion: 1;
   readonly projectRoots: readonly string[];
   readonly templateScaffoldFolder: string;
+  /** Empty disables the derived diagnostics JSON export. */
+  readonly diagnosticsLogFolder: string;
   /**
    * Allowed task `category` values for the whole vault (ADR 0014). Empty means
    * unconstrained: any value is accepted and the filter offers whatever tasks
@@ -23,6 +25,7 @@ export function createDefaultProjectWeaveSettings(): ProjectWeaveSettings {
     settingsVersion: 1,
     projectRoots: [DEFAULT_PROJECT_ROOT],
     templateScaffoldFolder: DEFAULT_TEMPLATE_SCAFFOLD_FOLDER,
+    diagnosticsLogFolder: '',
     taskCategories: [],
   };
 }
@@ -49,11 +52,16 @@ export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
           defaults.templateScaffoldFolder,
         )
       : defaults.templateScaffoldFolder;
+  const diagnosticsLogFolder =
+    typeof value.diagnosticsLogFolder === 'string'
+      ? normalizeStoredOptionalFolder(value.diagnosticsLogFolder, '')
+      : defaults.diagnosticsLogFolder;
 
   return {
     settingsVersion: 1,
     projectRoots,
     templateScaffoldFolder,
+    diagnosticsLogFolder,
     taskCategories: Array.isArray(value.taskCategories)
       ? normalizeTaskCategories(value.taskCategories)
       : defaults.taskCategories,

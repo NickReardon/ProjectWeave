@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run && node --test scripts/*.node-test.mjs",
     "test:watch": "vitest",
+    "diagnostics": "node scripts/diagnostics.mjs",
+    "diagnostics:check": "node scripts/diagnostics.mjs --vault docs/project-vault --fail-on-errors",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -29,7 +31,7 @@
     "test-vault:update": "npm run export -- --require-test-vault",
     "project-vault:install": "npm run build && node scripts/project-vault-install.mjs",
     "release": "npm run check && node scripts/export-plugin.mjs",
-    "check": "npm run version:check && npm run current-work:check && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run verify:release"
+    "check": "npm run version:check && npm run current-work:check && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run diagnostics:check && npm run build && npm run verify:release"
   },
   "engines": {
     "node": ">=22"

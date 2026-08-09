@@ -6,5 +6,7 @@ coverage/
 .DS_Store
 Thumbs.db
 .project-weave-test-vault
+.env
 test-vault/
+.obsidian/
 docs/project-vault/.obsidian/

@@ -36,8 +36,9 @@ took. Before 1.0 the minor position carries feature weight:
   This is the ordinary increment and the one used most often: fixes,
   refactoring, documentation, tests, and interim work within a slice all land
   here.
-- **minor** (`0.3.0` → `0.4.0`) — a numbered slice in
-  [Implementation Order](../IMPLEMENTATION_ORDER.md) passing its exit gate,
+- **minor** (`0.3.0` → `0.4.0`) — a numbered slice Epic in the
+  [dogfood project roadmap](../project-vault/Projects/Weave/Project.md#implementation-roadmap-v1)
+  passing its exit gate,
   or a change to a compatibility surface: product terms, frontmatter fields,
   controlled values, diagnostic codes, or persisted workspace state. Crossing a
   boundary the plugin did not previously cross — the first vault write, for

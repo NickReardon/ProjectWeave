@@ -2,6 +2,7 @@ import { Notice, Plugin, TFile } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 
 import { ObsidianNoteWriter } from './adapters/obsidian/obsidian-note-writer';
+import { ObsidianDiagnosticsLogWriter } from './adapters/obsidian/obsidian-diagnostics-log-writer';
 import { CompositeVaultReader } from './ports/composite-vault-reader';
 import type { VaultReader } from './ports/vault-reader';
 import {
@@ -9,6 +10,7 @@ import {
   ObsidianVaultReader,
 } from './adapters/obsidian/obsidian-vault-reader';
 import { buildProjectWorkbenchModel } from './application/project-workbench-model';
+import { DiagnosticsLogService } from './application/diagnostics-log-service';
 import { ProjectWeaveReadSource } from './application/project-weave-read-source';
 import { NoteCreationCommitService } from './application/note-creation-commit';
 import { ProjectCreationPreviewService } from './application/project-creation-preview';
@@ -54,12 +56,26 @@ export default class ProjectWeavePlugin extends Plugin {
   );
   #runtime: ProjectWeaveRuntime | null = null;
   #noteDiagnosticBanners: NoteDiagnosticBannerController | null = null;
+  #diagnosticsLogService: DiagnosticsLogService | null = null;
+  #unsubscribeDiagnosticsLog: (() => void) | null = null;
   #openingWorkbench: Promise<void> | null = null;
   #unloaded = false;
 
   public override async onload(): Promise<void> {
     this.settings = loadProjectWeaveSettings(await this.loadData());
     this.#installRuntime(this.#createRuntime(this.settings.projectRoots));
+    const diagnosticsLogService = new DiagnosticsLogService(
+      new ObsidianDiagnosticsLogWriter(this.app.vault),
+      () => this.settings.diagnosticsLogFolder,
+      () => this.settings.projectRoots,
+      (error) => {
+        console.error('Project Weave diagnostics export failed', error);
+      },
+    );
+    this.#diagnosticsLogService = diagnosticsLogService;
+    this.#unsubscribeDiagnosticsLog = this.#readSource.subscribe(
+      (publication) => diagnosticsLogService.publish(publication),
+    );
 
     this.registerView(
       PROJECT_WORKBENCH_VIEW_TYPE,
@@ -157,6 +173,10 @@ export default class ProjectWeavePlugin extends Plugin {
 
   public override onunload(): void {
     this.#unloaded = true;
+    this.#unsubscribeDiagnosticsLog?.();
+    this.#unsubscribeDiagnosticsLog = null;
+    this.#diagnosticsLogService?.dispose();
+    this.#diagnosticsLogService = null;
     this.#noteDiagnosticBanners?.dispose();
     this.#noteDiagnosticBanners = null;
     this.#readSource.dispose();
@@ -202,6 +222,17 @@ export default class ProjectWeavePlugin extends Plugin {
     };
     await this.saveData(nextSettings);
     this.settings = nextSettings;
+  }
+
+  public async updateDiagnosticsLogFolder(value: string): Promise<void> {
+    const normalized = normalizeOptionalVaultFolderPath(value);
+    const nextSettings = {
+      ...this.settings,
+      diagnosticsLogFolder: normalized,
+    };
+    await this.saveData(nextSettings);
+    this.settings = nextSettings;
+    this.#diagnosticsLogService?.publish(this.#readSource.current);
   }
 
   public async rebuildIndex(showSuccess: boolean): Promise<void> {

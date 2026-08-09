@@ -64,9 +64,14 @@ V1 settings MAY include:
 - dashboard sort/filter preferences;
 - legacy compatibility mode;
 - diagnostic verbosity and redaction controls;
+- an optional vault-relative diagnostics log folder for a derived JSON report;
 - onboarding completion/version.
 
-Path settings are normalized and validated but do not create folders until a user confirms an entity creation that needs them. Empty folder settings mean vault root or explicit per-command choice according to the form label. Settings never contain canonical project state.
+Path settings are normalized and validated. Empty diagnostics-log output is
+disabled; when configured, the plugin may create that folder and overwrite its
+own derived `diagnostics.json` report after a complete index publication. Other
+path settings do not create folders until a user confirms an entity creation
+that needs them. Settings never contain canonical project state.
 
 ## Onboarding
 
@@ -83,6 +88,12 @@ Dismissal saves only onboarding preference. Onboarding does not create sample no
 ## Diagnostics experience
 
 Diagnostics groups issues by severity and project/path. Each row has code, message, affected field, related notes, Open Note, and relevant named repair command when one exists. Validate Notes performs read-only validation. Export Diagnostic Report redacts note bodies and user-defined values unless the user explicitly includes them.
+
+When **Diagnostics log folder** is configured, Project Weave writes one
+vault-relative `diagnostics.json` report after each complete index publication.
+The report contains index metadata, project-grouped diagnostics, and
+unassigned diagnostics, but no note bodies. The report is derived output and is
+never treated as a Project Weave entity.
 
 ## Notices and confirmations
 

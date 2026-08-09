@@ -3,7 +3,7 @@ type: spec
 area: agent-access
 status: current
 canonical: true
-related_decisions: ["0004"]
+related_decisions: ["0004", "0018"]
 ---
 
 # 17 — Agent Access and MCP Adapter
@@ -363,15 +363,18 @@ Remote HTTP access is deferred. If introduced, it requires a separate authentica
 
 ## Desktop bridge and mobile boundary
 
-The exact transport is selected in a later ADR. Acceptable designs may use an embedded loopback-only desktop bridge plus companion or another authenticated local IPC mechanism. Requirements:
+The transport is a stdio MCP companion connected to a bridge inside the plugin over authenticated local IPC: a named pipe on Windows, a Unix domain socket elsewhere. ADR 0018 records the choice and its rationale. Requirements:
 
-- bind only locally;
-- authenticate every companion connection to one vault grant;
+- bind only locally, and open no TCP port;
+- authenticate every companion connection to one vault grant, because the pipe or socket is reachable by other local processes and is not itself authentication;
 - expose the application API, not filesystem primitives;
 - execute writes inside Obsidian;
 - close/revoke on plugin unload or grant disable;
 - conditionally load desktop facilities so core plugin startup/mobile do not depend on them;
-- keep `isDesktopOnly: false` for the core v1 plugin.
+- keep `isDesktopOnly: false` for the core v1 plugin;
+- pin the MCP protocol revision and SDK to exact tested versions, keeping proposal handles independent of transport sessions so a revision change stays isolated.
+
+The companion may start in any working directory, on any volume, with no relationship on disk to the vault it reaches. Nothing about agent access depends on the repository and the vault sharing a location.
 
 A companion that independently parses and directly edits the vault is not acceptable.
 
@@ -409,7 +412,9 @@ Cross-project links may return target title/project/path metadata sufficient to 
 A grant records in plugin-owned local settings:
 
 - approved client/connection identity;
+- the vault identity the grant applies to, so a project path stays unambiguous when more than one vault can be open;
 - one project path;
+- the connection secret the companion must present, which is never stored in a project repository;
 - allowed document files/roots;
 - task creation destination root;
 - metadata/full-body read scope;

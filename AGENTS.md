@@ -111,7 +111,7 @@ enough that prose documentation does not need to restate it.
   count. Bump the patch (`0.4.0` → `0.4.1`) before exporting a build that
   differs from the last exported one; this is the ordinary increment, and two
   builds that behave differently must never share a version. Bump the minor
-  (`0.3.x` → `0.4.0`) when a numbered slice in `docs/IMPLEMENTATION_ORDER.md`
+  (`0.3.x` → `0.4.0`) when a numbered slice Epic in the dogfood vault
   passes its exit gate, or when a compatibility surface changes — product
   terms, frontmatter fields, controlled values, diagnostic codes, or persisted
   workspace state. Do not claim a minor when work on a chunk begins; the
@@ -131,8 +131,17 @@ npm run check
 
 `npm run check` is the complete automated gate: synchronized versions,
 formatting, lint, TypeScript, Vitest and Node tests, production bundle, and
-release inventory. Use narrower commands while iterating, but run the complete
-gate before handoff when practical.
+release inventory. It also scans the committed dogfood vault and fails when an
+error-level diagnostic is present. Use narrower commands while iterating, but
+run the complete gate before handoff when practical.
+
+Run `npm run diagnostics:check` after changing parsing, validation, indexing,
+diagnostic assignment, or notes in `docs/project-vault/`; investigate every
+new diagnostic before handoff. When a local `.env` configures a separate live
+vault, also run `npm run diagnostics -- --pretty` after changes that can affect
+its results and report that live-vault evidence separately. Warnings and info
+diagnostics do not fail the dogfood check, but they still require review and an
+explicit explanation or tracked follow-up when they are expected.
 
 Obsidian UI, workspace restoration, responsive behavior, and live vault-event
 behavior still require focused manual checks. `docs/development/testing.md` is

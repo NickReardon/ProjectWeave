@@ -16,5 +16,10 @@
     "types": ["node", "vitest/globals"],
     "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "scripts/diagnostics-cli.ts",
+    "tests/**/*.ts",
+    "vitest.config.ts"
+  ]
 }

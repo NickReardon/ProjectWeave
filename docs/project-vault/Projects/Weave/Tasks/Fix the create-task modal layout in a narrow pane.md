@@ -1,9 +1,11 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Slice-1-template-catalog]]'
 status: backlog
 category: loose-end
 rank: 4400
+milestone: '[[Milestones/v1 release]]'
 ---
 
 # Fix the create-task modal layout in a narrow pane
