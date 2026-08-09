@@ -72,8 +72,9 @@ by a solo developer or a small team. Everything below serves that brief.
 | Plan, Board, My Work, scale, progressive disclosure                 | [16 — Streamlined long-project workflow](16-streamlined-long-project-workflow.md) |
 | Shared application API, staged agent boundary, agent security       | [17 — Agent access and MCP](17-agent-access-and-mcp.md)                   |
 | Project-owned note templates shared by UI and agents                | [18 — Project note templates](18-project-note-templates.md)               |
+| Configurable project note structure, typed documents, and dogfood migration | [19 — Note structure and dogfood vault](19-note-structure-and-dogfood-vault.md) |
 
-Specifications 15 through 18 postdate 01 through 14 and refine them. Where they
+Specifications 15 through 19 postdate 01 through 14 and refine them. Where they
 overlap, the higher-numbered document is the one that was written against the
 current product direction; the earlier documents have been updated to agree
 rather than left to be reconciled by the reader.

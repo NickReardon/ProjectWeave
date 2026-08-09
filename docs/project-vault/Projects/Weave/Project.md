@@ -65,6 +65,18 @@ mutable task state would destroy the property that makes it evidence.
    proposals need the preflight and partial-success reporting Design 10
    requires before any bulk operation ships.
 
+## New planned work
+
+The note-structure and dogfood-vault slice is tracked as three project Epics:
+
+| Epic | Status | Depends on |
+|---|---|---|
+| [[Epics/Epic-10-project-structure-and-contracts]] | planned | Slice 1 |
+| [[Epics/Epic-11-typed-document-catalog]] | planned | Epic 10 |
+| [[Epics/Epic-12-dogfood-vault-migration]] | planned | Epics 10 and 11 |
+
+The design brief is [[Documents/Design/Note structure and dogfood vault]].
+
 ## Design index
 
 - [docs/spec/](../../../spec/README.md)

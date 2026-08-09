@@ -148,3 +148,9 @@ statuses, blocked-task
 discoverability, case-insensitive title/path search, all planning-metadata
 filters, injected-date due states, deterministic ordering, and the 200-result
 cap.
+
+On 2026-08-09, `npm run check` passed in full against source commit `816d036`
+using Node.js 24.19.0: version and current-work gates, Prettier, ESLint,
+`tsc --noEmit`, 30 Vitest files with 344 tests, 28 Node script tests, the
+production bundle, and a release inventory of exactly `main.js`, `manifest.json`,
+and `styles.css`.
