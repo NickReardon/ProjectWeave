@@ -256,9 +256,13 @@ describe('ProjectCreationPreviewService', () => {
 describe('ProjectCreationPreviewService with a vault template library', () => {
   const LIBRARY = 'Templates/Project Weave';
 
-  function projectTemplate(templateFor = 'project', heading = 'House style') {
+  function projectTemplate(
+    templateFor = 'project',
+    heading = 'House style',
+    path = `${LIBRARY}/project/default.md`,
+  ) {
     return sourceNote(
-      `${LIBRARY}/project/default.md`,
+      path,
       [
         'weave_template: true',
         'template_schema: 1',
@@ -304,6 +308,80 @@ describe('ProjectCreationPreviewService with a vault template library', () => {
     });
 
     expect(result.ok && result.proposal.template.source).toBe('packaged');
+  });
+
+  it('selects the catalog entry by normalized key but reads its exact path', async () => {
+    const note = projectTemplate(
+      'project',
+      'Case-preserved house style',
+      `${LIBRARY}/Project/Default.md`,
+    );
+    const { previews } = build([note], LIBRARY);
+
+    const result = await previews.preview({
+      root: 'Projects',
+      title: 'Travel Planner',
+      clock: CLOCK,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.proposal.template).toMatchObject({
+      source: 'vault',
+      path: note.path,
+      reference: note.path,
+    });
+    expect(result.ok && result.content).toContain(
+      '## Case-preserved house style',
+    );
+  });
+
+  it('fails closed when two vault files claim project/default', async () => {
+    const { previews } = build(
+      [
+        projectTemplate(),
+        projectTemplate(
+          'project',
+          'Conflicting house style',
+          `${LIBRARY}/Project/Default.md`,
+        ),
+      ],
+      LIBRARY,
+    );
+
+    const result = await previews.preview({
+      root: 'Projects',
+      title: 'Travel Planner',
+      clock: CLOCK,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.diagnostics.map((issue) => issue.code)).toEqual(
+      ['template.library.ambiguous'],
+    );
+  });
+
+  it('does not let an ambiguous task key poison project/default', async () => {
+    const notes = [
+      sourceNote(
+        `${LIBRARY}/task/bug.md`,
+        'weave_template: true\ntemplate_schema: 1\ntemplate_for: task',
+      ),
+      sourceNote(
+        `${LIBRARY}/Task/Bug.md`,
+        'weave_template: true\ntemplate_schema: 1\ntemplate_for: task',
+      ),
+    ];
+    const { previews } = build(notes, LIBRARY);
+
+    const result = await previews.preview({
+      root: 'Projects',
+      title: 'Travel Planner',
+      clock: CLOCK,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.proposal.template.source).toBe('packaged');
+    expect(result.diagnostics).toEqual([]);
   });
 
   it('refuses a vault template declared for another kind', async () => {
