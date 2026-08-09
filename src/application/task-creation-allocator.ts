@@ -17,6 +17,14 @@ import type { VaultReader } from '../ports/vault-reader';
  */
 export const TASK_FOLDER_NAME = 'Tasks';
 
+/** Return the conventional task folder beside a project note. */
+export function taskFolderForProjectPath(projectPath: string): string {
+  return joinVaultPath(
+    vaultParentFolder(normalizeVaultPath(projectPath)),
+    TASK_FOLDER_NAME,
+  );
+}
+
 /**
  * Rank gap between consecutive new tasks
  * (docs/spec/15-scheduling-and-milestones.md).
@@ -82,10 +90,7 @@ export function allocateTaskPath(
   input: TaskPathAllocationInput,
 ): TaskPathAllocationResult {
   const projectPath = normalizeVaultPath(input.project.path);
-  const taskRoot = joinVaultPath(
-    vaultParentFolder(projectPath),
-    TASK_FOLDER_NAME,
-  );
+  const taskRoot = taskFolderForProjectPath(projectPath);
 
   const subfolder = resolveSubfolder(input.subfolder ?? '');
   if (subfolder === null) {

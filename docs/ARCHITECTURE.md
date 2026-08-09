@@ -179,12 +179,14 @@ import Obsidian, Node, Electron, views, or future MCP code.
   visible even when the proposal fails. Its operation id is derived from the
   index revision and target rather than generated, so a preview is
   reproducible. The UI injects the civil clock; the service reads none.
-- **UI:** the Project Workbench and note-diagnostic banner consume the stable
-  read publication. The banner mounts through public Markdown view containers,
-  refreshes on workspace and index publications, and never edits Markdown. The
-  task creation preview modal renders a proposal and offers no confirm action,
-  because no coordinator exists to commit one; it discards in-flight previews
-  on close so a late response cannot repaint a dismissed draft.
+- **UI:** the Project Workbench consumes the stable read publication. The
+  note-diagnostic banner combines snapshot diagnostics with direct read-only
+  validation of open notes under the configured template library, mounts
+  through public Markdown view containers, refreshes on workspace, index, and
+  template-library changes, and never edits Markdown. The task creation modal
+  renders an exact proposal and commits it only through the create-only
+  coordinator after confirmation; it discards in-flight previews on close so a
+  late response cannot repaint a dismissed draft.
 - **Ports:** VaultReader has read/list methods only. LinkResolver isolates
   Obsidian link semantics. NoteWriter is the sole write-capable port and
   exposes exactly one operation, create-a-note-that-does-not-exist; it cannot

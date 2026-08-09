@@ -40,8 +40,8 @@ Implemented today:
 - **Diagnostics** — project and unassigned diagnostic sections grouped by
   affected note, carrying severity, error code, field, recovery guidance,
   related-note links, and exact-note navigation, plus compact live banners
-  above affected Markdown notes in editing and reading modes. Neither modifies
-  note content.
+  above affected project and configured template-library notes in editing and
+  reading modes. Neither modifies note content.
 - **Creation** — a deterministic template renderer in the domain; a read-only
   resolver for project template defaults and named variants with explicit
   packaged fallback and fail-closed broken references; pure target-path and
@@ -141,10 +141,12 @@ another source — falling back would create bytes other than the ones the
 chosen template describes. A variant that exists nowhere is reported instead of
 becoming the default by accident.
 
-The create-task modal shows a **Template** chooser once more than one variant
-exists, listing the merged variants plus **Packaged minimal** as an explicit
-escape hatch, and re-previews when you change it. With one variant there is no
-choice to make, so there is no control.
+The create-task modal always shows a **Template** control and the task
+destination. When only one variant exists, the control is disabled and the
+description says where new tasks can be created; when multiple variants exist,
+it lists the merged variants plus **Built-in default** as an explicit escape
+hatch and re-previews when you change it. The stable internal selector remains
+`builtin:minimal`.
 
 A created project resolves `project/default` through the same merged catalog:
 the vault template wins when present, and the packaged project template is the
@@ -160,12 +162,14 @@ that declares one of those keeps its own value and position, so a template you
 already use renders exactly the bytes it did before, while a template that is
 only a heading and some sections still produces a valid note.
 
-A template is an ordinary Markdown note marked `weave_template: true` with a
-`template_for` kind. Marked templates are excluded from entity indexing, so a
-template never appears as a task. Rendering removes the template-only keys and
-keeps every other property. The renderer executes nothing and reads nothing: it
-has no clock, network, environment, or file access, and every value comes from
-the creation context its caller supplies.
+A template is an ordinary Markdown note with a `template_for` kind. That is the
+only required template metadata: an omitted `template_schema` means schema 1,
+and the older `weave_template: true` marker remains optional for compatibility.
+Templates are excluded from entity indexing, so one never appears as a task.
+Rendering removes template-only keys and keeps every other property. The
+renderer executes nothing and reads nothing: it has no clock, network,
+environment, or file access, and every value comes from the creation context
+its caller supplies.
 
 Template metadata keys, frontmatter and body placeholder syntax, the
 `{{#if}}` construct, and the date and time formats are specified in

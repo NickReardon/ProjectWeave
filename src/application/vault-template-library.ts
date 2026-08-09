@@ -170,8 +170,21 @@ export class VaultTemplateLibrary {
     if (!this.enabled) {
       return null;
     }
-    const path = this.pathFor(kind, variant);
-    const note = await this.#vault.readMarkdownNote(path);
+    const normalizedKind = kind.toLowerCase();
+    const normalizedVariant = variant.toLowerCase();
+    const listing = await this.list();
+    const entry = listing.entries.find(
+      (candidate) =>
+        candidate.kind === normalizedKind &&
+        candidate.variant === normalizedVariant,
+    );
+    if (entry === undefined) {
+      return null;
+    }
+    // Discovery is case-insensitive, but Obsidian path lookup is exact. Read
+    // the path that was actually discovered instead of reconstructing a
+    // lowercase path that may not exist in the vault.
+    const note = await this.#vault.readMarkdownNote(entry.path);
     if (note === null) {
       return null;
     }

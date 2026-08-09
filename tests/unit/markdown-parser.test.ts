@@ -46,6 +46,24 @@ describe('parseMarkdownEntity', () => {
     expect(parsed.diagnostics).toEqual([]);
   });
 
+  it('excludes minimal templates by template_for alone', () => {
+    const parsed = parseMarkdownEntity(
+      sourceNote(
+        'Templates/task/bug.md',
+        [
+          'template_for: task',
+          'type: task',
+          'project: "[[Projects/Game]]"',
+          'status: backlog',
+        ].join('\n'),
+      ),
+    );
+
+    expect(parsed.entity).toBeNull();
+    expect(parsed.ignoredReason).toBe('template');
+    expect(parsed.diagnostics).toEqual([]);
+  });
+
   it('defaults project workflow policy to enforced without writing metadata', () => {
     const parsed = parseMarkdownEntity(
       sourceNote('Projects/Game.md', 'type: project'),

@@ -121,7 +121,7 @@ export function parseMarkdownEntity(source: SourceNote): ParsedMarkdownNote {
   }
   const parsed = mapping.value;
 
-  if (parsed.weave_template === true) {
+  if (parsed.template_for !== undefined || parsed.weave_template === true) {
     return {
       entity: null,
       diagnostics: [],

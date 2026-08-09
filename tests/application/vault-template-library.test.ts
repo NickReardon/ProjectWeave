@@ -86,9 +86,10 @@ describe('VaultTemplateLibrary', () => {
   });
 
   it('matches the folder and stem case-insensitively', async () => {
-    const listing = await library([
+    const mixedCase = library([
       template('Templates/Project Weave/Task/Default.md'),
-    ]).list();
+    ]);
+    const listing = await mixedCase.list();
 
     expect(listing.entries).toEqual([
       {
@@ -97,6 +98,9 @@ describe('VaultTemplateLibrary', () => {
         path: 'Templates/Project Weave/Task/Default.md',
       },
     ]);
+    expect((await mixedCase.load('task', 'default'))?.template.path).toBe(
+      'Templates/Project Weave/Task/Default.md',
+    );
   });
 
   it('reports a name it cannot turn into a key, and keeps the rest', async () => {

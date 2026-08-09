@@ -332,10 +332,20 @@ describe('Create task modal template chooser', () => {
     );
   }
 
-  it('offers no chooser when only the default template exists', () => {
+  it('shows a disabled chooser and task location when only the default exists', () => {
     const harness = openModal();
 
-    expect([...harness.content.querySelectorAll('select')].length).toBe(0);
+    const chooser = harness.content.querySelector('select');
+    expect(chooser).not.toBeNull();
+    expect(chooser?.disabled).toBe(true);
+    expect(
+      chooser?.classList.contains(
+        'project-weave-creation-preview__template-select',
+      ),
+    ).toBe(true);
+    expect(harness.text()).toContain(
+      'You can create new tasks in Projects/Game/Tasks.',
+    );
   });
 
   it('renders the chosen variant, and the packaged escape hatch', async () => {
@@ -351,11 +361,22 @@ describe('Create task modal template chooser', () => {
 
     const chooser = harness.content.querySelector('select');
     expect(chooser).not.toBeNull();
+    expect(chooser?.disabled).toBe(false);
     expect(
       [...(chooser?.querySelectorAll('option') ?? [])].map(
         (option) => option.value,
       ),
     ).toEqual(['default', 'bug', 'builtin:minimal']);
+    expect(
+      [...(chooser?.querySelectorAll('option') ?? [])].map(
+        (option) => option.textContent,
+      ),
+    ).toEqual(['default', 'bug', 'Built-in default']);
+    expect(
+      chooser?.classList.contains(
+        'project-weave-creation-preview__template-select',
+      ),
+    ).toBe(true);
 
     harness.type('Implement request', 'Fix the crash');
     await harness.settle();

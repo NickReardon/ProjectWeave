@@ -1,6 +1,6 @@
 {
   "name": "project-weave",
-  "version": "0.5.0",
+  "version": "0.5.4",
   "private": true,
   "description": "A Markdown-first, dependency-aware project workbench for Obsidian.",
   "main": "dist/main.js",
