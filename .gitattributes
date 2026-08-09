@@ -1,1 +1,7 @@
 * text=auto eol=lf
+
+# The extensionless task runner must retain its POSIX shebang on every platform.
+/agents text eol=lf
+
+# Windows launchers use native command-shell line endings.
+*.cmd text eol=crlf

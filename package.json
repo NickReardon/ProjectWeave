@@ -31,7 +31,8 @@
     "test-vault:update": "npm run export -- --require-test-vault",
     "project-vault:install": "npm run build && node scripts/project-vault-install.mjs",
     "release": "npm run check && node scripts/export-plugin.mjs",
-    "check": "npm run version:check && npm run current-work:check && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run diagnostics:check && npm run build && npm run verify:release"
+    "agents": "node scripts/agents.mjs",
+    "check": "node scripts/agents.mjs check"
   },
   "engines": {
     "node": ">=22"

@@ -1,150 +1,63 @@
-# Project Weave Agent Guide
+# Project Weave
 
-## Start here
+**Stack:** TypeScript · Obsidian API · Node.js 22+ · **Ships as:** Community plugin
 
-Project Weave is a Markdown-first Obsidian project workbench. Before changing
-code or product behavior, read these files in order:
+Markdown-first project workbench for long-lived solo and small-team projects.
+This file is the always-loaded router; conditional detail lives beside its owner.
 
-1. `CURRENT-DESIGN.md` for the one-page map of where each kind of truth lives.
-2. `README.md` for implemented behavior, setup, and commands.
-3. Recent history on the current branch (`git log --oneline -20`) for what has
-   changed and why. History is the primary record of work in progress.
-4. `docs/project-vault/`, Project Weave's own dogfood vault, for outstanding
-   manual checks, known loose ends, and the next decision point — the state
-   Git cannot carry. `docs/CURRENT_WORK.md` still carries the append-only
-   automated-verification log; see ADR 0015 and ADR 0016 for why the split.
-5. `docs/ARCHITECTURE.md` for dependency direction and implemented boundaries.
-6. The owning specification under `docs/spec/` and any relevant record under
-   `docs/decisions/`.
-7. Nearby source, tests, and fixtures for the behavior being changed.
+## STRUCTURE
 
-`docs/spec/` is the single canonical statement of intended behavior; there is
-no precedence chain and no document outside it overrides it. When the spec and
-the code disagree, that is a defect in one of them — say which, and fix it.
-Implementation-status claims belong in `README.md`; outstanding-work claims
-belong in `docs/project-vault/`. Nothing under `docs/archive/` is
-authoritative; do not cite it as a requirement.
-
-## Repository map
-
-- `src/domain/`: entity contracts, parsing, validation, and domain rules.
-- `src/indexing/`: immutable snapshots, indexing, readiness, and publication.
-- `src/application/`: project-scoped queries and UI-independent projections.
-- `src/ports/`: narrow core-facing interfaces.
-- `src/adapters/obsidian/`: Obsidian-specific vault and link integration.
-- `src/ui/`: Obsidian views, modals, and settings surfaces.
-- `tests/`: unit, application, integration, helpers, and fixture-vault coverage.
-- `templates/default/`: built-in Markdown templates.
-- `docs/spec/`: the canonical specification of intended behavior.
-- `docs/decisions/`: accepted architectural and product decisions — rationale
-  and history, never a source of current behavior.
-- `docs/archive/`: superseded plans and briefs, authoritative over nothing.
-- `scripts/`: version, build-output, export, and ZIP tooling.
-
-## Engineering constraints
-
-- Markdown in the user's vault is canonical. Passive indexing, plugin load,
-  settings changes, and navigation must not modify vault content.
-- Keep dependencies pointing inward. Domain, indexing, and application code
-  must not import Obsidian, Node, Electron, UI modules, or future transport
-  adapters.
-- Keep Obsidian API usage in the Obsidian adapter, entry point, or UI layer.
-- Preserve project-scoped queries, bounded results, deterministic ordering,
-  immutable snapshot semantics, and explicit diagnostics.
-- Do not introduce a generic write-capable vault port. Future writes must pass
-  through typed template, proposal, validation, and write-coordination
-  services described by the design contracts.
-- Do not silently repair invalid notes, mirror derivable relationships, or
-  persist derived index/view state as project data.
-- Keep the core plugin mobile-compatible. Desktop-only agent transport belongs
-  behind a conditional adapter.
-- Treat product terms, frontmatter fields, controlled values, diagnostic codes,
-  and persisted workspace state as compatibility surfaces.
-
-## Working safely
-
-- Inspect the working tree before editing and preserve unrelated or
-  user-authored changes. Do not assume the current branch is clean.
-- Do not edit generated `node_modules/`, `dist/`, `export/`, `coverage/`, or
-  log output.
-- Prefer the smallest change that follows neighboring patterns. Update focused
-  tests and fixtures with behavior changes.
-- A new product decision updates the owning specification in `docs/spec/`, and
-  adds an ADR under `docs/decisions/` when the rationale is worth preserving.
-  Never add a document that overrides the spec — no addenda, no plan revisions,
-  no second requirements file. If the spec is wrong, change the spec.
-- Record material architectural or product choices in a concise ADR using
-  `docs/decisions/0000-template.md`. Preserve superseded decisions as history.
-- Update `docs/CURRENT_WORK.md` only to append validation evidence: a
-  completed `npm run check` or `npm run export` run and the source commit it
-  ran against. Do not restate what changed — the branch and its commits are
-  that record — and never record the current branch, current HEAD, branch
-  hygiene, or an instruction to merge that branch there; keep pre-merge
-  handoff details in the pull request or task conversation.
-- Track outstanding manual checks, known loose ends, and the next decision
-  point as task and project notes in `docs/project-vault/`, not in
-  `docs/CURRENT_WORK.md`. Creation goes through Project Weave's own create-task
-  flow where practical; until typed task editing exists, status transitions
-  are hand-edited frontmatter — an explicit, documented interim step per ADR
-  0016, not a precedent for hand-editing anything else.
-- Update `README.md` and `docs/ARCHITECTURE.md` when implemented or released
-  boundaries change. Do not use anything under `docs/archive/` as current
-  guidance; it is retained only to preserve decision history.
-
-## Version control
-
-Commit history is the primary record of in-progress work. Keep it granular
-enough that prose documentation does not need to restate it.
-
-- Work on a short-lived branch off `main`, named for the slice — for example
-  `feat/task-creation`. Do not commit directly to `main`.
-- Commit in small, self-contained steps as work lands rather than one large
-  commit at the end. Each commit should stand on its own: it builds, it passes
-  the checks that were run against it, and it makes one coherent change.
-- Write commit subjects that carry intent, not a restatement of the diff. A
-  reader should be able to follow the slice from `git log --oneline` alone.
-- Keep documentation updates in the same commit as the behavior they describe,
-  so history never claims something the code does not do.
-- Do not push, merge, release, or change versions unless the user explicitly
-  requests it. Committing on a branch does not imply approval for any of these.
-- When a version bump is requested, size it by the change, not the commit
-  count. Bump the patch (`0.4.0` → `0.4.1`) before exporting a build that
-  differs from the last exported one; this is the ordinary increment, and two
-  builds that behave differently must never share a version. Bump the minor
-  (`0.3.x` → `0.4.0`) when a numbered slice Epic in the dogfood vault
-  passes its exit gate, or when a compatibility surface changes — product
-  terms, frontmatter fields, controlled values, diagnostic codes, or persisted
-  workspace state. Do not claim a minor when work on a chunk begins; the
-  version describes what a build contains.
-  `docs/development/release.md` holds the full rule.
-  Resolve genuine ambiguity upward and say why; a change you can fully describe
-  as a fix or a refactor is not ambiguous.
-
-## Validation
-
-Node.js 22 or newer is required. From a clean dependency install, use:
-
-```shell
-npm ci
-npm run check
+```text
+.
+├── src/                  # plugin implementation (AGENTS.md)
+├── tests/                # automated behavior coverage
+├── scripts/              # tooling and release automation (AGENTS.md)
+├── templates/default/    # packaged Markdown templates
+├── docs/                 # specifications and project records (AGENTS.md)
+├── agents / agents.cmd   # cross-platform task entry points
+└── manifest.json         # Obsidian compatibility metadata
 ```
 
-`npm run check` is the complete automated gate: synchronized versions,
-formatting, lint, TypeScript, Vitest and Node tests, production bundle, and
-release inventory. It also scans the committed dogfood vault and fails when an
-error-level diagnostic is present. Use narrower commands while iterating, but
-run the complete gate before handoff when practical.
+Generated `CLAUDE.md` files project each `AGENTS.md` into tool-specific paths.
+Edit the `AGENTS.md` source and run `./agents link` or `.\agents.cmd link`.
 
-Run `npm run diagnostics:check` after changing parsing, validation, indexing,
-diagnostic assignment, or notes in `docs/project-vault/`; investigate every
-new diagnostic before handoff. When a local `.env` configures a separate live
-vault, also run `npm run diagnostics -- --pretty` after changes that can affect
-its results and report that live-vault evidence separately. Warnings and info
-diagnostics do not fail the dogfood check, but they still require review and an
-explicit explanation or tracked follow-up when they are expected.
+## WHERE TO LOOK
 
-Obsidian UI, workspace restoration, responsive behavior, and live vault-event
-behavior still require focused manual checks. `docs/development/testing.md` is
-the procedure for running them; the manual-check tasks in
-`docs/project-vault/` record which have passed and are authoritative for
-status. Report automated and manual verification separately.
+| Need                               | Location                      |
+| ---------------------------------- | ----------------------------- |
+| Current authority map              | `CURRENT-DESIGN.md`           |
+| Implemented behavior and setup     | `README.md`                   |
+| Recent work                        | `git log --oneline -20`       |
+| Product behavior                   | `docs/spec/`                  |
+| Architecture boundaries            | `docs/ARCHITECTURE.md`        |
+| Decision rationale                 | `docs/decisions/`             |
+| Outstanding work and manual checks | `docs/project-vault/`         |
+| Automated validation record        | `docs/CURRENT_WORK.md`        |
+| Agent tooling                      | `docs/development/agents.md`  |
+| Testing procedure                  | `docs/development/testing.md` |
+| Release procedure                  | `docs/development/release.md` |
+
+Subtree `AGENTS.md` files provide local conventions when that subtree is touched.
+
+## COMMANDS
+
+`./agents help` lists every verb. On Windows, use `.\agents.cmd help`.
+
+```shell
+./agents setup    # install locked dependencies
+./agents check    # complete CI-equivalent automated gate
+./agents doctor   # audit context cost, pointers, and generated files
+./agents link     # regenerate tool-specific context files
+```
+
+## CONVENTIONS
+
+- Inspect the working tree first and preserve unrelated changes.
+- Work on a short-lived branch from `main`; keep commits small and coherent.
+- Keep one owner per fact and link to it from routers.
+- Update the owning specification with product behavior changes.
+- Keep documentation and the behavior it describes in the same commit.
+- Record lasting architectural or product rationale in an ADR.
+- Treat compatibility surfaces as versioned contracts; size releases by change.
+- Report automated and manual verification separately.
+- Push, merge, release, and version changes follow explicit user requests.
