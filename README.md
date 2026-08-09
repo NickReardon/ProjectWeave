@@ -128,18 +128,17 @@ source file. Task and project are the kinds with runtime creation flows today;
 epic, milestone, planning period, and document starters remain inputs for later
 slices.
 
-A task template is chosen per variant from three places, in order:
+A task template is chosen per variant from two places, in order:
 
-1. the project note's own `weave.templates.task.<variant>` mapping;
-2. `<template library folder>/task/<variant>.md`;
-3. the packaged minimal template, for `default` only.
+1. `<template library folder>/task/<variant>.md`;
+2. the packaged minimal template, for `default` only.
 
-Precedence applies per variant, so a project can override `bug` while still
-using the vault's `default`. A broken, ambiguous, malformed, or wrong-kind
-template blocks the variant that selected it rather than falling back to
-another source — falling back would create bytes other than the ones the
-chosen template describes. A variant that exists nowhere is reported instead of
-becoming the default by accident.
+Every project sees the same vault library. Project-specific overrides are
+deferred until they have a configuration workflow that does not require editing
+nested project-note frontmatter. A broken, ambiguous, malformed, or wrong-kind
+template blocks its variant rather than falling back to another source —
+falling back would create bytes other than the ones selected. A variant that
+exists nowhere is reported instead of becoming the default by accident.
 
 The create-task modal always shows a **Template** control and the task
 destination. When only one variant exists, the control is disabled and the
@@ -232,9 +231,8 @@ retaining out-of-scope notes.
 per kind and one file per variant, such as `task/bug.md`. It is a local
 preference: saving it never creates or edits vault content, an empty value uses
 the packaged templates only, and a folder nobody has created simply holds no
-templates. Project notes may still map their own variants under
-`weave.templates`, which travel with the project and take precedence. A project
-note cannot map its own project template, since it is the note being created.
+templates. The library is shared by every indexed project; project-specific
+template selection is deferred.
 
 **Diagnostics log folder** optionally names a vault-relative folder where
 Project Weave writes `diagnostics.json` after each complete index publication.

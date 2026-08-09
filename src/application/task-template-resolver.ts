@@ -1,4 +1,3 @@
-import { parseWikiLink } from '../domain/markdown-parser';
 import type { Diagnostic, ProjectEntity } from '../domain/model';
 import {
   PACKAGED_MINIMAL_TASK_TEMPLATE,
@@ -7,7 +6,6 @@ import {
 import { hasError, templateDiagnostic } from '../domain/templates/model';
 import type { TemplateSource } from '../domain/templates/model';
 import { parseTemplateDocument } from '../domain/templates/template-parser';
-import type { LinkResolver, VaultReader } from '../ports/vault-reader';
 import type { VaultTemplateLibrary } from './vault-template-library';
 
 const TEMPLATE_KEY_PATTERN = /^[a-z0-9_-]+$/u;
@@ -17,7 +15,7 @@ const PACKAGED_TASK_FINGERPRINT = 'builtin:minimal/task@schema-1';
 const TASK_TEMPLATE_KIND = 'task';
 
 export interface TaskTemplateSelection {
-  readonly source: 'packaged' | 'vault' | 'project';
+  readonly source: 'packaged' | 'vault';
   readonly variant: string;
   readonly reference: string;
   readonly fingerprint: string;
@@ -32,22 +30,14 @@ export interface TaskTemplateResolution {
 }
 
 /**
- * Resolves one project's effective task template without writing to the vault.
- * An absent mapping uses the packaged minimal default. Any explicit reference
- * fails closed when it is broken or incompatible.
+ * Resolves a task template from the configured vault library without writing.
+ * Project-specific mappings are intentionally deferred; every project sees the
+ * same catalog, with the packaged minimal template as the default fallback.
  */
 export class TaskTemplateResolver {
-  readonly #vault: VaultReader;
-  readonly #links: LinkResolver;
   readonly #library: VaultTemplateLibrary | null;
 
-  public constructor(
-    vault: VaultReader,
-    links: LinkResolver,
-    library: VaultTemplateLibrary | null = null,
-  ) {
-    this.#vault = vault;
-    this.#links = links;
+  public constructor(library: VaultTemplateLibrary | null = null) {
     this.#library = library;
   }
 
@@ -58,17 +48,14 @@ export class TaskTemplateResolver {
    * show what exists before anything is selected. A key that exists at any rung
    * is offered; whether it works is decided when it is resolved.
    */
-  public async listVariants(
-    project: ProjectEntity,
-  ): Promise<readonly string[]> {
-    const fromProject = readTaskMap(project).availableVariants;
+  public async listVariants(): Promise<readonly string[]> {
     const fromVault =
       this.#library === null
         ? []
         : (await this.#library.list()).entries
             .filter((entry) => entry.kind === TASK_TEMPLATE_KIND)
             .map((entry) => entry.variant);
-    const variants = new Set(['default', ...fromProject, ...fromVault]);
+    const variants = new Set(['default', ...fromVault]);
     return [
       'default',
       ...[...variants].filter((variant) => variant !== 'default').sort(),
@@ -83,8 +70,8 @@ export class TaskTemplateResolver {
       return packaged([]);
     }
 
-    const parsed = readTaskMap(project);
-    const diagnostics = [...parsed.diagnostics];
+    const diagnostics: Diagnostic[] = [];
+    const availableVariants = await this.listVariants();
     const variant = requestedVariant ?? 'default';
     if (!TEMPLATE_KEY_PATTERN.test(variant)) {
       diagnostics.push(
@@ -92,126 +79,19 @@ export class TaskTemplateResolver {
           project.path,
           'template.variant.invalid',
           `${variant} is not a valid task template variant key.`,
-          'weave.templates.task',
+          'template_variant',
           'Use lowercase letters, digits, underscores, or hyphens.',
         ),
       );
-      return failed(parsed.availableVariants, diagnostics);
+      return failed(availableVariants, diagnostics);
     }
 
-    if (parsed.map === null) {
-      return hasError(diagnostics)
-        ? failed(parsed.availableVariants, diagnostics)
-        : await this.#resolveBelowProject(
-            variant,
-            project,
-            parsed.availableVariants,
-            diagnostics,
-          );
-    }
-
-    const rawReference = parsed.map[variant];
-    if (rawReference === undefined) {
-      return await this.#resolveBelowProject(
-        variant,
-        project,
-        parsed.availableVariants,
-        diagnostics,
-      );
-    }
-
-    const link =
-      typeof rawReference === 'string' ? parseWikiLink(rawReference) : null;
-    if (link === null || typeof rawReference !== 'string') {
-      diagnostics.push(
-        issue(
-          project.path,
-          'template.reference.invalid',
-          `Task template variant ${variant} must be one wiki link.`,
-          `weave.templates.task.${variant}`,
-          'Reference one Markdown template note with a wiki link.',
-        ),
-      );
-      return failed(parsed.availableVariants, diagnostics);
-    }
-
-    const resolution = this.#links.resolve(link.linkpath, project.path);
-    if (resolution.kind === 'ambiguous') {
-      diagnostics.push({
-        ...issue(
-          project.path,
-          'template.reference.ambiguous',
-          `Task template reference ${link.raw} is ambiguous.`,
-          `weave.templates.task.${variant}`,
-          'Use a path-qualified wiki link to select one template note.',
-        ),
-        relatedPaths: [...resolution.candidates],
-      });
-      return failed(parsed.availableVariants, diagnostics);
-    }
-    if (resolution.kind === 'unresolved') {
-      diagnostics.push(
-        issue(
-          project.path,
-          'template.reference.unresolved',
-          `Task template reference ${link.raw} could not be resolved.`,
-          `weave.templates.task.${variant}`,
-          'Correct the reference or explicitly choose the packaged minimal template.',
-        ),
-      );
-      return failed(parsed.availableVariants, diagnostics);
-    }
-
-    const source = await this.#vault.readMarkdownNote(resolution.path);
-    if (source === null) {
-      diagnostics.push(
-        issue(
-          project.path,
-          'template.reference.changed',
-          `Resolved template ${resolution.path} is no longer readable.`,
-          `weave.templates.task.${variant}`,
-          'Refresh the index and resolve the template again.',
-        ),
-      );
-      return failed(parsed.availableVariants, diagnostics);
-    }
-
-    const template: TemplateSource = {
-      path: source.path,
-      content: source.content,
-    };
-    const document = parseTemplateDocument(template);
-    diagnostics.push(...document.diagnostics);
-    if (
-      document.metadata.templateFor !== null &&
-      document.metadata.templateFor !== 'task'
-    ) {
-      diagnostics.push(
-        issue(
-          source.path,
-          'template.kind_mismatch',
-          `The template declares ${document.metadata.templateFor}, not task.`,
-          'template_for',
-          'Reference a template whose template_for value is task.',
-        ),
-      );
-    }
-
-    if (hasError(diagnostics)) {
-      return failed(parsed.availableVariants, diagnostics);
-    }
-    return {
-      ok: true,
-      selected: {
-        source: 'project',
-        variant,
-        reference: rawReference,
-        fingerprint: source.fingerprint,
-        template,
-      },
-      availableVariants: parsed.availableVariants,
+    return await this.#resolveCatalog(
+      variant,
+      project,
+      availableVariants,
       diagnostics,
-    };
+    );
   }
 
   /**
@@ -222,7 +102,7 @@ export class TaskTemplateResolver {
    * other than the ones the configured template describes, which is the
    * failure mode ADR 0013 exists to prevent.
    */
-  async #resolveBelowProject(
+  async #resolveCatalog(
     variant: string,
     project: ProjectEntity,
     availableVariants: readonly string[],
@@ -275,110 +155,12 @@ export class TaskTemplateResolver {
         project.path,
         'template.variant.not_found',
         `Task template variant ${variant} is not configured.`,
-        `weave.templates.task.${variant}`,
-        'Select an available variant or explicitly use the packaged minimal template.',
+        'template_variant',
+        'Add the variant to the configured template library or select an available template.',
       ),
     );
     return failed(availableVariants, diagnostics);
   }
-}
-
-interface ParsedTaskMap {
-  readonly map: Readonly<Record<string, unknown>> | null;
-  readonly availableVariants: readonly string[];
-  readonly diagnostics: readonly Diagnostic[];
-}
-
-function readTaskMap(project: ProjectEntity): ParsedTaskMap {
-  const diagnostics: Diagnostic[] = [];
-  const weave = project.frontmatter.weave;
-  if (weave === undefined) {
-    return emptyMap(diagnostics);
-  }
-  if (!isRecord(weave)) {
-    return invalidMap(
-      project,
-      diagnostics,
-      'template.map.weave_invalid',
-      'weave must be a mapping before templates can be resolved.',
-      'weave',
-    );
-  }
-
-  const templates = weave.templates;
-  if (templates === undefined) {
-    return emptyMap(diagnostics);
-  }
-  if (!isRecord(templates)) {
-    return invalidMap(
-      project,
-      diagnostics,
-      'template.map.invalid',
-      'weave.templates must be a mapping.',
-      'weave.templates',
-    );
-  }
-
-  const task = templates.task;
-  if (task === undefined) {
-    return emptyMap(diagnostics);
-  }
-  if (!isRecord(task)) {
-    return invalidMap(
-      project,
-      diagnostics,
-      'template.map.kind_invalid',
-      'weave.templates.task must map variant keys to wiki links.',
-      'weave.templates.task',
-    );
-  }
-
-  for (const key of Object.keys(task)) {
-    if (!TEMPLATE_KEY_PATTERN.test(key)) {
-      diagnostics.push(
-        templateDiagnostic(
-          project.path,
-          'template.map.variant_key_invalid',
-          'warning',
-          `Task template variant key ${key} is invalid and unavailable.`,
-          `weave.templates.task.${key}`,
-          'Use lowercase letters, digits, underscores, or hyphens.',
-        ),
-      );
-    }
-  }
-
-  return {
-    map: task,
-    availableVariants: uniqueSorted([
-      'default',
-      ...Object.keys(task).filter((key) => TEMPLATE_KEY_PATTERN.test(key)),
-    ]),
-    diagnostics,
-  };
-}
-
-function emptyMap(diagnostics: readonly Diagnostic[]): ParsedTaskMap {
-  return { map: null, availableVariants: ['default'], diagnostics };
-}
-
-function invalidMap(
-  project: ProjectEntity,
-  diagnostics: Diagnostic[],
-  code: string,
-  message: string,
-  field: string,
-): ParsedTaskMap {
-  diagnostics.push(
-    issue(
-      project.path,
-      code,
-      message,
-      field,
-      'Correct the project template map before creating a task.',
-    ),
-  );
-  return { map: null, availableVariants: [], diagnostics };
 }
 
 function packaged(
@@ -414,10 +196,6 @@ function issue(
   recovery: string,
 ): Diagnostic {
   return templateDiagnostic(path, code, 'error', message, field, recovery);
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function uniqueSorted(values: readonly string[]): readonly string[] {

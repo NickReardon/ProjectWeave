@@ -116,11 +116,9 @@ export class TaskCreationProposalService {
     this.#templates = templates;
   }
 
-  /** Variants the resolver could select for this project, `default` first. */
-  public async listTemplateVariants(
-    project: ProjectEntity,
-  ): Promise<readonly string[]> {
-    return await this.#templates.listVariants(project);
+  /** Variants the shared catalog can select, `default` first. */
+  public async listTemplateVariants(): Promise<readonly string[]> {
+    return await this.#templates.listVariants();
   }
 
   public async propose(

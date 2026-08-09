@@ -492,11 +492,7 @@ export default class ProjectWeavePlugin extends Plugin {
       new TaskCreationProposalService(
         () => this.#readSource.current.snapshot,
         reader,
-        new TaskTemplateResolver(
-          reader,
-          new ObsidianLinkResolver(this.app.metadataCache),
-          library,
-        ),
+        new TaskTemplateResolver(library),
       ),
     );
 

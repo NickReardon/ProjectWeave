@@ -5,6 +5,7 @@ area: templates
 status: proposed
 canonical: false
 affects: ["18"]
+superseded_in_part_by: ["0020"]
 ---
 
 # ADR 0013: Provide a layered note-template catalog
@@ -12,6 +13,10 @@ affects: ["18"]
 - Status: proposed
 - Date: 2026-08-05
 - Owners: Project Weave
+
+Project-specific mapping passages below preserve the original decision
+history. ADR 0020 supersedes that rung for v1; the active catalog is the vault
+library over packaged defaults.
 
 ## Context
 

@@ -95,7 +95,7 @@ export class TaskCreationPreviewService {
     if (entity?.kind !== 'project') {
       return ['default'];
     }
-    return await this.#proposals.listTemplateVariants(entity);
+    return await this.#proposals.listTemplateVariants();
   }
 
   public async preview(

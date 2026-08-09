@@ -93,7 +93,7 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName('Templates').setHeading();
     containerEl.createEl('p', {
       cls: 'setting-item-description',
-      text: 'Templates in this folder are available to every project: one folder per kind, one file per variant, such as task/bug.md. A project note may still map its own variants under weave.templates, which take precedence.',
+      text: 'Templates in this folder are available to every project: one folder per kind, one file per variant, such as task/bug.md.',
     });
 
     let templateFolderCandidate = this.#plugin.settings.templateScaffoldFolder;

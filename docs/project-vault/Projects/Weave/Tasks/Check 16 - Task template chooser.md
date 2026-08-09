@@ -2,7 +2,7 @@
 type: task
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Slice-1-template-catalog]]'
-status: todo
+status: done
 category: manual-check
 rank: 800
 milestone: '[[Milestones/v1 release]]'
@@ -12,11 +12,12 @@ milestone: '[[Milestones/v1 release]]'
 
 Procedure: `docs/development/testing.md`, check 16.
 
-New and unrun. Put a `task/bug.md` under the template library folder, confirm
-it appears in the create-task modal's **Template** chooser, that selecting it
-changes the previewed bytes, that a project mapping for the same variant wins
-over it, that a deliberately broken one shows its diagnostic and refuses
-rather than falling back, and that **Packaged minimal** always renders the
-packaged template. With only one variant, no chooser should appear at all.
+Accepted in Obsidian after the 0.5.4 template-library merge. The always-visible
+chooser, stronger disabled state, friendly **Built-in default** label,
+vault-library `bug` variant, selected-template creation, and invalid-template
+diagnostics were exercised successfully. With only the packaged default, the
+control remains visible but disabled and names the configured library folder.
 
-Blocks desktop acceptance.
+Project-specific mappings are no longer part of this check; ADR 0020 defers
+them until they have a workflow that does not require nested project-note
+frontmatter.

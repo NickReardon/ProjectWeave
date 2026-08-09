@@ -103,7 +103,7 @@ export type ProjectCreationProposalResult =
  *
  * A project has no project to belong to, so there is no entity to fingerprint
  * and no template map to consult. The template is the packaged one: a
- * project-owned template mapping lives in the project note, and the project
+ * project-specific template configuration would live in the project note, and the project
  * note is what this creates.
  */
 export class ProjectCreationProposalService {
