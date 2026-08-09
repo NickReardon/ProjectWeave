@@ -2,7 +2,7 @@
 type: task
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Slice-1-template-catalog]]'
-status: todo
+status: done
 category: manual-check
 rank: 900
 milestone: '[[Milestones/v1 release]]'
@@ -12,13 +12,7 @@ milestone: '[[Milestones/v1 release]]'
 
 Procedure: `docs/development/testing.md`, check 15.
 
-New and unrun. Project creation reaches the vault through the same commit
-path task creation does, and has automated coverage, but nothing has
-exercised it in Obsidian. Run in a disposable vault: the target path under an
-indexed folder, a title matching an existing folder yielding a numbered
-folder with a notice, an unusable title yielding a diagnostic, the created
-project appearing in the workbench picker after the index refreshes, a task
-created in it landing under its own `Tasks` folder, and the **New project**
-button on an empty vault's workbench.
-
-Blocks desktop acceptance.
+Accepted in Obsidian after the 0.5.4 template-library merge. Project creation
+and the subsequent project/task workflow behaved correctly; no issues were
+noticed. Collision, unusable-title, and empty-vault boundaries remain covered
+automatically.

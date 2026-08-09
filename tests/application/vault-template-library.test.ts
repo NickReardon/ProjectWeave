@@ -181,12 +181,11 @@ describe('mergeTemplateCatalog', () => {
     };
   }
 
-  it('resolves precedence per key rather than per kind', () => {
+  it('lets the vault replace one key without displacing packaged neighbours', () => {
     const entries = mergeTemplateCatalog([
       candidate('task', 'default', 'plugin'),
       candidate('task', 'default', 'vault'),
       candidate('task', 'bug', 'vault'),
-      candidate('task', 'bug', 'project'),
       candidate('project', 'default', 'plugin'),
     ]);
 
@@ -196,11 +195,11 @@ describe('mergeTemplateCatalog', () => {
         entry.selected.source,
       ]),
     );
-    // The project overrides one task variant without displacing the vault's
-    // other one, and the plugin still supplies the kind nobody configured.
+    // The vault replaces one task key, and the plugin still supplies the kind
+    // nobody configured.
     expect(selected).toEqual({
       'project/default': 'plugin',
-      'task/bug': 'project',
+      'task/bug': 'vault',
       'task/default': 'vault',
     });
   });

@@ -2,14 +2,12 @@
  * The merged template catalog of ADR 0013.
  *
  * Creation screens ask for one key — a `template_for` kind and a variant — and
- * get back which rung supplies it. Precedence is evaluated per key, not per
- * kind: a project may override `task/bug` while still using the vault's
- * `task/default`, and a vault may replace `task/default` while still using the
- * plugin's other variants.
+ * get back which rung supplies it. V1 uses one shared vault library over the
+ * packaged plugin templates; project-specific overrides are deferred.
  */
 
 /** Rungs, lowest precedence first. */
-export const TEMPLATE_SOURCES = ['plugin', 'vault', 'project'] as const;
+export const TEMPLATE_SOURCES = ['plugin', 'vault'] as const;
 
 export type TemplateSourceRung = (typeof TEMPLATE_SOURCES)[number];
 

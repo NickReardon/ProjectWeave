@@ -526,15 +526,12 @@ template_for: task
 1. Open **Create task**. Read the **Template** chooser.
 2. Select `bug`, type a title, and read the previewed bytes.
 3. Select **Built-in default** and read them again.
-4. Add `weave: {templates: {task: {bug: "[[Templates/Task]]"}}}` to the project
-   note, reopen the modal, and select `bug`.
-5. Break the vault template — change `template_for` to `epic` — reopen, and
+4. Break the vault template — change `template_for` to `epic` — reopen, and
    select `bug`.
-6. Remove `bug.md`, leaving only the packaged default, and reopen.
+5. Remove `bug.md`, leaving only the packaged default, and reopen.
 
 **Pass:** the chooser lists `default`, `bug`, and **Built-in default**; the
-preview follows the selection each time; the project mapping wins over the
-vault template for `bug`; the broken template shows `template.kind_mismatch`
+preview follows the selection each time; the broken template shows `template.kind_mismatch`
 with creation disabled, and does not quietly render the packaged template; and
 with one variant the **Template** control remains visible but disabled, with a
 note naming the folder where new tasks can be created.

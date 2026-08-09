@@ -14,7 +14,7 @@ import type { VaultReader } from '../ports/vault-reader';
  * simply a library with no templates in it.
  */
 
-/** Variant keys match the pattern project template maps already enforce. */
+/** Variant keys are stable compatibility keys used by the chooser. */
 export const TEMPLATE_VARIANT_PATTERN = /^[a-z0-9_-]+$/u;
 
 /** Kind folders are `template_for` values, which use the same shape. */

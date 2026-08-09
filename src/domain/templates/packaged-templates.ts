@@ -9,7 +9,7 @@ export const PACKAGED_MINIMAL_TEMPLATE_ID = 'builtin:minimal';
 
 /**
  * The packaged minimal task template. It is an immutable plugin asset used
- * when a project references no task template of its own, so creation never
+ * when the vault library has no default task template, so creation never
  * requires a passive setup write.
  *
  * The content is embedded rather than read at runtime: the domain layer has no

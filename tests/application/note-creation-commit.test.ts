@@ -7,6 +7,7 @@ import {
 import { TaskCreationProposalService } from '../../src/application/task-creation-proposal';
 import type { TaskCreationProposal } from '../../src/application/task-creation-proposal';
 import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import type { IndexSnapshot } from '../../src/indexing/index-snapshot';
@@ -84,11 +85,10 @@ async function buildProposal(
   vault: MemoryVault,
   snapshot: IndexSnapshot,
 ): Promise<TaskCreationProposal> {
-  const links = new PathLinkResolver([PROJECT_PATH]);
   const proposals = new TaskCreationProposalService(
     () => snapshot,
     vault,
-    new TaskTemplateResolver(vault, links),
+    new TaskTemplateResolver(),
   );
   const proposal = await proposals.propose({
     operationId: 'op-1',
@@ -194,11 +194,11 @@ describe('NoteCreationCommitService', () => {
     expect(writer.writes).toEqual([]);
   });
 
-  it('aborts when a project-owned template changed after the preview', async () => {
+  it('aborts when a vault-library template changed after the preview', async () => {
     // The packaged template is skipped because it ships in the build, but a
-    // project template is a real note and is exactly what must be re-checked:
+    // vault template is a real note and is exactly what must be re-checked:
     // its bytes shaped the note the user confirmed.
-    const templatePath = 'Projects/Game/Templates/Task.md';
+    const templatePath = 'Templates/Project Weave/task/default.md';
     const templateNote = (body: string): SourceNote =>
       sourceNote(
         templatePath,
@@ -216,24 +216,18 @@ describe('NoteCreationCommitService', () => {
     const notes = [
       sourceNote(
         PROJECT_PATH,
-        [
-          'type: project',
-          'title: Fixture Game',
-          'weave:',
-          '  templates:',
-          '    task:',
-          '      default: "[[Templates/Task]]"',
-        ].join('\n'),
+        ['type: project', 'title: Fixture Game'].join('\n'),
       ),
       templateNote('# {{title}}\n'),
     ];
     const vault = new MemoryVault(notes);
     const snapshot = snapshotOf(notes);
-    const links = new PathLinkResolver(notes.map((note) => note.path));
     const proposal = await new TaskCreationProposalService(
       () => snapshot,
       vault,
-      new TaskTemplateResolver(vault, links),
+      new TaskTemplateResolver(
+        new VaultTemplateLibrary(vault, 'Templates/Project Weave'),
+      ),
     ).propose({
       operationId: 'op-1',
       projectPath: PROJECT_PATH,
@@ -246,7 +240,7 @@ describe('NoteCreationCommitService', () => {
           proposal.diagnostics.map((issue) => issue.code).join(','),
       );
     }
-    expect(proposal.template.source).toBe('project');
+    expect(proposal.template.source).toBe('vault');
 
     const writer = new RecordingWriter();
     vault.set(templateNote('# {{title}}\n\nAn edited template body.\n'));

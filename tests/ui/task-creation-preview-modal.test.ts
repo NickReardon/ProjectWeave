@@ -123,8 +123,6 @@ function openModal(
       getSnapshot,
       vault,
       new TaskTemplateResolver(
-        vault,
-        links,
         options.libraryFolder === undefined
           ? null
           : new VaultTemplateLibrary(vault, options.libraryFolder),

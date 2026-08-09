@@ -3,10 +3,10 @@ type: spec
 area: templates
 status: current
 canonical: true
-related_decisions: ["0005", "0010", "0013"]
+related_decisions: ["0005", "0010", "0013", "0020"]
 ---
 
-# 18 — Project-Owned Note Templates
+# 18 — Vault Note Templates
 
 ## Status and precedence
 
@@ -14,12 +14,12 @@ Approved v1 design. All Project Weave creation paths—UI, commands, tests, and 
 
 ## Goal
 
-Give each project a portable, replaceable set of ordinary Markdown templates that controls the initial structure of new tasks, epics, milestones/releases, planning periods, designs, and other documents without forcing templates onto projects that prefer minimal notes.
+Give the vault a replaceable library of ordinary Markdown templates that controls the initial structure of new tasks, epics, milestones/releases, planning periods, designs, and other documents without forcing setup writes on projects that prefer minimal notes.
 
 ## Principles
 
 1. Templates are Markdown, visible and editable in the vault.
-2. The project note references its templates so collaborators and agents use the same set.
+2. One configured vault library gives every project, UI caller, and agent the same set.
 3. Templates are creation inputs, not canonical state for existing notes.
 4. Rendering is deterministic and contains no executable code.
 5. Typed domain/context values override template defaults where correctness requires it.
@@ -39,37 +39,18 @@ V1 supports:
 
 Design is a document variant, not a required canonical entity type.
 
-## Project template map
+## Vault template library
 
-The project note may contain:
+The configured library contains one folder per template kind and one Markdown
+file per variant, for example `Templates/Project Weave/task/bug.md`. Kind and
+variant keys use lowercase letters, digits, underscores, or hyphens. Every
+project sees the same library, and an empty or missing library uses packaged
+templates only.
 
-```yaml
-weave:
-  templates:
-    task:
-      default: "[[Project/Templates/Task]]"
-      bug: "[[Project/Templates/Bug Task]]"
-      research: "[[Project/Templates/Research Task]]"
-    epic:
-      default: "[[Project/Templates/Epic]]"
-    milestone:
-      default: "[[Project/Templates/Milestone]]"
-    planning_period:
-      default: "[[Project/Templates/Cycle]]"
-    document:
-      default: "[[Project/Templates/Document]]"
-      design: "[[Project/Templates/Design]]"
-      decision: "[[Project/Templates/Decision]]"
-```
-
-Rules:
-
-- Kind and variant keys use lowercase letters, digits, underscores, or hyphens.
-- Each kind has at most one `default`.
-- A link resolves relative to the project note using normal Obsidian resolution.
-- Shared template notes may be referenced by more than one project.
-- A reference must resolve to one Markdown note whose declared `template_for` matches the map kind.
-- Template maps are canonical project workflow configuration; local UI preferences may remember a last-used variant but never override the shared default invisibly.
+Project-specific template selection is deferred. In particular,
+`weave.templates` in project frontmatter has no runtime meaning in v1. ADR 0020
+records why the earlier nested-frontmatter workflow was removed before it
+became a compatibility contract.
 
 ## Template note format
 
@@ -217,10 +198,10 @@ No loops, includes, macros, JavaScript, shell, network, file reads, model calls,
 
 For every new note:
 
-1. Resolve project, note kind, requested/default variant, and template link.
+1. Resolve project, note kind, requested/default variant, and catalog entry.
 2. Read and fingerprint the template.
 3. Parse/validate template metadata, inputs, YAML, and body directives.
-4. Render the packaged minimal base or referenced project template.
+4. Render the packaged minimal base or selected vault template.
 5. Apply context values: project, origin, initial status, date/time, allocated path/rank, and invoking view.
 6. Apply explicit user/agent typed fields and declared template inputs.
 7. Apply invariant overlay.
@@ -242,43 +223,31 @@ A template cannot override these values. If the template declares a conflicting 
 
 ## Defaults and missing references
 
-Packaged minimal templates exist for every supported kind. They are immutable plugin assets and are used when a project has no explicit template reference.
+Packaged minimal templates exist for every supported kind. They are immutable plugin assets and are used when the vault library has no matching default.
 
-An explicit broken, ambiguous, malformed, or incompatible project reference does not silently fall back. Creation is disabled with a diagnostic and offers explicit choices where allowed:
-
-- repair/select another project reference;
-- Use Packaged Minimal This Time;
-- Initialize/Copy Project Template.
+A broken, ambiguous, malformed, or incompatible vault template does not
+silently fall back. Creation is disabled with a diagnostic and offers the
+explicit **Built-in default** choice where allowed.
 
 Agents receive the same disabled action/reason and cannot select fallback unless the proposal explicitly names it.
 
-## New-project and existing-project setup
+## New-project setup
 
 ### Create Project
 
-The Create Project proposal may create:
-
-- project note;
-- project template directory;
-- editable copies of the packaged starter templates;
-- template references in the project note.
-
-Every path/content is previewed. Collision prevents overwrite and requires reuse or a different location. This is one named, confirmed multi-file creation operation—not passive activation behavior.
-
-### Initialize Project Templates
-
-Existing projects can run Initialize Project Templates. It previews editable copies and the exact project-note configuration change. It does not modify tasks, epics, milestones, periods, or documents.
-
-Projects may instead continue using virtual packaged minimal templates without creating any template files.
+Create Project selects the shared vault `project/default.md` template when it
+exists, otherwise the packaged project template. The resulting project note is
+previewed and validated before creation. Collision prevents overwrite and
+requires a different location. No template directory or project-note template
+configuration is created as a side effect.
 
 ## Replacing and editing templates
 
-- Set Project Template changes one project mapping entry through a typed proposal.
 - Editing the template note manually affects future creation after re-indexing.
 - A controlled agent template-edit operation is deferred; generic document proposals cannot modify marked template notes initially.
 - Replacing a template link or content never updates existing notes.
 - Any open creation proposal is stale when its referenced template fingerprint changes.
-- Template rename/link maintenance follows Obsidian behavior; unresolved references become diagnostics, not automatic fallback.
+- Template rename and deletion update the library catalog; unavailable variants become diagnostics, not automatic fallback.
 - Removing a named variant does not modify notes created from it.
 
 Project Weave may display `created_from_template` in its operation report, but does not persist template linkage in every created note by default. If provenance is later needed, it requires an explicit schema decision because templates should not become live inheritance.
@@ -297,15 +266,9 @@ Project Weave may display `created_from_template` in its operation report, but d
 
 ### Template management
 
-Project settings/workbench offers:
-
-- View Template Map
-- Open Template
-- Set/Replace Template Reference
-- Copy Packaged Minimal
-- Initialize Project Templates
-- Validate Project Templates
-- Preview Template With Sample Data
+Template management may offer opening the configured library, copying a
+packaged template, validating templates, and previewing sample data. It does
+not edit project-note frontmatter.
 
 Opening or validating templates is read-only. No command silently repairs or rewrites them.
 
@@ -326,7 +289,7 @@ It returns:
 
 - project/index revision;
 - effective default and available variant keys/descriptions;
-- template ref/fingerprint;
+- template path/fingerprint;
 - declared input schema;
 - current project capabilities/policies;
 - invariant/default typed fields;
@@ -373,11 +336,10 @@ For ordinary document creation, the agent selects a document variant and fills d
 
 Validate Project Templates reports:
 
-- unresolved/ambiguous links;
 - invalid optional `weave_template`, unsupported explicit schema, missing or
   incompatible kind, or missing default;
 - invalid variant keys;
-- duplicate/incompatible mappings;
+- duplicate/incompatible library entries;
 - malformed YAML/body directives;
 - unknown variables or unsupported input types;
 - invariant conflicts;
@@ -403,7 +365,7 @@ Activation may parse/index template metadata but never creates, initializes, nor
 
 ### Resolution and replacement
 
-- Project default/variant selection, shared templates, packaged fallback, explicit broken-reference failure, ambiguous links, and incompatible kind.
+- Vault default/variant selection, packaged fallback, broken-template refusal, ambiguous library entries, and incompatible kind.
 - Editing/repointing templates affects future notes only.
 - Existing note hashes remain unchanged after every template operation except explicit direct user edits to those notes.
 - Template changes invalidate pending proposals.
@@ -417,7 +379,7 @@ Activation may parse/index template metadata but never creates, initializes, nor
 
 ### Setup and safety
 
-- New-project/initialize proposals preview every template/project-note path and never overwrite collisions.
+- New-project proposals preview every template/project-note path and never overwrite collisions.
 - Template notes identified by `template_for` never appear as tasks/epics/etc.
 - Lifecycle operations never materialize templates.
 - Generic agent document tools reject template notes.
@@ -431,14 +393,14 @@ Activation may parse/index template metadata but never creates, initializes, nor
 
 ## Acceptance criteria
 
-- A project can reference and replace templates for every supported creation kind.
-- A project with no template configuration can still create minimal notes without passive setup writes.
-- New Project can explicitly scaffold editable referenced templates.
+- A configured vault library can replace templates for every supported creation kind.
+- A vault with no template configuration can still create minimal notes without passive setup writes.
+- New Project can use the shared vault library or packaged project template.
 - UI and agents always render through the same Template Service.
-- Agent-created tasks/documents visibly use the selected project template.
+- Agent-created tasks/documents visibly use the selected catalog template.
 - Template/context/explicit/invariant precedence is deterministic and tested.
 - Missing optional template fields remain compatible with progressive disclosure.
-- Broken explicit references never cause silent fallback.
+- Broken selected library templates never cause silent fallback.
 - Editing a template changes no existing created note.
 - Every proposal fingerprints the template and conflicts if it changes before commit.
 - Templates cannot execute code or bypass domain/path/access/approval rules.

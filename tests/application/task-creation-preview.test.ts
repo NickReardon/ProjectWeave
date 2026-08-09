@@ -63,7 +63,7 @@ function build(notes: readonly SourceNote[]): {
   const proposals = new TaskCreationProposalService(
     getSnapshot,
     vault,
-    new TaskTemplateResolver(vault, links),
+    new TaskTemplateResolver(),
   );
   return {
     service: new TaskCreationPreviewService(getSnapshot, vault, proposals),
@@ -261,7 +261,7 @@ describe('TaskCreationPreviewService', () => {
       new TaskCreationProposalService(
         getSnapshot,
         vault,
-        new TaskTemplateResolver(vault, links),
+        new TaskTemplateResolver(),
       ),
     );
 

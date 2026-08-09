@@ -5,6 +5,7 @@ import {
   type TaskCreationProposalInput,
 } from '../../src/application/task-creation-proposal';
 import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import type { IndexSnapshot } from '../../src/indexing/index-snapshot';
@@ -74,15 +75,6 @@ function template(path = 'Projects/Game/Templates/Task.md'): SourceNote {
   return { path, content, fingerprint: `fingerprint:${path}` };
 }
 
-function taskMap(reference = '[[Templates/Task]]'): string {
-  return [
-    'weave:',
-    '  templates:',
-    '    task:',
-    `      default: "${reference}"`,
-  ].join('\n');
-}
-
 function input(
   overrides: Partial<TaskCreationProposalInput> = {},
 ): TaskCreationProposalInput {
@@ -101,6 +93,7 @@ function input(
 function harness(
   notes: readonly SourceNote[],
   snapshotTransform?: (snapshot: IndexSnapshot) => IndexSnapshot,
+  libraryFolder?: string,
 ): {
   readonly vault: MemoryVault;
   readonly service: TaskCreationProposalService;
@@ -117,7 +110,11 @@ function harness(
     service: new TaskCreationProposalService(
       () => snapshot,
       vault,
-      new TaskTemplateResolver(vault, links),
+      new TaskTemplateResolver(
+        libraryFolder === undefined
+          ? null
+          : new VaultTemplateLibrary(vault, libraryFolder),
+      ),
     ),
   };
 }
@@ -178,10 +175,14 @@ describe('TaskCreationProposalService', () => {
     expect(after).toEqual(before);
   });
 
-  it('uses a resolved project template and carries its fingerprint', async () => {
-    const projectNote = project(taskMap());
-    const templateNote = template();
-    const { service } = harness([projectNote, templateNote]);
+  it('uses a resolved vault template and carries its fingerprint', async () => {
+    const projectNote = project();
+    const templateNote = template('Templates/Project Weave/task/default.md');
+    const { service } = harness(
+      [projectNote, templateNote],
+      undefined,
+      'Templates/Project Weave',
+    );
 
     const result = await service.propose(
       input({ templateInputs: { summary: 'Implement the request handler.' } }),
@@ -192,7 +193,7 @@ describe('TaskCreationProposalService', () => {
       throw new Error('Expected a task creation proposal');
     }
     expect(result.template).toMatchObject({
-      source: 'project',
+      source: 'vault',
       path: templateNote.path,
       fingerprint: templateNote.fingerprint,
     });
@@ -221,7 +222,12 @@ describe('TaskCreationProposalService', () => {
   });
 
   it('returns renderer diagnostics when required template input is absent', async () => {
-    const { service } = harness([project(taskMap()), template()]);
+    const libraryTemplate = template('Templates/Project Weave/task/default.md');
+    const { service } = harness(
+      [project(), libraryTemplate],
+      undefined,
+      'Templates/Project Weave',
+    );
 
     const result = await service.propose(input());
 
