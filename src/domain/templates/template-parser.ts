@@ -168,40 +168,30 @@ function parseMetadata(
   diagnostics: Diagnostic[],
 ): TemplateMetadata {
   const marker = frontmatter.weave_template;
-  if (marker === undefined) {
-    diagnostics.push(
-      templateDiagnostic(
-        path,
-        'template.marker.missing',
-        'error',
-        'This note is not marked as a template.',
-        'weave_template',
-        'Add `weave_template: true` to the template note.',
-      ),
-    );
-  } else if (marker !== true) {
+  if (marker !== undefined && marker !== true) {
     diagnostics.push(
       templateDiagnostic(
         path,
         'template.marker.invalid',
         'error',
-        '`weave_template` must be exactly `true` for a template note.',
+        '`weave_template`, when present, must be exactly `true`.',
         'weave_template',
-        'Set `weave_template: true` or remove the key from an ordinary note.',
+        'Remove this optional legacy key, or set it to the Boolean `true`.',
       ),
     );
   }
+  const templateFor = readKey(
+    frontmatter.template_for,
+    'template_for',
+    'template.for.missing',
+    path,
+    diagnostics,
+  );
 
   return {
-    isTemplate: marker === true,
+    isTemplate: templateFor !== null,
     schema: readSchema(frontmatter.template_schema, path, diagnostics),
-    templateFor: readKey(
-      frontmatter.template_for,
-      'template_for',
-      'template.for.missing',
-      path,
-      diagnostics,
-    ),
+    templateFor,
     templateName: readKey(
       frontmatter.template_name,
       'template_name',
@@ -224,17 +214,7 @@ function readSchema(
   diagnostics: Diagnostic[],
 ): number | null {
   if (raw === undefined || raw === null) {
-    diagnostics.push(
-      templateDiagnostic(
-        path,
-        'template.schema.missing',
-        'error',
-        `A template must declare \`template_schema: ${String(SUPPORTED_TEMPLATE_SCHEMA)}\`.`,
-        'template_schema',
-        'Add the supported template schema version.',
-      ),
-    );
-    return null;
+    return SUPPORTED_TEMPLATE_SCHEMA;
   }
   if (raw === SUPPORTED_TEMPLATE_SCHEMA) {
     return SUPPORTED_TEMPLATE_SCHEMA;

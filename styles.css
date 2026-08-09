@@ -757,6 +757,16 @@
   margin: 0;
 }
 
+.project-weave-creation-preview__template-select {
+  margin-right: var(--size-4-2);
+}
+
+.project-weave-creation-preview__template-select:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.45);
+  opacity: 0.55;
+}
+
 .project-weave-creation-preview__output {
   display: flex;
   flex-direction: column;

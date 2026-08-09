@@ -77,8 +77,6 @@ A task template example:
 
 ```markdown
 ---
-weave_template: true
-template_schema: 1
 template_for: task
 template_name: default
 template_description: Standard implementation task
@@ -128,7 +126,12 @@ The template must be valid Markdown with valid YAML frontmatter before rendering
 - `template_description`
 - `template_inputs`
 
-Any note with `weave_template: true` is excluded from canonical entity indexing before interpreting a target `type`. It remains visible as an ordinary editable Markdown file and in template diagnostics.
+`template_for` is the only required template metadata. Its presence excludes
+the note from canonical entity indexing before interpreting a target `type`.
+An omitted `template_schema` means schema 1. The older `weave_template: true`
+marker remains optional for compatibility; if present, it must be the Boolean
+`true`. Template notes remain visible as ordinary editable Markdown files and
+in template diagnostics.
 
 ## Template inputs
 
@@ -285,8 +288,9 @@ Project Weave may display `created_from_template` in its operation report, but d
 ### Create forms
 
 - Resolve and show the selected template.
-- Hide the picker when only one effective default is available.
-- Show named variants when configured.
+- Always show the task template control and the destination where new tasks can
+  be created. Disable it when only one effective variant is available.
+- Enable the control and show named variants when more than one is configured.
 - Render declared inputs with type-appropriate controls.
 - Put ordinary optional entity fields under progressive disclosure.
 - Preview final frontmatter/body/path before bulk or agent-assisted creation.
@@ -370,7 +374,8 @@ For ordinary document creation, the agent selects a document variant and fills d
 Validate Project Templates reports:
 
 - unresolved/ambiguous links;
-- wrong or missing `weave_template`, schema, kind, or default;
+- invalid optional `weave_template`, unsupported explicit schema, missing or
+  incompatible kind, or missing default;
 - invalid variant keys;
 - duplicate/incompatible mappings;
 - malformed YAML/body directives;
@@ -413,9 +418,9 @@ Activation may parse/index template metadata but never creates, initializes, nor
 ### Setup and safety
 
 - New-project/initialize proposals preview every template/project-note path and never overwrite collisions.
-- Marked template notes never appear as tasks/epics/etc.
+- Template notes identified by `template_for` never appear as tasks/epics/etc.
 - Lifecycle operations never materialize templates.
-- Generic agent document tools reject marked template notes.
+- Generic agent document tools reject template notes.
 - No template syntax executes code, reads files/settings/environment, performs network calls, or invokes tools.
 
 ### Scale/mobile

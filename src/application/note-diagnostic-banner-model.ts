@@ -39,7 +39,26 @@ export function buildNoteDiagnosticBannerModel(
     return null;
   }
 
-  const diagnostics = snapshot.diagnostics
+  return buildNoteDiagnosticBannerModelFromDiagnostics(
+    path,
+    snapshot.diagnostics.filter((issue) => issue.path === path),
+    snapshot.freshness,
+    requestedDisplayLimit,
+  );
+}
+
+export function buildNoteDiagnosticBannerModelFromDiagnostics(
+  notePath: string,
+  sourceDiagnostics: readonly Diagnostic[],
+  freshness: IndexFreshness = 'current',
+  requestedDisplayLimit = NOTE_DIAGNOSTIC_BANNER_DISPLAY_LIMIT,
+): NoteDiagnosticBannerModel | null {
+  const path = normalizeVaultPath(notePath.trim());
+  if (path.length === 0) {
+    return null;
+  }
+
+  const diagnostics = sourceDiagnostics
     .filter((issue) => issue.path === path)
     .sort(compareDiagnostic);
   if (diagnostics.length === 0) {
@@ -54,7 +73,7 @@ export function buildNoteDiagnosticBannerModel(
 
   return {
     path,
-    freshness: snapshot.freshness,
+    freshness,
     items,
     total: diagnostics.length,
     errors,

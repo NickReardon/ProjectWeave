@@ -3,9 +3,14 @@ import type { App } from 'obsidian';
 
 import {
   buildNoteDiagnosticBannerModel,
+  buildNoteDiagnosticBannerModelFromDiagnostics,
   type NoteDiagnosticBannerItem,
   type NoteDiagnosticBannerModel,
 } from '../application/note-diagnostic-banner-model';
+import {
+  diagnoseTemplateNote,
+  isInTemplateLibrary,
+} from '../application/template-note-diagnostics';
 import type { ProjectWeaveReadSource } from '../application/project-weave-read-source';
 
 const BANNER_ATTRIBUTE = 'data-project-weave-note-diagnostics';
@@ -16,11 +21,18 @@ export class NoteDiagnosticBannerController {
   readonly #banners = new Set<HTMLElement>();
   #unsubscribe: (() => void) | null = null;
   #refreshScheduled = false;
+  #templateRefreshToken = 0;
   #disposed = false;
+  readonly #templateLibraryFolder: () => string;
 
-  public constructor(app: App, readSource: ProjectWeaveReadSource) {
+  public constructor(
+    app: App,
+    readSource: ProjectWeaveReadSource,
+    templateLibraryFolder: () => string = () => '',
+  ) {
     this.#app = app;
     this.#readSource = readSource;
+    this.#templateLibraryFolder = templateLibraryFolder;
   }
 
   public start(): void {
@@ -64,6 +76,14 @@ export class NoteDiagnosticBannerController {
         this.#mountBanner(leaf.view, model);
       }
     }
+    void this.#refreshTemplateBanners(++this.#templateRefreshToken).catch(
+      (error: unknown) => {
+        console.error(
+          'Project Weave could not refresh template-note diagnostics',
+          error,
+        );
+      },
+    );
   }
 
   public dispose(): void {
@@ -74,6 +94,46 @@ export class NoteDiagnosticBannerController {
     this.#unsubscribe?.();
     this.#unsubscribe = null;
     this.#clearBanners();
+  }
+
+  async #refreshTemplateBanners(token: number): Promise<void> {
+    const folder = this.#templateLibraryFolder();
+    if (folder.trim().length === 0) {
+      return;
+    }
+    const candidates = this.#app.workspace
+      .getLeavesOfType('markdown')
+      .filter(
+        (leaf) =>
+          leaf.view instanceof MarkdownView &&
+          leaf.view.file !== null &&
+          isInTemplateLibrary(leaf.view.file.path, folder),
+      );
+    const results = await Promise.all(
+      candidates.map(async (leaf) => {
+        if (!(leaf.view instanceof MarkdownView) || leaf.view.file === null) {
+          return null;
+        }
+        const path = leaf.view.file.path;
+        const content = await this.#app.vault.cachedRead(leaf.view.file);
+        return {
+          view: leaf.view,
+          model: buildNoteDiagnosticBannerModelFromDiagnostics(
+            path,
+            diagnoseTemplateNote(path, content, folder),
+            this.#readSource.current.snapshot.freshness,
+          ),
+        };
+      }),
+    );
+    if (this.#disposed || token !== this.#templateRefreshToken) {
+      return;
+    }
+    for (const result of results) {
+      if (result !== null && result.model !== null) {
+        this.#mountBanner(result.view, result.model);
+      }
+    }
   }
 
   #mountBanner(view: MarkdownView, model: NoteDiagnosticBannerModel): void {

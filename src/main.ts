@@ -19,6 +19,7 @@ import { TaskCreationPreviewService } from './application/task-creation-preview'
 import { VaultTemplateLibrary } from './application/vault-template-library';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
 import { TaskTemplateResolver } from './application/task-template-resolver';
+import { isInTemplateLibrary } from './application/template-note-diagnostics';
 import { templateClockFromLocalDate } from './domain/templates/model';
 import { IndexCoordinator } from './indexing/index-coordinator';
 import {
@@ -100,6 +101,7 @@ export default class ProjectWeavePlugin extends Plugin {
     const noteDiagnosticBanners = new NoteDiagnosticBannerController(
       this.app,
       this.#readSource,
+      () => this.settings.templateScaffoldFolder,
     );
     this.#noteDiagnosticBanners = noteDiagnosticBanners;
     noteDiagnosticBanners.start();
@@ -222,6 +224,7 @@ export default class ProjectWeavePlugin extends Plugin {
     };
     await this.saveData(nextSettings);
     this.settings = nextSettings;
+    this.#noteDiagnosticBanners?.scheduleRefresh();
   }
 
   public async updateDiagnosticsLogFolder(value: string): Promise<void> {
@@ -281,6 +284,11 @@ export default class ProjectWeavePlugin extends Plugin {
   #registerVaultEvents(): void {
     this.registerEvent(
       this.app.vault.on('create', (file) => {
+        if (
+          isInTemplateLibrary(file.path, this.settings.templateScaffoldFolder)
+        ) {
+          this.#noteDiagnosticBanners?.scheduleRefresh();
+        }
         const runtime = this.#runtime;
         if (
           runtime !== null &&
@@ -293,6 +301,11 @@ export default class ProjectWeavePlugin extends Plugin {
     );
     this.registerEvent(
       this.app.vault.on('modify', (file) => {
+        if (
+          isInTemplateLibrary(file.path, this.settings.templateScaffoldFolder)
+        ) {
+          this.#noteDiagnosticBanners?.scheduleRefresh();
+        }
         const runtime = this.#runtime;
         if (
           runtime !== null &&
@@ -305,6 +318,11 @@ export default class ProjectWeavePlugin extends Plugin {
     );
     this.registerEvent(
       this.app.vault.on('delete', (file) => {
+        if (
+          isInTemplateLibrary(file.path, this.settings.templateScaffoldFolder)
+        ) {
+          this.#noteDiagnosticBanners?.scheduleRefresh();
+        }
         const runtime = this.#runtime;
         if (
           runtime !== null &&
@@ -317,6 +335,12 @@ export default class ProjectWeavePlugin extends Plugin {
     );
     this.registerEvent(
       this.app.vault.on('rename', (file, oldPath) => {
+        if (
+          isInTemplateLibrary(oldPath, this.settings.templateScaffoldFolder) ||
+          isInTemplateLibrary(file.path, this.settings.templateScaffoldFolder)
+        ) {
+          this.#noteDiagnosticBanners?.scheduleRefresh();
+        }
         const runtime = this.#runtime;
         if (runtime === null) {
           return;

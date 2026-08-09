@@ -284,6 +284,11 @@ export class DropdownComponent {
     return this;
   }
 
+  public setDisabled(disabled: boolean): this {
+    this.selectEl.disabled = disabled;
+    return this;
+  }
+
   public getValue(): string {
     return this.selectEl.value;
   }

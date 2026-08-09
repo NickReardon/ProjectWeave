@@ -119,10 +119,10 @@ Discovery rules are intentionally small and deterministic:
   simply contributes no vault templates and causes no write or setup prompt.
 
 A manually copied valid template appears automatically; no index note or
-registration map is required. Template files remain ordinary Markdown marked
-with `weave_template: true`, `template_schema: 1`, and the matching
-`template_for` value. The first-party **Add template** flow supplies that
-metadata so users do not have to memorize it.
+registration map is required. Template files remain ordinary Markdown and
+require only the matching `template_for` value. Missing `template_schema`
+defaults to schema 1, while the older `weave_template: true` marker remains
+optional for compatibility.
 
 ### Optional project overrides
 
@@ -188,8 +188,6 @@ A body-focused task template may therefore be as small as:
 
 ```markdown
 ---
-weave_template: true
-template_schema: 1
 template_for: task
 ---
 
@@ -230,8 +228,8 @@ For every structured creation:
 
 1. Resolve the effective catalog key and fingerprint the selected non-plugin
    source.
-2. Parse the template and verify its marker, schema, declared kind, inputs,
-   YAML, placeholders, and body directives.
+2. Parse the template and verify its declared kind, optional explicit schema,
+   inputs, YAML, placeholders, and body directives.
 3. Apply the kind profile, selected template, creation context, explicit typed
    values, and invariant overlay.
 4. Render the exact target bytes and show them in preview.
@@ -251,8 +249,10 @@ it must not be inferred from selecting `document/design` during creation.
 Each create flow selects a kind by the action the user invoked: **Create
 task**, **Create epic**, **Create document**, and so on.
 
-- If only one effective template is usable, select it without adding a picker.
-- If more than one variant exists, show one compact **Template** picker.
+- Always show one compact **Template** control and the destination where new
+  notes can be created. Disable the control when only one effective template
+  is usable.
+- If more than one variant exists, enable the **Template** picker.
 - Show friendly variant names and descriptions while preserving the stable key.
 - Changing the selection immediately regenerates the exact preview.
 - A broken selected variant shows its diagnostic and disables creation; it
@@ -347,7 +347,8 @@ Failure is scoped and closed per selected catalog key:
   mandatory configuration.
 - Positive: templates cannot accidentally omit or corrupt the properties that
   make a created note a task, epic, project, milestone, or sprint.
-- Positive: the picker stays hidden when it would offer no meaningful choice.
+- Positive: the template control remains discoverable and communicates where
+  new notes can be created even when there is no meaningful choice yet.
 - Positive: UI and future agents create byte-equivalent notes through the same
   catalog and property profiles.
 - Negative: plugin and vault variant keys become compatibility surfaces.

@@ -77,18 +77,24 @@ describe('parseTemplateDocument', () => {
     expect(document.body).toBe('# {{title}}\n');
   });
 
-  it('rejects a note that is not marked as a template', () => {
+  it('requires only template_for for minimal template metadata', () => {
     const document = parseTemplateDocument(
-      template(['type: task', 'title: "{{title}}"'].join('\n')),
+      template(
+        ['template_for: task', 'title: "{{title}}"'].join('\n'),
+        '# {{title}}\n',
+        { includeSchema: false },
+      ),
     );
 
-    expect(codes(document)).toEqual([
-      'template.marker.missing',
-      'template.for.missing',
-    ]);
+    expect(codes(document)).toEqual([]);
+    expect(document.metadata).toMatchObject({
+      isTemplate: true,
+      schema: 1,
+      templateFor: 'task',
+    });
   });
 
-  it('rejects a template that omits its schema version', () => {
+  it('defaults an omitted schema version to version one', () => {
     const document = parseTemplateDocument(
       template(
         ['weave_template: true', 'template_for: task'].join('\n'),
@@ -97,7 +103,8 @@ describe('parseTemplateDocument', () => {
       ),
     );
 
-    expect(codes(document)).toEqual(['template.schema.missing']);
+    expect(codes(document)).toEqual([]);
+    expect(document.metadata.schema).toBe(1);
   });
 
   it('reports invalid template metadata types instead of ignoring them', () => {
@@ -114,8 +121,8 @@ describe('parseTemplateDocument', () => {
 
     expect(codes(document)).toEqual([
       'template.marker.invalid',
-      'template.schema.unsupported',
       'template.key.invalid',
+      'template.schema.unsupported',
       'template.description.invalid',
     ]);
   });

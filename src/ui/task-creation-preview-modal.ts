@@ -2,6 +2,7 @@ import { Setting } from 'obsidian';
 import type { App } from 'obsidian';
 
 import type { NoteCreationCommitResult } from '../application/note-creation-commit';
+import { taskFolderForProjectPath } from '../application/task-creation-allocator';
 import type {
   TaskCreationPreviewRequest,
   TaskCreationPreviewResult,
@@ -100,23 +101,34 @@ export class TaskCreationPreviewModal extends CreationPreviewModal<TaskCreationP
         });
       });
 
-    // One template is not a choice, so it does not get a control.
-    const variants = this.#context.templateVariants ?? [];
-    if (variants.length > 1) {
-      new Setting(container)
-        .setName('Template')
-        .setDesc('Which template this task is rendered from.')
-        .addDropdown((dropdown) => {
-          for (const variant of variants) {
-            dropdown.addOption(variant, variant);
-          }
-          dropdown.addOption(PACKAGED_TEMPLATE_VARIANT, 'Packaged minimal');
-          dropdown.setValue(this.#templateVariant).onChange((value) => {
+    const variants = this.#context.templateVariants ?? ['default'];
+    const hasTemplateChoice = variants.length > 1;
+    const taskFolder = taskFolderForProjectPath(this.#context.projectPath);
+    new Setting(container)
+      .setName('Template')
+      .setDesc(
+        hasTemplateChoice
+          ? `Choose a task template. You can create new tasks in ${taskFolder}.`
+          : `You can create new tasks in ${taskFolder}.`,
+      )
+      .addDropdown((dropdown) => {
+        for (const variant of variants) {
+          dropdown.addOption(variant, variant);
+        }
+        if (hasTemplateChoice) {
+          dropdown.addOption(PACKAGED_TEMPLATE_VARIANT, 'Built-in default');
+        }
+        dropdown.selectEl.classList.add(
+          'project-weave-creation-preview__template-select',
+        );
+        dropdown
+          .setValue(this.#templateVariant)
+          .setDisabled(!hasTemplateChoice)
+          .onChange((value) => {
             this.#templateVariant = value;
             this.schedulePreview();
           });
-        });
-    }
+      });
 
     new Setting(container)
       .setName('Create directly on board')
