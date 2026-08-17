@@ -4,6 +4,8 @@
   "version": "0.6.0",
   "minAppVersion": "1.8.0",
   "description": "Turn Markdown designs into dependency-aware project work without mandatory process overhead.",
-  "author": "Project Weave contributors",
+  "author": "Nick Reardon",
+  "authorUrl": "https://github.com/NickReardon",
+  "helpUrl": "https://github.com/NickReardon/ProjectWeave/issues",
   "isDesktopOnly": false
 }

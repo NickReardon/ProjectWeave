@@ -37,3 +37,11 @@ users, including a clear optional path for installing the MCP companion.
 
 Follow the public instructions from a clean checkout and clean MCP client
 configuration, recording every undocumented assumption as a defect.
+
+Implementation is committed and pushed as `6f6b8fb` on
+`test/brat-preview-acceptance`: MIT licensing,
+named author/support metadata, contribution and security guidance, explicit
+privacy/network disclosures, a pinned companion download and checksum command,
+and a current preview reference are present. Final acceptance still requires
+following those instructions from a clean checkout and deciding when to make
+the repository public.

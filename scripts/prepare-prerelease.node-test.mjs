@@ -21,6 +21,15 @@ test('derives one semantic prerelease version from the target and run', () => {
   assert.throws(() => prereleaseVersion('0.7.0', 0), /positive/u);
 });
 
+test('uses the globally unique workflow run ID for preview versions', async () => {
+  const workflow = await readFile(
+    new URL('../.github/workflows/prerelease.yml', import.meta.url),
+    'utf8',
+  );
+  assert.match(workflow, /beta\.\$\{GITHUB_RUN_ID\}/u);
+  assert.doesNotMatch(workflow, /beta\.\$\{GITHUB_RUN_NUMBER\}/u);
+});
+
 test('stamps only the generated manifest version', () => {
   assert.deepEqual(
     stampPreviewManifest(

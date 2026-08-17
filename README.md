@@ -10,6 +10,10 @@ This file records what is implemented. What Project Weave is specified to do is
 in [docs/spec/](docs/spec/README.md); [CURRENT-DESIGN.md](CURRENT-DESIGN.md) is
 a one-page map of where each kind of truth lives.
 
+Project support is provided through the
+[GitHub issue tracker](https://github.com/NickReardon/ProjectWeave/issues).
+Project Weave is released under the [MIT License](LICENSE).
+
 Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
 defines the branch and small-commit workflow. Work in flight on the current
 checkout is in [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md), and `git log` is
@@ -28,12 +32,17 @@ testing**; BRAT downloads `main.js`, `manifest.json`, and `styles.css` directly
 into the vault's `.obsidian/plugins/project-weave/` folder and handles later
 updates.
 
+The current preview is
+[`0.7.0-beta.32012926052`](https://github.com/NickReardon/ProjectWeave/releases/tag/0.7.0-beta.32012926052),
+built from commit `de86a86340c27f08487c714a72c56de9933f5c67`. BRAT installs only
+the three plugin files; it never installs the optional companion.
+
 The repository also provides a pinned direct-update harness. Put the exact
 plugin destination and release tag in the ignored local `.env` file:
 
 ```text
 PROJECT_WEAVE_PLUGIN_PATH=D:\\Vault\\.obsidian\\plugins\\project-weave
-PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.1
+PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.32012926052
 ```
 
 Then run `npm run plugin:update`. It downloads all three assets from that exact
@@ -42,6 +51,23 @@ GitHub release, validates them before touching the destination, preserves
 or disable and re-enable Project Weave afterward. A private test repository
 also requires `GITHUB_TOKEN` in the process environment; public releases do
 not.
+
+### Optional MCP companion
+
+The companion is a separate, desktop-only download. It is not installed by
+BRAT or by the plugin. This example is pinned to the current preview release:
+
+```shell
+release=https://github.com/NickReardon/ProjectWeave/releases/download/0.7.0-beta.32012926052
+curl --fail --location "$release/project-weave-mcp.cjs" --output project-weave-mcp.cjs
+curl --fail --location "$release/project-weave-mcp.cjs.sha256" --output project-weave-mcp.cjs.sha256
+sha256sum --check project-weave-mcp.cjs.sha256
+```
+
+The published SHA-256 is
+`c5fbeda4a707e1928d88a9de20d771df2e5988e691f3eba50577f4c0c7abe6c6`.
+Remove both downloaded files and the MCP client configuration to remove the
+companion. Core plugin use does not depend on it.
 
 ## Current status
 
@@ -272,6 +298,18 @@ PROJECT_WEAVE_GRANT_SECRET=<secret copied at creation>
 The companion exposes only bounded read tools. Entity metadata stays within the
 grant's project; Markdown bodies additionally require an allowed content root.
 Disabling the gateway closes the local endpoint. Mobile never starts it.
+
+## Privacy and network behavior
+
+Project Weave has no analytics or telemetry. The plugin reads Markdown only
+from configured indexed roots and writes a new note only after you confirm the
+exact preview; indexing, navigation, settings, and dashboards do not edit
+existing notes. The optional desktop gateway uses a local authenticated
+pipe/socket, and the companion connects to that local endpoint over stdio.
+Grant IDs and secrets are generated locally, shown only at creation, and must
+be supplied through the MCP client's environment. GitHub network access is
+limited to BRAT or the explicitly invoked release updater; it is not part of
+ordinary vault indexing or plugin use.
 
 ## Obsidian settings
 

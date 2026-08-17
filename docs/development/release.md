@@ -156,7 +156,7 @@ For the same artifact path a tester receives, set these ignored `.env` values:
 
 ```text
 PROJECT_WEAVE_PLUGIN_PATH=D:\\Path\\To\\Vault\\.obsidian\\plugins\\project-weave
-PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.1
+PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.32012926052
 ```
 
 Then run `npm run plugin:update`. The destination must be the exact

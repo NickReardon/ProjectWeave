@@ -45,3 +45,13 @@ On 2026-08-17, the pinned updater installed private prerelease
 release-asset downloads. The installed manifest and exact three-file inventory
 matched the tag, and local settings were preserved. BRAT, Obsidian runtime, and
 companion-client acceptance remain outstanding.
+
+Corrected workflow run `32012926052` then published prerelease
+`0.7.0-beta.32012926052` from
+`de86a86340c27f08487c714a72c56de9933f5c67`. Direct release inspection found
+exactly the three plugin assets plus the companion and its checksum; the
+downloaded manifest named the release version and minimum Obsidian `1.8.0`, and
+the companion SHA-256 matched
+`c5fbeda4a707e1928d88a9de20d771df2e5988e691f3eba50577f4c0c7abe6c6`.
+The disposable vault is prepared with Obsidian `1.12.7` and BRAT `2.2.0`; the
+actual BRAT command and runtime checks remain outstanding.

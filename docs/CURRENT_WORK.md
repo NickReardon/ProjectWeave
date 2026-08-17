@@ -20,32 +20,42 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-Nothing. Local and remote `main` now contain the separated plugin and companion
-outputs, pinned GitHub-release updater, authenticated private-asset fix,
-prerelease workflow, and recorded beta.1 proof.
-
-Private prerelease `0.7.0-beta.1` still targets `06dbdd0`; the authenticated
-updater fix landed afterward in `a4dc90f` and passed against those real assets.
+`test/brat-preview-acceptance` contains the prerelease collision fix plus the
+public-readiness documentation slice: MIT license, named support metadata,
+contribution/security guidance, privacy/network disclosures, current preview
+references, and a pinned companion checksum/install path. The earlier corrected
+run `32012926052` published `0.7.0-beta.32012926052` from `de86a86`; these
+follow-up changes pass the repository gate and are committed and pushed as
+`6f6b8fb`. GitHub now has the public description/topics and protected `main`
+(the `Check` workflow plus one approving review); visibility remains private.
 
 ## Verified
 
-The complete post-merge `npm run check` passes on local `main`: 368 Vitest tests,
-50 script tests, zero diagnostics across 80 dogfood notes, the production build,
-and separate plugin and companion inventory verification.
+The prior branch gate passed: 368 Vitest tests, 51 script tests, zero
+diagnostics across 80 dogfood notes, the production build, and separate plugin
+and companion inventories. The corrected remote publication passed the same
+gate, and direct release inspection verified its exact asset inventory,
+manifest version, source SHA, and companion checksum. The new docs/metadata
+slice also passes the post-change gate.
 
 ## Next
 
-1. Exercise the manual prerelease workflow from remote `main`, then test BRAT
-   from a clean disposable vault and finish recording
+1. Test BRAT from the prepared clean disposable vault and finish recording
    [[Tasks/Accept the BRAT preview and optional companion setup]].
-2. Decide and record the public license, author/support metadata, and companion
-   install location needed by
+2. Exercise the optional companion install, scoped client, and failure paths.
+3. Decide when to make the repository public after the clean-checkout review of
    [[Tasks/Prepare public preview metadata and optional agent setup]].
 
 ## Loose ends
 
-- `0.7.0-beta.1` was published manually from a commit before the authenticated
-  private-asset fix; the workflow itself remains unexercised.
+- BRAT and companion-client acceptance require interactive external clients and
+  remain unverified even though the release artifacts themselves are verified.
+- GitHub's public visibility, secret scanning, and branch-protection settings
+  remain partly external repository decisions; visibility is unchanged and
+  secret scanning is unavailable on the current private-repository plan.
+- Dependabot may continue to display the nanoid alert until it refreshes; the
+  lockfile now resolves the dev-only chain to patched `3.3.18`, and npm audit
+  reports zero vulnerabilities.
 - The repository is private, so beta.1 proves the authenticated path rather than
   the eventual public no-token installation experience.
 - `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound

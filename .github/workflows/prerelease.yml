@@ -53,7 +53,7 @@ jobs:
             echo "target_version must be MAJOR.MINOR.PATCH" >&2
             exit 64
           fi
-          preview_version="${TARGET_VERSION}-beta.${GITHUB_RUN_NUMBER}"
+          preview_version="${TARGET_VERSION}-beta.${GITHUB_RUN_ID}"
           source_sha="$(git rev-parse HEAD)"
           echo "version=$preview_version" >> "$GITHUB_OUTPUT"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
