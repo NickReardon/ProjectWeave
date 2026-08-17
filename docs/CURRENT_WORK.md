@@ -8,56 +8,24 @@ canonical: false
 
 ## Purpose
 
-The **mid-flight record**: what is in flight on this checkout, what is verified,
-what is next. Rewritten at the end of every change, never appended to. A screen
-at most; a stale section is a defect.
-
-Verification and task-state history live in `git log`, which cannot drift from
-the commits it describes. Outstanding work lives in `docs/project-vault/`.
-Intended behavior lives in `docs/spec/`. See
-[ADR 0023](decisions/0023-make-current-work-a-mid-flight-record.md); runs before
-`ef1db32` are in [`archive/AUTOMATED-VERIFICATION-LOG.md`](archive/AUTOMATED-VERIFICATION-LOG.md).
+The **mid-flight record**: what is in flight on this checkout, what is
+verified, and what is next. Rewrite it rather than appending history.
 
 ## In flight
 
-`test/brat-preview-acceptance` contains the prerelease collision fix plus the
-public-readiness documentation slice: MIT license, named support metadata,
-contribution/security guidance, privacy/network disclosures, current preview
-references, and a pinned companion checksum/install path. The earlier corrected
-run `32012926052` published `0.7.0-beta.32012926052` from `de86a86`; these
-follow-up changes pass the repository gate and are committed and pushed as
-`6f6b8fb`. GitHub now has the public description/topics, enabled secret
-scanning, and protected `main` (Node 22/24 checks plus one approving review).
-The repository is public at
-https://github.com/NickReardon/ProjectWeave.
+None.
 
 ## Verified
 
-The prior branch gate passed: 368 Vitest tests, 51 script tests, zero
-diagnostics across 80 dogfood notes, the production build, and separate plugin
-and companion inventories. The corrected remote publication passed the same
-gate, and direct release inspection verified its exact asset inventory,
-manifest version, source SHA, and companion checksum. The new docs/metadata
-slice also passes the post-change gate.
+The merge-ready workflow and evergreen documentation checks are implemented.
+The complete `npm run check` gate passes.
 
 ## Next
 
-1. Test BRAT from the prepared clean disposable vault and finish recording
-   [[Tasks/Accept the BRAT preview and optional companion setup]].
-2. Exercise the optional companion install, scoped client, and failure paths.
-3. Complete the clean-checkout and interactive companion acceptance recorded in
-   [[Tasks/Prepare public preview metadata and optional agent setup]].
+Run the outstanding interactive BRAT, companion-client, and mobile acceptance
+checks tracked in the dogfood task notes.
 
 ## Loose ends
 
-- BRAT and companion-client acceptance require interactive external clients and
-  remain unverified even though the release artifacts themselves are verified.
-- GitHub's public visibility and security settings are now enabled; secret
-  scanning push protection remains disabled and should be considered separately.
-- Dependabot may continue to display the nanoid alert until it refreshes; the
-  lockfile now resolves the dev-only chain to patched `3.3.18`, and npm audit
-  reports zero vulnerabilities.
-- The prior beta.1 path was authenticated; the public repository now permits a
-  no-token BRAT path, which still needs interactive verification.
-- `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound
-  references and is still a deletion candidate.
+- BRAT, companion-client, and mobile acceptance remain interactive follow-up
+  work; automated evidence does not mark them complete.

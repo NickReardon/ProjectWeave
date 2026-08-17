@@ -16,6 +16,15 @@ that Project Weave is ready to release. Release readiness remains governed by
 evidence in [CURRENT_WORK.md](../CURRENT_WORK.md), and the outstanding manual
 checks tracked in [docs/project-vault/](../project-vault/).
 
+## Merge-ready documentation state
+
+Ordinary branch checks may leave useful text in `docs/CURRENT_WORK.md` while
+work is in flight. The complete gate accepts `--merge-ready` for non-draft pull
+requests and pushes to `main`; that mode requires the `## In flight` section to
+contain exactly `None.`. Historical beta tags and release checksums remain
+valid in task notes and release history, but not in the evergreen files checked
+by `npm run docs:check`.
+
 ## Versioning
 
 `package.json` is the canonical project version. Version commands update it
@@ -156,7 +165,7 @@ For the same artifact path a tester receives, set these ignored `.env` values:
 
 ```text
 PROJECT_WEAVE_PLUGIN_PATH=D:\\Path\\To\\Vault\\.obsidian\\plugins\\project-weave
-PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.32012926052
+PROJECT_WEAVE_RELEASE_VERSION=PASTE_EXACT_PRERELEASE_TAG_HERE
 ```
 
 Then run `npm run plugin:update`. The destination must be the exact
@@ -223,7 +232,7 @@ The action must:
 
 1. Check out and record the exact commit.
 2. Run `npm ci`, the complete gate, and the ordinary export.
-3. Derive a unique version such as `0.7.0-beta.27`.
+3. Derive a unique beta version from the workflow run ID.
 4. Stamp that version only into the generated release manifest. Do not change
    the tracked stable version files on the tested branch.
 5. Require the release tag, release name, and released manifest version to
