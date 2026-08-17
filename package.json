@@ -3,6 +3,7 @@
   "version": "0.6.0",
   "private": true,
   "description": "A Markdown-first, dependency-aware project workbench for Obsidian.",
+  "author": "Nick Reardon",
   "main": "dist/plugin/main.js",
   "type": "module",
   "scripts": {
@@ -43,7 +44,7 @@
     "project-management",
     "markdown"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
     "yaml": "^2.9.0",

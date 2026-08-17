@@ -48,4 +48,7 @@ The first authorized workflow run on 2026-08-17 passed the complete gate and
 artifact build, then correctly published nothing because its workflow-local run
 number derived the already existing manual tag `0.7.0-beta.1`. The follow-up fix
 uses GitHub's globally unique run ID so manual and automated previews cannot
-collide; a successful publication run is still required.
+collide. Corrected run `32012926052` passed every build and publication step and
+published `0.7.0-beta.32012926052` from
+`de86a86340c27f08487c714a72c56de9933f5c67`; the public metadata dependency
+still keeps this task waiting.

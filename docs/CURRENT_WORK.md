@@ -20,34 +20,38 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-`test/brat-preview-acceptance` fixes the prerelease workflow's first real-run
-collision with manually published `0.7.0-beta.1`. The failed run passed the full
-gate and artifact build, then published nothing because the tag-existence guard
-rejected the duplicate. Preview versions now use the globally unique GitHub run
-ID, with regression coverage; publication and BRAT acceptance remain to run.
+`test/brat-preview-acceptance` contains the prerelease collision fix plus the
+public-readiness documentation slice: MIT license, named support metadata,
+contribution/security guidance, privacy/network disclosures, current preview
+references, and a pinned companion checksum/install path. The earlier corrected
+run `32012926052` published `0.7.0-beta.32012926052` from `de86a86`; these
+follow-up changes pass the repository gate and are ready to commit and push.
 
 ## Verified
 
-Focused prerelease tests and formatting pass on the branch. The failed remote
-run passed the complete gate, production build, plugin/companion export,
-manifest stamping, companion checksum, and payload staging before the duplicate
-tag guard stopped publication.
+The prior branch gate passed: 368 Vitest tests, 51 script tests, zero
+diagnostics across 80 dogfood notes, the production build, and separate plugin
+and companion inventories. The corrected remote publication passed the same
+gate, and direct release inspection verified its exact asset inventory,
+manifest version, source SHA, and companion checksum. The new docs/metadata
+slice also passes the post-change gate.
 
 ## Next
 
-1. Validate, commit, and push the unique-version fix; rerun the prerelease
-   workflow from that exact commit.
-2. Test BRAT from a clean disposable vault and finish recording
+1. Commit and push the public-readiness slice.
+2. Test BRAT from the prepared clean disposable vault and finish recording
    [[Tasks/Accept the BRAT preview and optional companion setup]].
-3. Decide and record the public license, author/support metadata, and companion
-   install location needed by
+3. Exercise the optional companion install, scoped client, and failure paths.
+4. Decide when to make the repository public after the clean-checkout review of
+   [[Tasks/Prepare public preview metadata and optional agent setup]].
    [[Tasks/Prepare public preview metadata and optional agent setup]].
 
 ## Loose ends
 
-- `0.7.0-beta.1` was published manually from a commit before the authenticated
-  private-asset fix; the workflow's first run exposed the version collision and
-  published nothing.
+- BRAT and companion-client acceptance require interactive external clients and
+  remain unverified even though the release artifacts themselves are verified.
+- GitHub's public visibility, secret scanning, and branch-protection settings
+  remain external repository decisions; no visibility change has been made.
 - The repository is private, so beta.1 proves the authenticated path rather than
   the eventual public no-token installation experience.
 - `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound
