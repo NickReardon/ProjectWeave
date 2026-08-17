@@ -43,3 +43,9 @@ ordering are implemented and covered locally. Completion waits on the public
 metadata dependency and an explicitly authorized workflow run. Private
 prerelease `0.7.0-beta.1` was published manually from `06dbdd0` to test the
 artifact updater, so the workflow itself remains unexercised.
+
+The first authorized workflow run on 2026-08-17 passed the complete gate and
+artifact build, then correctly published nothing because its workflow-local run
+number derived the already existing manual tag `0.7.0-beta.1`. The follow-up fix
+uses GitHub's globally unique run ID so manual and automated previews cannot
+collide; a successful publication run is still required.

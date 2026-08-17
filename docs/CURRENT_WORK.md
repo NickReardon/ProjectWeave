@@ -20,32 +20,34 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-Nothing. Local and remote `main` now contain the separated plugin and companion
-outputs, pinned GitHub-release updater, authenticated private-asset fix,
-prerelease workflow, and recorded beta.1 proof.
-
-Private prerelease `0.7.0-beta.1` still targets `06dbdd0`; the authenticated
-updater fix landed afterward in `a4dc90f` and passed against those real assets.
+`test/brat-preview-acceptance` fixes the prerelease workflow's first real-run
+collision with manually published `0.7.0-beta.1`. The failed run passed the full
+gate and artifact build, then published nothing because the tag-existence guard
+rejected the duplicate. Preview versions now use the globally unique GitHub run
+ID, with regression coverage; publication and BRAT acceptance remain to run.
 
 ## Verified
 
-The complete post-merge `npm run check` passes on local `main`: 368 Vitest tests,
-50 script tests, zero diagnostics across 80 dogfood notes, the production build,
-and separate plugin and companion inventory verification.
+Focused prerelease tests and formatting pass on the branch. The failed remote
+run passed the complete gate, production build, plugin/companion export,
+manifest stamping, companion checksum, and payload staging before the duplicate
+tag guard stopped publication.
 
 ## Next
 
-1. Exercise the manual prerelease workflow from remote `main`, then test BRAT
-   from a clean disposable vault and finish recording
+1. Validate, commit, and push the unique-version fix; rerun the prerelease
+   workflow from that exact commit.
+2. Test BRAT from a clean disposable vault and finish recording
    [[Tasks/Accept the BRAT preview and optional companion setup]].
-2. Decide and record the public license, author/support metadata, and companion
+3. Decide and record the public license, author/support metadata, and companion
    install location needed by
    [[Tasks/Prepare public preview metadata and optional agent setup]].
 
 ## Loose ends
 
 - `0.7.0-beta.1` was published manually from a commit before the authenticated
-  private-asset fix; the workflow itself remains unexercised.
+  private-asset fix; the workflow's first run exposed the version collision and
+  published nothing.
 - The repository is private, so beta.1 proves the authenticated path rather than
   the eventual public no-token installation experience.
 - `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound
