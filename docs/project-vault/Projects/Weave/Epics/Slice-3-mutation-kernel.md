@@ -2,7 +2,7 @@
 type: epic
 title: Build Typed Mutation and Proposal Kernel
 project: '[[Projects/Weave/Project]]'
-status: planned
+status: active
 owner: ''
 origin: '[[Projects/Weave/Project]]'
 created: 2026-08-07

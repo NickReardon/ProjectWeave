@@ -102,6 +102,10 @@ function openModal(
       ok: true,
       operation_id: 'test',
       created_path: 'Projects/Game/Tasks/Untitled.md',
+      created_paths: ['Projects/Game/Tasks/Untitled.md'],
+      written_paths: ['Projects/Game/Tasks/Untitled.md'],
+      unchanged_paths: [],
+      unwritten_paths: [],
       diagnostics: [],
     }),
   options: {
@@ -263,6 +267,10 @@ describe('Create task modal', () => {
         ok: true,
         operation_id: 'test',
         created_path: 'Projects/Game/Tasks/Write the design.md',
+        created_paths: ['Projects/Game/Tasks/Write the design.md'],
+        written_paths: ['Projects/Game/Tasks/Write the design.md'],
+        unchanged_paths: [],
+        unwritten_paths: [],
         diagnostics: [],
       });
     });
@@ -287,6 +295,9 @@ describe('Create task modal', () => {
         ok: false,
         operation_id: 'test',
         vault_unchanged: true,
+        written_paths: [],
+        unchanged_paths: [],
+        unwritten_paths: ['Projects/Game/Tasks/Write the design.md'],
         diagnostics: [
           {
             severity: 'error',

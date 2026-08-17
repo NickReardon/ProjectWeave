@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   NoteCreationCommitService,
+  type NoteCreationProposal,
   type NoteCreationCommitResult,
 } from '../../src/application/note-creation-commit';
 import { TaskCreationProposalService } from '../../src/application/task-creation-proposal';
@@ -51,9 +52,14 @@ class MemoryVault implements VaultReader {
 class RecordingWriter implements NoteWriter {
   public readonly writes: { path: string; content: string }[] = [];
   #outcome: NoteCreateOutcome = { kind: 'created' };
+  #outcomes: NoteCreateOutcome[] = [];
 
   public willReturn(outcome: NoteCreateOutcome): void {
     this.#outcome = outcome;
+  }
+
+  public willReturnSequence(...outcomes: NoteCreateOutcome[]): void {
+    this.#outcomes = [...outcomes];
   }
 
   public async createNote(
@@ -61,7 +67,7 @@ class RecordingWriter implements NoteWriter {
     content: string,
   ): Promise<NoteCreateOutcome> {
     this.writes.push({ path, content });
-    return this.#outcome;
+    return this.#outcomes.shift() ?? this.#outcome;
   }
 }
 
@@ -76,6 +82,26 @@ const CLOCK = {
 
 const PROJECT_PATH = 'Projects/Game/Project.md';
 const TARGET_PATH = 'Projects/Game/Tasks/Implement request.md';
+
+function multiFileProposal(
+  proposal: TaskCreationProposal,
+  paths: readonly string[],
+  writeOrder: readonly string[] = paths,
+): NoteCreationProposal {
+  const content = proposal.created_files[0]?.content;
+  if (content === undefined) {
+    throw new Error('fixture proposal has no created file');
+  }
+  return {
+    ...proposal,
+    preconditions: paths.map((path) => ({
+      kind: 'path_absent' as const,
+      path,
+    })),
+    created_files: paths.map((path) => ({ path, content })),
+    write_order: writeOrder,
+  };
+}
 
 function projectNote(): SourceNote {
   return sourceNote(PROJECT_PATH, 'type: project\ntitle: Fixture Game');
@@ -155,6 +181,136 @@ describe('NoteCreationCommitService', () => {
     expect(writer.writes).toEqual([
       { path: TARGET_PATH, content: proposal.created_files[0]?.content },
     ]);
+  });
+
+  it('preflights and writes multiple notes in the declared order', async () => {
+    const { writer, proposal, snapshot, vault } = await harness();
+    const first = 'Projects/Game/Tasks/First.md';
+    const second = 'Projects/Game/Tasks/Second.md';
+    const bulk = multiFileProposal(proposal, [first, second], [second, first]);
+
+    const result = await new NoteCreationCommitService(
+      () => snapshot,
+      vault,
+      writer,
+    ).commit(bulk);
+
+    expect(result).toMatchObject({
+      ok: true,
+      created_path: second,
+      created_paths: [second, first],
+      written_paths: [second, first],
+      unchanged_paths: [],
+      unwritten_paths: [],
+    });
+    expect(writer.writes.map((write) => write.path)).toEqual([second, first]);
+  });
+
+  it('validates every output before the first multi-file write', async () => {
+    const { writer, proposal, snapshot, vault } = await harness();
+    const first = 'Projects/Game/Tasks/First.md';
+    const invalid = 'Projects/Game/Tasks/Invalid.md';
+    const bulk = {
+      ...multiFileProposal(proposal, [first, invalid]),
+      created_files: [
+        { path: first, content: proposal.created_files[0]!.content },
+        { path: invalid, content: 'not a Markdown entity' },
+      ],
+    };
+
+    const result = await new NoteCreationCommitService(
+      () => snapshot,
+      vault,
+      writer,
+    ).commit(bulk);
+
+    expect(result).toMatchObject({
+      ok: false,
+      vault_unchanged: true,
+      written_paths: [],
+      unwritten_paths: [first, invalid],
+    });
+    expect(
+      result.ok ? [] : result.diagnostics.map((issue) => issue.code),
+    ).toContain('commit.output.invalid');
+    expect(writer.writes).toEqual([]);
+  });
+
+  it('rechecks every multi-file target before the first write', async () => {
+    const { writer, proposal, snapshot, vault } = await harness();
+    const first = 'Projects/Game/Tasks/First.md';
+    const second = 'Projects/Game/Tasks/Second.md';
+    const bulk = multiFileProposal(proposal, [first, second]);
+    vault.set(sourceNote(second, 'type: task\ntitle: Concurrent task'));
+
+    const result = await new NoteCreationCommitService(
+      () => snapshot,
+      vault,
+      writer,
+    ).commit(bulk);
+
+    expect(result).toMatchObject({
+      ok: false,
+      vault_unchanged: true,
+      written_paths: [],
+      unwritten_paths: [first, second],
+    });
+    expect(
+      result.ok ? [] : result.diagnostics.map((issue) => issue.code),
+    ).toEqual(['commit.target.exists']);
+    expect(writer.writes).toEqual([]);
+  });
+
+  it('stops on a mid-operation failure and reports the exact partition', async () => {
+    const { writer, proposal, snapshot, vault } = await harness();
+    const first = 'Projects/Game/Tasks/First.md';
+    const second = 'Projects/Game/Tasks/Second.md';
+    const third = 'Projects/Game/Tasks/Third.md';
+    const bulk = multiFileProposal(proposal, [first, second, third]);
+    writer.willReturnSequence(
+      { kind: 'created' },
+      { kind: 'failed', message: 'disk full' },
+    );
+
+    const result = await new NoteCreationCommitService(
+      () => snapshot,
+      vault,
+      writer,
+    ).commit(bulk);
+
+    expect(result).toMatchObject({
+      ok: false,
+      vault_unchanged: false,
+      written_paths: [first],
+      unchanged_paths: [],
+      unwritten_paths: [second, third],
+    });
+    expect(writer.writes.map((write) => write.path)).toEqual([first, second]);
+    expect(
+      result.ok ? [] : result.diagnostics.map((issue) => issue.code),
+    ).toEqual(['commit.write.failed']);
+  });
+
+  it('requires a complete deterministic order for multi-file proposals', async () => {
+    const { writer, proposal, snapshot, vault } = await harness();
+    const first = 'Projects/Game/Tasks/First.md';
+    const second = 'Projects/Game/Tasks/Second.md';
+    const unordered: NoteCreationProposal = {
+      ...multiFileProposal(proposal, [first, second]),
+      write_order: undefined,
+    };
+
+    const result = await new NoteCreationCommitService(
+      () => snapshot,
+      vault,
+      writer,
+    ).commit(unordered);
+
+    expect(result).toMatchObject({ ok: false, vault_unchanged: true });
+    expect(
+      result.ok ? [] : result.diagnostics.map((issue) => issue.code),
+    ).toEqual(['commit.proposal.unsupported']);
+    expect(writer.writes).toEqual([]);
   });
 
   it('aborts when a read-set note changed after the preview', async () => {

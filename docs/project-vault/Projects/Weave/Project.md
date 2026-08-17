@@ -49,14 +49,14 @@ mutable task state would destroy the property that makes it evidence.
 
 ## Implementation roadmap (v1)
 
-Project Weave v1 is implemented in nine ordered Epic notes. This table and the
+Project Weave v1 is planned across nine ordered Epic notes. This table and the
 linked notes replace the former `docs/IMPLEMENTATION_ORDER.md` roadmap:
 
 | Slice | Epic | Status |
 |---|---|---|
 | 1. Template catalog | [[Epics/Slice-1-template-catalog]] | In progress |
-| 2. Shared reads + Agent A | [[Epics/Slice-2-shared-reads-agent]] | Not started |
-| 3. Mutation kernel | [[Epics/Slice-3-mutation-kernel]] | Not started |
+| 2. Shared reads + Agent A | [[Epics/Slice-2-shared-reads-agent]] | In progress |
+| 3. Mutation kernel | [[Epics/Slice-3-mutation-kernel]] | In progress |
 | 4. Task execution | [[Epics/Slice-4-task-execution]] | Not started |
 | 5. Design-to-task | [[Epics/Slice-5-design-to-task]] | Not started |
 | 6. Long-project org | [[Epics/Slice-6-long-project-org]] | Not started |
@@ -95,12 +95,13 @@ linked notes replace the former `docs/IMPLEMENTATION_ORDER.md` roadmap:
 
 ## Current focus
 
-1. Finish Slice 1 Epic tasks:
-   - Wire the remaining packaged starter templates to a note kind
-   - Support multi-file proposals in the commit coordinator
-   - Implement reorder and Rebalance Backlog Ranks
-2. Move on to Slice 2 (shared reads + Agent A) once Slice-1 passes its exit gate
-3. Keep every edit path behind the accepted creation flow. Multi-file
+1. Finish Slice 1 acceptance: record the remaining workbench/template manual
+   checks and resolve their findings.
+2. Finish Slice 2 acceptance: run desktop gateway Check 17, then update the
+   Epic outcome from its observed result.
+3. Continue Slice 3: add source-preserving existing-note mutations, then
+   implement reorder/Rebalance Backlog Ranks on that foundation.
+4. Keep every edit path behind the accepted creation flow. Multi-file
    proposals need the preflight and partial-success reporting Design 10
    requires before any bulk operation ships.
 

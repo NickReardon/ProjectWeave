@@ -32,20 +32,30 @@ export interface NoteCreationProposal {
     readonly path: string;
     readonly content: string;
   }[];
+  /** Required for multi-file proposals; single-file proposals imply their path. */
+  readonly write_order?: readonly string[];
 }
 
 export interface NoteCreationCommitSuccess {
   readonly ok: true;
   readonly operation_id: string;
+  /** Compatibility field for the existing one-file creation UI. */
   readonly created_path: string;
+  readonly created_paths: readonly string[];
+  readonly written_paths: readonly string[];
+  readonly unchanged_paths: readonly string[];
+  readonly unwritten_paths: readonly string[];
   readonly diagnostics: readonly Diagnostic[];
 }
 
 export interface NoteCreationCommitFailure {
   readonly ok: false;
   readonly operation_id: string;
-  /** True only when nothing was written, which is every failure here. */
-  readonly vault_unchanged: true;
+  /** True only when this operation wrote no note before it stopped. */
+  readonly vault_unchanged: boolean;
+  readonly written_paths: readonly string[];
+  readonly unchanged_paths: readonly string[];
+  readonly unwritten_paths: readonly string[];
   readonly diagnostics: readonly Diagnostic[];
 }
 
@@ -53,12 +63,13 @@ export type NoteCreationCommitResult =
   NoteCreationCommitSuccess | NoteCreationCommitFailure;
 
 /**
- * Commits one previously confirmed creation proposal, of any kind.
+ * Commits one previously confirmed create-only proposal, of any kind.
  *
- * This is the only path to a vault write. It implements the single-file commit
- * sequence in docs/spec/10-validation-and-safe-writes.md: re-check the read
- * set, confirm the target is still absent, re-validate the produced note in
- * memory, then commit once.
+ * This is the only path to a project-content write. It implements the safe
+ * write sequence in docs/spec/10-validation-and-safe-writes.md: re-check the
+ * complete read set and every target, validate every output in memory, then
+ * write in the proposal's deterministic order. A multi-file failure stops the
+ * sequence and reports exactly what was and was not written.
  *
  * The bytes written are the proposal's bytes — the ones the user actually
  * saw. If any input has changed since, the commit aborts rather than silently
@@ -84,36 +95,49 @@ export class NoteCreationCommitService {
   ): Promise<NoteCreationCommitResult> {
     const operationId = proposal.operation_id;
     const kind = proposal.template.kind;
-    const created = proposal.created_files[0];
-    if (proposal.created_files.length !== 1 || created === undefined) {
-      return failure(operationId, [
-        diagnostic(
-          '',
-          'commit.proposal.unsupported',
-          'This commit path creates exactly one note.',
-          'created_files',
-          'Rebuild the proposal, or use a bulk operation once one exists.',
-        ),
-      ]);
+    const ordered = orderedCreatedFiles(proposal);
+    if (!ordered.ok) {
+      return failure(
+        operationId,
+        [
+          diagnostic(
+            '',
+            'commit.proposal.unsupported',
+            ordered.message,
+            ordered.field,
+            'Rebuild the proposal with unique targets and a complete deterministic write order.',
+          ),
+        ],
+        proposal.created_files.map((file) => file.path),
+      );
+    }
+    const createdFiles = ordered.files;
+    const createdPaths = createdFiles.map((file) => file.path);
+    const firstCreated = createdFiles[0];
+    if (firstCreated === undefined) {
+      return failure(operationId, [], []);
     }
 
     // An index that is not current cannot be trusted to say what exists.
     const snapshot = this.#getSnapshot();
     if (snapshot.freshness !== 'current') {
-      return failure(operationId, [
-        diagnostic(
-          created.path,
-          'commit.index.not_current',
-          `${sentenceCase(kind)} creation is disabled while the project index is not current.`,
-          undefined,
-          'Wait for indexing to finish, then preview and confirm again.',
-        ),
-      ]);
+      return failure(
+        operationId,
+        [
+          diagnostic(
+            firstCreated.path,
+            'commit.index.not_current',
+            `${sentenceCase(kind)} creation is disabled while the project index is not current.`,
+            undefined,
+            'Wait for indexing to finish, then preview and confirm again.',
+          ),
+        ],
+        createdPaths,
+      );
     }
 
     // Re-read every input the proposal was built from. An unrelated change
-    // elsewhere in the vault is fine; a change to these is not, because the
-    // rendered bytes were derived from them.
+    // elsewhere in the vault is fine; a change to one of these aborts all.
     for (const entry of proposal.read_set) {
       if (
         entry.role === 'template' &&
@@ -125,127 +149,255 @@ export class NoteCreationCommitService {
       }
       const current = await this.#vault.readMarkdownNote(entry.path);
       if (current === null) {
-        return failure(operationId, [
-          diagnostic(
-            entry.path,
-            'commit.read_set.missing',
-            `The ${entry.role} note this proposal was built from no longer exists.`,
-            entry.role,
-            `Preview the ${kind} again to build a proposal from current notes.`,
-          ),
-        ]);
+        return failure(
+          operationId,
+          [
+            diagnostic(
+              entry.path,
+              'commit.read_set.missing',
+              `The ${entry.role} note this proposal was built from no longer exists.`,
+              entry.role,
+              `Preview the ${kind} again to build a proposal from current notes.`,
+            ),
+          ],
+          createdPaths,
+        );
       }
       if (current.fingerprint !== entry.fingerprint) {
-        return failure(operationId, [
-          diagnostic(
-            entry.path,
-            'commit.read_set.changed',
-            `The ${entry.role} note changed after this ${kind} was previewed.`,
-            entry.role,
-            `Preview the ${kind} again to see what would be created now.`,
-          ),
-        ]);
+        return failure(
+          operationId,
+          [
+            diagnostic(
+              entry.path,
+              'commit.read_set.changed',
+              `The ${entry.role} note changed after this ${kind} was previewed.`,
+              entry.role,
+              `Preview the ${kind} again to see what would be created now.`,
+            ),
+          ],
+          createdPaths,
+        );
       }
     }
 
-    // Re-check the declared preconditions rather than trusting the preview.
+    // Re-check every declared precondition before the first write.
     for (const precondition of proposal.preconditions) {
       const existing = await this.#vault.readMarkdownNote(precondition.path);
       if (existing !== null) {
-        return failure(operationId, [
-          diagnostic(
-            precondition.path,
-            'commit.target.exists',
-            'A note now exists at the proposed path.',
-            'target_path',
-            `Preview the ${kind} again to be offered a free path.`,
-          ),
-        ]);
+        return failure(
+          operationId,
+          [
+            diagnostic(
+              precondition.path,
+              'commit.target.exists',
+              'A note now exists at the proposed path.',
+              'target_path',
+              `Preview the ${kind} again to be offered a free path.`,
+            ),
+          ],
+          createdPaths,
+        );
       }
     }
 
-    // Validate the exact bytes about to be written, in memory, before writing.
-    const parsed = parseMarkdownEntity({
-      path: created.path,
-      content: created.content,
-      fingerprint: 'pending-commit',
-    });
-    const entity = parsed.entity;
-    if (entity === null || entity.kind !== kind) {
-      return failure(operationId, [
-        diagnostic(
-          created.path,
-          'commit.output.invalid',
-          `The note this proposal would write does not parse as a ${kind}.`,
-          undefined,
-          `Correct the template, then preview the ${kind} again.`,
-        ),
-        ...parsed.diagnostics.filter((issue) => issue.severity === 'error'),
-      ]);
+    // Validate every exact output before the first write. One invalid later
+    // file must never turn a bulk operation into an avoidable partial commit.
+    const validationDiagnostics: Diagnostic[] = [];
+    const outputDiagnostics: Diagnostic[] = [];
+    for (const created of createdFiles) {
+      const parsed = parseMarkdownEntity({
+        path: created.path,
+        content: created.content,
+        fingerprint: 'pending-commit',
+      });
+      const blocking = parsed.diagnostics.filter(
+        (issue) => issue.severity === 'error',
+      );
+      if (parsed.entity === null || parsed.entity.kind !== kind) {
+        validationDiagnostics.push(
+          diagnostic(
+            created.path,
+            'commit.output.invalid',
+            `The note this proposal would write does not parse as a ${kind}.`,
+            undefined,
+            `Correct the template, then preview the ${kind} again.`,
+          ),
+        );
+      }
+      validationDiagnostics.push(...blocking);
+      outputDiagnostics.push(...parsed.diagnostics);
     }
-    const blocking = parsed.diagnostics.filter(
-      (issue) => issue.severity === 'error',
-    );
-    if (blocking.length > 0) {
-      return failure(operationId, blocking);
+    if (validationDiagnostics.length > 0) {
+      return failure(operationId, validationDiagnostics, createdPaths);
     }
 
-    const outcome = await this.#writer.createNote(
-      created.path,
-      created.content,
-    );
-    switch (outcome.kind) {
-      case 'created':
-        return {
-          ok: true,
-          operation_id: operationId,
-          created_path: created.path,
-          diagnostics: parsed.diagnostics,
-        };
-      case 'exists':
-        // Lost a race between the precondition check and the write.
-        return failure(operationId, [
-          diagnostic(
-            created.path,
-            'commit.target.exists',
-            'A note appeared at the proposed path during the write.',
-            'target_path',
-            `Preview the ${kind} again to be offered a free path.`,
-          ),
-        ]);
-      case 'out_of_scope':
-        return failure(operationId, [
-          diagnostic(
-            created.path,
-            'commit.target.out_of_scope',
-            'The proposed path lies outside the folders Project Weave may write to.',
-            'target_path',
-            'Choose a project inside an indexed project folder.',
-          ),
-        ]);
-      case 'failed':
-        return failure(operationId, [
-          diagnostic(
-            created.path,
-            'commit.write.failed',
-            'The vault refused to create the note: ' + outcome.message,
-            undefined,
-            'Check that the folder is writable, then preview and confirm again.',
-          ),
-        ]);
+    const writtenPaths: string[] = [];
+    for (let index = 0; index < createdFiles.length; index += 1) {
+      const created = createdFiles[index];
+      if (created === undefined) {
+        continue;
+      }
+      const outcome = await this.#writer.createNote(
+        created.path,
+        created.content,
+      );
+      if (outcome.kind === 'created') {
+        writtenPaths.push(created.path);
+        continue;
+      }
+
+      const unwrittenPaths = createdFiles.slice(index).map((file) => file.path);
+      switch (outcome.kind) {
+        case 'exists':
+          // Lost a race between preflight and this individual write.
+          return failure(
+            operationId,
+            [
+              diagnostic(
+                created.path,
+                'commit.target.exists',
+                'A note appeared at the proposed path during the write.',
+                'target_path',
+                `Preview the ${kind} again to be offered a free path.`,
+              ),
+            ],
+            unwrittenPaths,
+            writtenPaths,
+          );
+        case 'out_of_scope':
+          return failure(
+            operationId,
+            [
+              diagnostic(
+                created.path,
+                'commit.target.out_of_scope',
+                'The proposed path lies outside the folders Project Weave may write to.',
+                'target_path',
+                'Choose a project inside an indexed project folder.',
+              ),
+            ],
+            unwrittenPaths,
+            writtenPaths,
+          );
+        case 'failed':
+          return failure(
+            operationId,
+            [
+              diagnostic(
+                created.path,
+                'commit.write.failed',
+                'The vault refused to create the note: ' + outcome.message,
+                undefined,
+                'Check that the folder is writable, then preview and confirm again.',
+              ),
+            ],
+            unwrittenPaths,
+            writtenPaths,
+          );
+      }
     }
+
+    return {
+      ok: true,
+      operation_id: operationId,
+      created_path: firstCreated.path,
+      created_paths: createdPaths,
+      written_paths: createdPaths,
+      unchanged_paths: [],
+      unwritten_paths: [],
+      diagnostics: outputDiagnostics,
+    };
   }
 }
 
 function failure(
   operationId: string,
   diagnostics: readonly Diagnostic[],
+  unwrittenPaths: readonly string[] = [],
+  writtenPaths: readonly string[] = [],
 ): NoteCreationCommitFailure {
   return {
     ok: false,
     operation_id: operationId,
-    vault_unchanged: true,
+    vault_unchanged: writtenPaths.length === 0,
+    written_paths: writtenPaths,
+    unchanged_paths: [],
+    unwritten_paths: unwrittenPaths,
     diagnostics,
+  };
+}
+
+type CreatedFile = NoteCreationProposal['created_files'][number];
+
+type OrderedCreatedFiles =
+  | { readonly ok: true; readonly files: readonly CreatedFile[] }
+  | {
+      readonly ok: false;
+      readonly field: 'created_files' | 'preconditions' | 'write_order';
+      readonly message: string;
+    };
+
+function orderedCreatedFiles(
+  proposal: NoteCreationProposal,
+): OrderedCreatedFiles {
+  if (proposal.created_files.length === 0) {
+    return {
+      ok: false,
+      field: 'created_files',
+      message: 'A creation proposal must contain at least one note.',
+    };
+  }
+
+  const byPath = new Map(
+    proposal.created_files.map((file) => [file.path, file] as const),
+  );
+  if (byPath.size !== proposal.created_files.length) {
+    return {
+      ok: false,
+      field: 'created_files',
+      message: 'A creation proposal cannot contain the same target path twice.',
+    };
+  }
+
+  const absentPaths = new Set(
+    proposal.preconditions.map((entry) => entry.path),
+  );
+  if (proposal.created_files.some((file) => !absentPaths.has(file.path))) {
+    return {
+      ok: false,
+      field: 'preconditions',
+      message: 'Every created path must have a path-absent precondition.',
+    };
+  }
+
+  if (proposal.write_order === undefined) {
+    if (proposal.created_files.length === 1) {
+      return { ok: true, files: proposal.created_files };
+    }
+    return {
+      ok: false,
+      field: 'write_order',
+      message: 'A multi-file creation proposal must declare its write order.',
+    };
+  }
+
+  const uniqueOrder = new Set(proposal.write_order);
+  if (
+    uniqueOrder.size !== proposal.write_order.length ||
+    proposal.write_order.length !== proposal.created_files.length ||
+    proposal.write_order.some((path) => !byPath.has(path))
+  ) {
+    return {
+      ok: false,
+      field: 'write_order',
+      message:
+        'The proposal write order must list every created path exactly once.',
+    };
+  }
+
+  return {
+    ok: true,
+    files: proposal.write_order.map((path) => byPath.get(path)!),
   };
 }
 

@@ -79,6 +79,10 @@ function openModal(
           ok: true as const,
           operation_id: 'test',
           created_path: 'Projects/Travel Planner/Project.md',
+          created_paths: ['Projects/Travel Planner/Project.md'],
+          written_paths: ['Projects/Travel Planner/Project.md'],
+          unchanged_paths: [],
+          unwritten_paths: [],
           diagnostics: [],
         }));
     },

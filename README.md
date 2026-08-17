@@ -55,7 +55,11 @@ Implemented today:
   target-absence preconditions, rendered bytes, and expected postconditions;
   **Create task** and **Create project** commands and modals showing all of it
   before you confirm; and a commit coordinator that re-reads its inputs,
-  compares fingerprints, and re-validates before writing once.
+  compares fingerprints, and re-validates before writing. The coordinator also
+  accepts explicitly ordered multi-file create proposals: it preflights every
+  target and output before the first write, stops at the first unexpected
+  failure, and reports written and unwritten paths exactly. No user workflow
+  produces a multi-file proposal yet.
 - **Templates** — a vault template library and merged catalog per
   [ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md),
   with per-key precedence and a composite reader that reaches templates outside
