@@ -3,10 +3,10 @@ type: spec
 area: quality
 status: current
 canonical: true
-related_decisions: ["0006"]
+related_decisions: ["0006", "0021"]
 ---
 
-# 13 — Quality, Compatibility, and Release
+# Quality, Compatibility, and Release
 
 ## Goal
 
@@ -51,16 +51,27 @@ One documented command runs formatting verification, linting, TypeScript checkin
 
 ## Packaging
 
-Release output contains exactly:
+The Obsidian plugin package contains exactly:
 
 ```text
 main.js
 manifest.json
-project-weave-mcp.cjs
 styles.css
 ```
 
-No source maps with user paths, fixture-vault content, test files, development dependencies, or secrets enter the release bundle. `manifest.json` ID matches the plugin folder, uses semantic versioning, declares the chosen minimum app version, and remains non-desktop-only for v1. Official manifest requirements are documented at [Obsidian Manifest](https://docs.obsidian.md/Reference/Manifest).
+The repository also builds `project-weave-mcp.cjs` from the same source ref as
+the plugin. It is an optional companion release asset, not part of the Obsidian
+plugin package and not installed by Obsidian or BRAT. The plugin remains fully
+usable without it and never downloads it. The public README links to the
+companion asset and provides a version-pinned installation command, integrity
+verification, compatibility guidance, and MCP client configuration for users
+who explicitly opt into desktop agent access.
+
+No source maps with user paths, fixture-vault content, test files, development
+dependencies, or secrets enter either release artifact. `manifest.json` ID
+matches the plugin folder, uses semantic versioning, declares the chosen
+minimum app version, and remains non-desktop-only for v1. Official manifest
+requirements are documented at [Obsidian Manifest](https://docs.obsidian.md/Reference/Manifest).
 
 ## Compatibility policy
 
@@ -84,7 +95,8 @@ No source maps with user paths, fixture-vault content, test files, development d
 ## Acceptance criteria
 
 - A clean checkout builds and tests with documented commands.
-- Release artifacts are reproducible and limited to the four installed files.
+- Plugin and optional companion artifacts are reproducible, separately
+  inventoried, and built from the same accepted source ref.
 - No passive test lifecycle changes fixture content.
 - Every global invariant has at least one positive and negative test.
 - Mobile compatibility is proven rather than inferred from desktop behavior.
