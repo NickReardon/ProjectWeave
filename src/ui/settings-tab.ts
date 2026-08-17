@@ -602,7 +602,10 @@ export function lastListSegment(value: string): string {
  * and dropping empty segments the same way `#createAgentGrant` parses this
  * field on submit, so the preview matches what will be saved.
  */
-export function replaceLastListSegment(value: string, replacement: string): string {
+export function replaceLastListSegment(
+  value: string,
+  replacement: string,
+): string {
   const segments = value.split(',');
   segments[segments.length - 1] = replacement;
   return segments

@@ -60,7 +60,11 @@ test('missing required env vars: one actionable line naming all of them, no stac
   assert.notEqual(exitCode, 0);
   assert.equal(stdout, '', 'no MCP response is ever sent');
   const lines = stderr.trim().split(/\r?\n/u);
-  assert.equal(lines.length, 1, `expected exactly one stderr line, got: ${stderr}`);
+  assert.equal(
+    lines.length,
+    1,
+    `expected exactly one stderr line, got: ${stderr}`,
+  );
   assert.doesNotMatch(
     stderr,
     /\bat \S+ [/(]/u,

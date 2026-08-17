@@ -97,9 +97,7 @@ describe('matchingProjects', () => {
 
   it('matches on title or path, case-insensitively', () => {
     expect(matchingProjects(projects, 'game')).toEqual([projects[0]]);
-    expect(matchingProjects(projects, 'TOOLS/PROJECT')).toEqual([
-      projects[1],
-    ]);
+    expect(matchingProjects(projects, 'TOOLS/PROJECT')).toEqual([projects[1]]);
   });
 
   it('sorts matches by title', () => {

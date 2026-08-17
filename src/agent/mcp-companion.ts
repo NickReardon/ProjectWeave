@@ -153,7 +153,10 @@ function register(
       }
       return {
         content: [
-          { type: 'text' as const, text: JSON.stringify(response.result, null, 2) },
+          {
+            type: 'text' as const,
+            text: JSON.stringify(response.result, null, 2),
+          },
         ],
         structuredContent: asObject(response.result),
       };
@@ -333,7 +336,10 @@ const TRANSPORT_GUIDANCE_BY_CODE: Record<string, string> = {
  * includes the grant secret; only the endpoint path and the Node error text
  * are surfaced, neither of which carries the secret.
  */
-function describeTransportFailure(error: unknown, endpointValue: string): string {
+function describeTransportFailure(
+  error: unknown,
+  endpointValue: string,
+): string {
   const detail = error instanceof Error ? error.message : String(error);
   const code = errorCode(error);
   const guidance =
@@ -376,7 +382,9 @@ async function main(): Promise<void> {
   try {
     handshake = await bridge.request(HANDSHAKE_OPERATION, {});
   } catch (error) {
-    throw new Error(describeTransportFailure(error, endpoint), { cause: error });
+    throw new Error(describeTransportFailure(error, endpoint), {
+      cause: error,
+    });
   }
   if (!handshake.ok) {
     throw new Error(describeGatewayFailure(handshake.error));

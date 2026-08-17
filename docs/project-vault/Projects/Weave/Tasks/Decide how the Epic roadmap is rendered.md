@@ -44,3 +44,18 @@ deliberately; no option is blocked and the tables are correct meanwhile.
 - One mechanism is chosen and the hand-maintained tables are removed or
   explicitly kept with a stated reason.
 - If Weave renders it, the Projects and epics spec's Epic view covers roadmap ordering.
+
+## Why this is still deferred
+
+Two reasons, recorded so the deferral is not re-litigated from scratch.
+
+It is a product decision rather than a mechanical one. The Obsidian Base option
+is gated by `manifest.json` setting `minAppVersion: 1.8.0` while Bases needs
+1.9+, so choosing it for this vault is not the same as choosing it for users —
+that trade belongs to the maintainer, not to whoever picks the task up next.
+
+It also cannot be started while another change is writing to
+`docs/decisions/`. Choosing a mechanism ships a decision record, and concurrent
+work claiming the next free number is how
+[[Tasks/Resolve the duplicate 0025 decision record numbers]] happened in the
+first place.
