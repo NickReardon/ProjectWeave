@@ -11,11 +11,25 @@ import type {
 
 declare const PROJECT_WEAVE_VERSION: string;
 
-const endpoint = requiredEnvironment('PROJECT_WEAVE_ENDPOINT');
-const grantId = requiredEnvironment('PROJECT_WEAVE_GRANT_ID');
-const secret = requiredEnvironment('PROJECT_WEAVE_GRANT_SECRET');
+const REQUIRED_ENVIRONMENT_NAMES = [
+  'PROJECT_WEAVE_ENDPOINT',
+  'PROJECT_WEAVE_GRANT_ID',
+  'PROJECT_WEAVE_GRANT_SECRET',
+] as const;
+
+/**
+ * A lightweight, always-permitted operation used only to prove at connect
+ * time that the gateway is reachable, authenticated, and running a
+ * compatible release. It exercises the exact same authentication and
+ * version-handshake path as every other operation (see
+ * `ReadOnlyAgentGateway.handle`), so a mismatched/disabled/revoked gateway
+ * fails here instead of on the first real tool call.
+ */
+const HANDSHAKE_OPERATION: ReadOnlyAgentOperation = 'projects_list';
 
 let bridge: BridgeClient;
+let endpoint = '';
+
 const server = new McpServer(
   { name: 'project-weave', version: PROJECT_WEAVE_VERSION },
   { capabilities: { tools: {} } },
@@ -112,15 +126,36 @@ function register(
     name,
     { description, inputSchema },
     async (input: Readonly<Record<string, unknown>>) => {
-      const response = await bridge.request(operation, input);
-      const value = response.ok ? response.result : response.error;
+      let response: AgentGatewayResponse;
+      try {
+        response = await bridge.request(operation, input);
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: describeTransportFailure(error, endpoint),
+            },
+          ],
+          isError: true,
+        };
+      }
+      if (!response.ok) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: describeGatewayFailure(response.error),
+            },
+          ],
+          isError: true,
+        };
+      }
       return {
         content: [
-          { type: 'text' as const, text: JSON.stringify(value, null, 2) },
+          { type: 'text' as const, text: JSON.stringify(response.result, null, 2) },
         ],
-        ...(response.ok
-          ? { structuredContent: asObject(response.result) }
-          : { isError: true }),
+        structuredContent: asObject(response.result),
       };
     },
   );
@@ -220,12 +255,99 @@ class BridgeClient {
   }
 }
 
-function requiredEnvironment(name: string): string {
-  const value = process.env[name]?.trim();
-  if (value === undefined || value.length === 0) {
-    throw new Error(`${name} is required.`);
+/**
+ * Reads every required environment variable and reports every missing or
+ * blank one together, instead of throwing on the first. Callers must invoke
+ * this from inside the async entry point so a missing variable is routed
+ * through the same one-line error formatter as every other startup failure,
+ * rather than escaping as an unhandled synchronous throw during module
+ * evaluation.
+ */
+function collectRequiredEnvironment(
+  names: readonly string[],
+): Record<string, string> {
+  const missing: string[] = [];
+  const values: Record<string, string> = {};
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value === undefined || value.length === 0) {
+      missing.push(name);
+    } else {
+      values[name] = value;
+    }
   }
-  return value;
+  if (missing.length > 0) {
+    throw new Error(
+      `${formatList(missing)} ${missing.length === 1 ? 'is' : 'are'} required.`,
+    );
+  }
+  return values;
+}
+
+function formatList(items: readonly string[]): string {
+  if (items.length === 1) return items[0]!;
+  if (items.length === 2) return `${items[0]!} and ${items[1]!}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]!}`;
+}
+
+const GATEWAY_ERROR_REMEDY: Partial<Record<string, string>> = {
+  'gateway.disabled':
+    'Enable the agent gateway for this vault in Obsidian: Project Weave settings > Agent Access.',
+  'gateway.authentication_failed':
+    'The grant may have been revoked or the secret rotated. Create a new grant in Project Weave settings and update PROJECT_WEAVE_GRANT_ID and PROJECT_WEAVE_GRANT_SECRET.',
+};
+
+/**
+ * Turns a denial returned by the gateway itself into actionable guidance.
+ * The gateway already names a stable error code and a human-readable cause
+ * (see `ReadOnlyAgentGateway.handle`); this only appends a concrete remedy
+ * where one is not already implied by the message.
+ */
+function describeGatewayFailure(error: {
+  readonly code: string;
+  readonly message: string;
+}): string {
+  const remedy = GATEWAY_ERROR_REMEDY[error.code];
+  return remedy === undefined ? error.message : `${error.message} ${remedy}`;
+}
+
+const DEFAULT_TRANSPORT_GUIDANCE =
+  'Could not reach the Project Weave gateway at {endpoint}. Confirm Obsidian is running with this vault open and Agent Access enabled in Project Weave settings, and that PROJECT_WEAVE_ENDPOINT matches the endpoint shown there.';
+
+const TRANSPORT_GUIDANCE_BY_CODE: Record<string, string> = {
+  ENOENT: DEFAULT_TRANSPORT_GUIDANCE,
+  ECONNREFUSED: DEFAULT_TRANSPORT_GUIDANCE,
+  ETIMEDOUT:
+    'Timed out reaching the Project Weave gateway at {endpoint}. Confirm Obsidian is running and responsive, and that Agent Access is enabled for this vault.',
+  ECONNRESET:
+    'The connection to the Project Weave gateway at {endpoint} was reset. The vault may have closed or Agent Access may have been disabled; reconnect after confirming it is enabled.',
+  EPIPE:
+    'The connection to the Project Weave gateway at {endpoint} closed unexpectedly. Reconnect after confirming Agent Access is still enabled for this vault.',
+};
+
+/**
+ * Maps a raw transport/syscall failure (a dead endpoint, a refused
+ * connection, a mid-session drop) to a message that names the likely cause
+ * -- gateway not enabled, endpoint stale, vault closed -- and the remedy,
+ * while keeping the original errno detail as secondary context. Never
+ * includes the grant secret; only the endpoint path and the Node error text
+ * are surfaced, neither of which carries the secret.
+ */
+function describeTransportFailure(error: unknown, endpointValue: string): string {
+  const detail = error instanceof Error ? error.message : String(error);
+  const code = errorCode(error);
+  const guidance =
+    (code === undefined ? undefined : TRANSPORT_GUIDANCE_BY_CODE[code]) ??
+    DEFAULT_TRANSPORT_GUIDANCE;
+  return `${guidance.replace('{endpoint}', endpointValue || '(not set)')} (${detail})`;
+}
+
+function errorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return undefined;
+  }
+  const value = error.code;
+  return typeof value === 'string' ? value : undefined;
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -235,7 +357,31 @@ function asObject(value: unknown): Record<string, unknown> {
 }
 
 async function main(): Promise<void> {
+  const environment = collectRequiredEnvironment(REQUIRED_ENVIRONMENT_NAMES);
+  endpoint = environment['PROJECT_WEAVE_ENDPOINT']!;
+  const grantId = environment['PROJECT_WEAVE_GRANT_ID']!;
+  const secret = environment['PROJECT_WEAVE_GRANT_SECRET']!;
   bridge = new BridgeClient(endpoint, grantId, secret);
+
+  // Verify connectivity, authentication, and the companion/plugin version
+  // handshake before serving any MCP request. Doing this eagerly at startup
+  // -- rather than only on the first real tool call, and rather than
+  // relying on the shape of a failed `initialize` response, which MCP
+  // clients surface inconsistently -- guarantees a mismatched, disabled, or
+  // revoked gateway is unmistakable: the process exits non-zero with one
+  // actionable line before the stdio transport ever connects, so no client
+  // can observe a "successful" connection to a companion that cannot
+  // actually serve requests.
+  let handshake: AgentGatewayResponse;
+  try {
+    handshake = await bridge.request(HANDSHAKE_OPERATION, {});
+  } catch (error) {
+    throw new Error(describeTransportFailure(error, endpoint), { cause: error });
+  }
+  if (!handshake.ok) {
+    throw new Error(describeGatewayFailure(handshake.error));
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

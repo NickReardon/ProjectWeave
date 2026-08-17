@@ -389,6 +389,40 @@ The companion may start in any working directory, on any volume, with no relatio
 
 A companion that independently parses and directly edits the vault is not acceptable.
 
+### Startup handshake and failure guidance
+
+Missing, stale, incompatible, revoked, and removed companions fail with
+actionable guidance and never affect core plugin use. This applies from the
+moment the companion process starts, not only once an agent issues its first
+real request:
+
+- Required companion configuration (`PROJECT_WEAVE_ENDPOINT`,
+  `PROJECT_WEAVE_GRANT_ID`, `PROJECT_WEAVE_GRANT_SECRET`) is resolved inside
+  the async entry point, never at module load. A missing or blank variable
+  prints one actionable line naming every missing variable together to
+  stderr and exits non-zero; it never surfaces as an unhandled stack trace.
+- Before serving any MCP request -- including `initialize` and `tools/list`
+  -- the companion performs one lightweight, always-permitted request over
+  the bridge to prove the endpoint is reachable, the grant authenticates,
+  and the companion/plugin version handshake succeeds. This uses the exact
+  authentication and version-check path every other operation uses, so a
+  disabled gateway, a stale endpoint, a revoked grant, or a version mismatch
+  is caught here rather than lazily on first tool use. On failure the
+  process exits non-zero with one actionable line to stderr before the
+  stdio transport ever connects; no MCP client can observe a successful
+  connection to a companion that cannot actually serve requests. Whether an
+  individual client happens to surface a failed connection differently, the
+  companion's own behavior at this boundary is uniform and testable
+  independent of any client.
+- Once serving requests, a transport failure on an individual tool call
+  (the bridge connection drops, the endpoint disappears mid-session) is
+  mapped to guidance that names the likely cause -- gateway not enabled,
+  endpoint stale, vault closed -- and the remedy, with the underlying
+  transport error preserved as secondary detail. A denial returned by the
+  gateway itself (wrong grant, revoked grant, version mismatch) is
+  similarly given a concrete remedy alongside the gateway's own message.
+  Neither path ever includes the grant secret.
+
 ### Optional companion distribution
 
 The companion source stays in the Project Weave repository and is built from
