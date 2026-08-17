@@ -68,6 +68,13 @@ The checksum file published with the selected release is authoritative.
 Remove both downloaded files and the MCP client configuration to remove the
 companion. Core plugin use does not depend on it.
 
+This download only places the file; it does not run it. The companion is a
+stdio MCP server that an MCP client launches as a subprocess — see
+[Read-only agent access](#read-only-agent-access) for the client configuration
+and required environment. Running it directly from a shell fails with a
+missing-environment-variable error, because no client supplied the endpoint,
+grant id, or secret.
+
 ## Current status
 
 This section describes capability — what the plugin does today. It does not
@@ -282,23 +289,52 @@ the version-sizing rule are in
 
 ## Read-only agent access
 
-On desktop, enable **Read-only agent gateway** in Project Weave settings and
-create a grant for one indexed project. The secret is shown only once. Configure
-an MCP client to launch the companion with Node.js and supply the endpoint,
-grant id, and secret through its environment:
+Three pieces make up agent access, and each runs in a different place: the
+plugin hosts a local gateway inside Obsidian; an MCP client (not you) launches
+the companion as a stdio subprocess; and the companion connects back to the
+gateway over a local authenticated pipe/socket. You configure a client to
+start the companion — you never run `project-weave-mcp.cjs` yourself.
 
-```text
-node <companion install folder>/project-weave-mcp.cjs
-PROJECT_WEAVE_ENDPOINT=<endpoint shown in settings>
-PROJECT_WEAVE_GRANT_ID=<grant id shown in settings>
-PROJECT_WEAVE_GRANT_SECRET=<secret copied at creation>
+On desktop, enable **Read-only agent gateway** in Project Weave settings and
+create a grant for one indexed project. Settings then shows three values:
+
+- **Endpoint** — the local pipe/socket address the gateway is listening on,
+  shown next to the gateway toggle.
+- **Grant id** — identifies the grant; shown for as long as the grant exists,
+  alongside its label, project, and content roots.
+- **Secret** — copied to the clipboard once, at creation, and never shown or
+  stored again. Capture it immediately. If it is lost, revoke the grant and
+  create a new one; there is no way to recover the original secret.
+
+Configure the MCP client to launch the companion with Node.js and pass those
+three values through its environment. Client configuration formats vary, but
+most follow the `mcpServers` shape used by Claude Desktop and similar clients.
+On Windows, double every backslash in the path — a single backslash inside a
+JSON string is a silent failure, not an error:
+
+```json
+{
+  "mcpServers": {
+    "project-weave": {
+      "command": "node",
+      "args": ["C:\\Users\\you\\project-weave-mcp\\project-weave-mcp.cjs"],
+      "env": {
+        "PROJECT_WEAVE_ENDPOINT": "<endpoint shown in settings>",
+        "PROJECT_WEAVE_GRANT_ID": "<grant id shown in settings>",
+        "PROJECT_WEAVE_GRANT_SECRET": "<secret copied at creation>"
+      }
+    }
+  }
+}
 ```
 
 The companion exposes only bounded read tools. Entity metadata stays within the
 grant's project; Markdown bodies additionally require an allowed content root.
-The plugin and companion must come from the same exact release tag; a mismatch
-fails closed and tells the client to install the matching companion. Disabling
-the gateway closes the local endpoint. Mobile never starts it.
+The plugin and companion must come from the same exact release tag — including
+a locally built companion, which must be paired with a plugin built from the
+same source; a mismatch fails closed and tells the client to install the
+matching companion. Disabling the gateway closes the local endpoint. Mobile
+never starts it.
 
 ## Privacy and network behavior
 
