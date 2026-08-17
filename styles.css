@@ -45,7 +45,8 @@
 }
 
 .project-weave-agent-grant-setting .setting-item-control input,
-.project-weave-agent-grant-setting .setting-item-control button {
+.project-weave-agent-grant-setting .setting-item-control button,
+.project-weave-agent-grant-setting .setting-item-control .search-input-container {
   min-width: 0;
   width: 100%;
 }

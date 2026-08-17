@@ -8,6 +8,7 @@ import {
 import type { App, SearchComponent } from 'obsidian';
 
 import type ProjectWeavePlugin from '../main';
+import type { ProjectSummary } from '../application/query-api';
 import {
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
@@ -251,16 +252,16 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
           grantLabel = value;
         }),
       )
-      .addText((text) =>
-        text.setPlaceholder('Projects/Game/Project.md').onChange((value) => {
+      .addSearch((search) => {
+        grantProject = this.#configureProjectSearch(search, (value) => {
           grantProject = value;
-        }),
-      )
-      .addText((text) =>
-        text.setPlaceholder('Projects/Game/Documents').onChange((value) => {
+        });
+      })
+      .addSearch((search) => {
+        grantRoots = this.#configureContentRootsSearch(search, (value) => {
           grantRoots = value;
-        }),
-      )
+        });
+      })
       .addButton((button) =>
         button.setButtonText('Create and copy secret').onClick(() => {
           void this.#createAgentGrant(grantLabel, grantProject, grantRoots);
@@ -278,6 +279,44 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
     suggest.onSelect((folder) => {
       search.setValue(folder.path);
       onValue(folder.path);
+    });
+    return search.getValue();
+  }
+
+  /**
+   * A grant scopes to one indexed project, so this suggests only projects
+   * already in the index rather than arbitrary vault files.
+   */
+  #configureProjectSearch(
+    search: SearchComponent,
+    onValue: (value: string) => void,
+  ): string {
+    search.setPlaceholder('Projects/Game/Project.md').onChange(onValue);
+    const suggest = new ProjectPathSuggest(this.app, search.inputEl, () =>
+      this.#plugin.listIndexedProjects(),
+    );
+    suggest.onSelect((project) => {
+      search.setValue(project.ref.path);
+      onValue(project.ref.path);
+    });
+    return search.getValue();
+  }
+
+  /**
+   * Content roots are comma-separated vault folder paths. Suggestions apply
+   * only to the segment currently being typed, and selecting one preserves
+   * the other already-entered segments.
+   */
+  #configureContentRootsSearch(
+    search: SearchComponent,
+    onValue: (value: string) => void,
+  ): string {
+    search.setPlaceholder('Projects/Game/Documents').onChange(onValue);
+    const suggest = new VaultFolderListSuggest(this.app, search.inputEl);
+    suggest.onSelect((folder) => {
+      const merged = replaceLastListSegment(search.getValue(), folder.path);
+      search.setValue(merged);
+      onValue(merged);
     });
     return search.getValue();
   }
@@ -459,20 +498,7 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
 
 class VaultFolderSuggest extends AbstractInputSuggest<TFolder> {
   protected override getSuggestions(query: string): TFolder[] {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    return this.app.vault
-      .getAllLoadedFiles()
-      .filter((file): file is TFolder => file instanceof TFolder)
-      .filter(
-        (folder) =>
-          folder.path.length > 0 &&
-          folder.path !== '/' &&
-          folder.path !== '.obsidian' &&
-          !folder.path.startsWith('.obsidian/') &&
-          (normalizedQuery.length === 0 ||
-            folder.path.toLocaleLowerCase().includes(normalizedQuery)),
-      )
-      .sort((left, right) => left.path.localeCompare(right.path));
+    return matchingFolders(this.app, query);
   }
 
   public override renderSuggestion(
@@ -481,6 +507,108 @@ class VaultFolderSuggest extends AbstractInputSuggest<TFolder> {
   ): void {
     element.setText(folder.path);
   }
+}
+
+/**
+ * Suggests vault folders for a comma-separated list field, matching only
+ * against the segment currently being edited (the text after the last
+ * comma) rather than the whole field value.
+ */
+class VaultFolderListSuggest extends AbstractInputSuggest<TFolder> {
+  protected override getSuggestions(query: string): TFolder[] {
+    return matchingFolders(this.app, lastListSegment(query));
+  }
+
+  public override renderSuggestion(
+    folder: TFolder,
+    element: HTMLElement,
+  ): void {
+    element.setText(folder.path);
+  }
+}
+
+/**
+ * Suggests already-indexed projects, since a grant may only be scoped to a
+ * project the index recognizes.
+ */
+class ProjectPathSuggest extends AbstractInputSuggest<ProjectSummary> {
+  readonly #listProjects: () => Promise<readonly ProjectSummary[]>;
+
+  public constructor(
+    app: App,
+    textInputEl: HTMLInputElement,
+    listProjects: () => Promise<readonly ProjectSummary[]>,
+  ) {
+    super(app, textInputEl);
+    this.#listProjects = listProjects;
+  }
+
+  protected override async getSuggestions(
+    query: string,
+  ): Promise<ProjectSummary[]> {
+    return matchingProjects(await this.#listProjects(), query);
+  }
+
+  public override renderSuggestion(
+    project: ProjectSummary,
+    element: HTMLElement,
+  ): void {
+    element.setText(`${project.title} — ${project.ref.path}`);
+  }
+}
+
+/** Pure filter behind {@link ProjectPathSuggest}, exported for direct testing. */
+export function matchingProjects(
+  projects: readonly ProjectSummary[],
+  query: string,
+): ProjectSummary[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  return projects
+    .filter(
+      (project) =>
+        normalizedQuery.length === 0 ||
+        project.title.toLocaleLowerCase().includes(normalizedQuery) ||
+        project.ref.path.toLocaleLowerCase().includes(normalizedQuery),
+    )
+    .slice()
+    .sort((left, right) => left.title.localeCompare(right.title));
+}
+
+function matchingFolders(app: App, query: string): TFolder[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  return app.vault
+    .getAllLoadedFiles()
+    .filter((file): file is TFolder => file instanceof TFolder)
+    .filter(
+      (folder) =>
+        folder.path.length > 0 &&
+        folder.path !== '/' &&
+        folder.path !== '.obsidian' &&
+        !folder.path.startsWith('.obsidian/') &&
+        (normalizedQuery.length === 0 ||
+          folder.path.toLocaleLowerCase().includes(normalizedQuery)),
+    )
+    .sort((left, right) => left.path.localeCompare(right.path));
+}
+
+/** The comma-separated segment currently being typed, i.e. after the last comma. */
+export function lastListSegment(value: string): string {
+  const segments = value.split(',');
+  return segments[segments.length - 1] ?? '';
+}
+
+/**
+ * Replaces the segment currently being typed with `replacement`, trimming
+ * and dropping empty segments the same way `#createAgentGrant` parses this
+ * field on submit, so the preview matches what will be saved.
+ */
+export function replaceLastListSegment(value: string, replacement: string): string {
+  const segments = value.split(',');
+  segments[segments.length - 1] = replacement;
+  return segments
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0)
+    .join(', ');
 }
 
 function errorMessage(error: unknown): string {

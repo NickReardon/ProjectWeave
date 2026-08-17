@@ -23,6 +23,7 @@ import {
   ReadOnlyAgentGateway,
   type AgentGrant,
 } from './application/read-only-agent-gateway';
+import type { ProjectSummary } from './application/query-api';
 import { isInTemplateLibrary } from './application/template-note-diagnostics';
 import { templateClockFromLocalDate } from './domain/templates/model';
 import { IndexCoordinator } from './indexing/index-coordinator';
@@ -319,6 +320,17 @@ export default class ProjectWeavePlugin extends Plugin {
     await this.saveData(nextSettings);
     this.settings = nextSettings;
     return { grant, secret };
+  }
+
+  /**
+   * Indexed projects available for a grant's project path, via the same
+   * bounded query the agent gateway uses to answer `projects_list`.
+   */
+  public async listIndexedProjects(): Promise<readonly ProjectSummary[]> {
+    const result = await this.#readSource.current.queryApi.listProjects({
+      limit: 200,
+    });
+    return result.ok ? result.items : [];
   }
 
   public async removeAgentGrant(id: string): Promise<void> {
