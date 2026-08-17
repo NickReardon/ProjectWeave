@@ -1,7 +1,7 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Slice-2-shared-reads-agent]]'
+epic: '[[Epics/Epic-shared-reads-agent]]'
 status: todo
 category: manual-check
 rank: 950

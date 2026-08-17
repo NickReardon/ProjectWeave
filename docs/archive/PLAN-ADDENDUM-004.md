@@ -131,4 +131,4 @@ Start with a local desktop adapter. The MCP transport/bridge is replaceable and 
 
 ## Normative design
 
-Detailed schemas, tool surface, document-write boundary, security model, and tests are defined in [Design 17](../spec/17-agent-access-and-mcp.md).
+Detailed schemas, tool surface, document-write boundary, security model, and tests are defined in [Agent access and MCP](../spec/agent-access-and-mcp.md).

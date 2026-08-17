@@ -218,6 +218,50 @@ describe('parseMarkdownEntity', () => {
     ]);
     expect(milestone('status: achieved')).toEqual([]);
   });
+
+  it('accepts an undated milestone and still rejects a malformed date', () => {
+    const milestone = (dueDateLine: string | null) =>
+      parseMarkdownEntity(
+        sourceNote(
+          'Milestones/Release.md',
+          [
+            'type: milestone',
+            'project: "[[Projects/Game]]"',
+            'status: planned',
+            ...(dueDateLine === null ? [] : [dueDateLine]),
+          ].join('\n'),
+        ),
+      );
+
+    // the Scheduling and milestones spec / ADR 0024: order comes from `rank`, so a date is optional.
+    expect(milestone(null).diagnostics).toEqual([]);
+    expect(milestone('due_date:').diagnostics).toEqual([]);
+    expect(milestone('due_date: 2026-08-01').diagnostics).toEqual([]);
+    expect(
+      milestone('due_date: 2026-02-30').diagnostics.map((issue) => issue.code),
+    ).toEqual(['milestone.due_date.invalid']);
+    expect(
+      milestone('due_date: soon').diagnostics.map((issue) => issue.code),
+    ).toEqual(['milestone.due_date.invalid']);
+  });
+
+  it('reads no due date for an undated milestone', () => {
+    const entity = parseMarkdownEntity(
+      sourceNote(
+        'Milestones/Release.md',
+        [
+          'type: milestone',
+          'project: "[[Projects/Game]]"',
+          'status: planned',
+        ].join('\n'),
+      ),
+    ).entity;
+
+    expect(entity?.kind).toBe('milestone');
+    expect(
+      entity?.kind === 'milestone' ? entity.dueDate : undefined,
+    ).toBeNull();
+  });
 });
 
 describe('parseWikiLink', () => {

@@ -4,7 +4,7 @@ id: "0005"
 area: templates
 status: accepted
 canonical: false
-affects: ["18"]
+affects: ["vault-note-templates"]
 ---
 
 # ADR 0005: Use project-owned referenced Markdown templates for note creation

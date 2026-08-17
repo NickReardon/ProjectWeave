@@ -4,7 +4,7 @@ id: "0006"
 area: toolchain
 status: accepted
 canonical: false
-affects: ["01", "12", "13"]
+affects: ["lifecycle-and-persistence", "plugin-experience", "quality-and-release"]
 ---
 
 # ADR 0006: Use a mobile-safe TypeScript core and Obsidian 1.8 baseline

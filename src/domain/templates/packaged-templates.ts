@@ -1,7 +1,7 @@
 import type { TemplateSource } from './model';
 
 /**
- * Stable selector for the packaged minimal templates. Design 18 lets an agent
+ * Stable selector for the packaged minimal templates. the Vault note templates spec lets an agent
  * or a repair action name `builtin:minimal` explicitly instead of silently
  * falling back to it.
  */

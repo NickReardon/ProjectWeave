@@ -2,7 +2,7 @@
 type: task
 title: Add the typed document catalog
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-11-typed-document-catalog]]'
+epic: '[[Epics/Epic-typed-document-catalog]]'
 status: backlog
 priority: high
 created: 2026-08-09

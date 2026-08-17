@@ -4,7 +4,7 @@ id: "0003"
 area: dependencies
 status: accepted
 canonical: false
-affects: ["05", "06"]
+affects: ["dependencies-and-iterations", "sprints"]
 ---
 
 # ADR 0003: Enforce declared same-project dependencies by default

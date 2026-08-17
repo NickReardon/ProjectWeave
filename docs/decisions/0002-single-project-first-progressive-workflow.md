@@ -4,7 +4,7 @@ id: "0002"
 area: workflow
 status: accepted
 canonical: false
-affects: ["16", "00", "14"]
+affects: ["streamlined-long-project-workflow", "product-brief", "non-goals-and-future-features"]
 ---
 
 # ADR 0002: Make v1 single-project-first with progressive workflow

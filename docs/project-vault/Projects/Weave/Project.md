@@ -6,63 +6,100 @@ status: active
 
 # Project Weave
 
-## Summary
+## What it is
 
-Project Weave dogfoods itself here: this vault tracks the plugin's own
-outstanding work, replacing the task-shaped content that used to live in
-`docs/CURRENT_WORK.md`. See [ADR 0015](../../../decisions/0015-track-project-state-in-weave-itself.md)
-for why, and [ADR 0016](../../../decisions/0016-dogfood-vault-location.md) for
-why this vault lives at `docs/project-vault/`.
+Project Weave is a Markdown-first project workbench, shipped as an Obsidian
+community plugin, for a solo developer or a small team carrying one substantial,
+long-lived project — a game, an engine, a product with years of work in it.
 
-Automated validation evidence stays in `docs/CURRENT_WORK.md` — that section
-is a statement about commits that already happened, and turning it into
-mutable task state would destroy the property that makes it evidence.
+It connects a Markdown design note to a ranked backlog, to dependency-aware
+board work, to a clear "what should I do next" sequence, without requiring
+sprints, estimates, owners, or any other process a project does not want. Epics,
+milestones, planning periods, points, owners, priorities, and due dates are all
+optional; a project stays useful with none of them.
 
-## Operational state
+It is built to be safe to keep a decade of work in. The vault is the state, not
+a cache of it — nothing lives only in plugin storage, nothing is written unless
+a user confirms it, every write is previewed as exact bytes before it happens,
+and a note Weave cannot understand is surfaced rather than repaired. The
+enforceable form of that is the global invariants in
+[docs/spec/](../../../spec/README.md), which own it; this section is
+orientation, not a second copy.
 
-- The filterable Project Workbench and the task creation chain — allocation,
-  template resolution, proposal, preview, and commit — pass the complete
-  automated gate.
-- Version 0.5.0 was exported and installed into the configured disposable test
-  vault, replacing the 0.4.0 build the earlier checks ran against. It is the
-  first installed build carrying project creation, the vault template catalog
-  and chooser, and task categories. See the Tasks in this project for which
-  manual checks remain outstanding — the workbench as a whole is not yet
-  manually accepted until those pass.
-- **Project Weave now writes to the vault.** Confirming **Create task** in the
-  preview modal creates one new note. That is the only write: indexing, plugin
-  load, settings changes, navigation, and the dashboard still modify nothing,
-  and the write path cannot modify, move, or delete an existing note. This is
-  also why this project's own task-status changes are hand-edited for now —
-  see ADR 0016.
-- Task creation is manually accepted. Against a real vault it creates the
-  folders it needs, suffixes a colliding name rather than overwriting, refuses
-  a commit whose project note changed while the modal was open, and writes a
-  note matching its preview byte for byte.
-- Task target paths and backlog ranks are allocated by pure application code.
-  ADR 0008 settles the folder convention, filename derivation, collision
-  policy, and rank rule that `docs/spec/README.md` had left open.
-- Local test-vault installation and the preview/stable release workflow are
-  documented and automatically exercised. Nothing has been released.
-- A disposable test vault can be seeded and reset from the committed fixture
-  (`tests/fixtures/vault/`), so a manual check runs from a known state.
+It is single-project first — several projects are recognized and switchable, but
+portfolio planning is deferred rather than half-built — and it stays usable on
+mobile, with desktop-only facilities such as the agent gateway loading
+conditionally.
+
+What is specified is in [docs/spec/](../../../spec/README.md). What is built is
+in [README.md](../../../../README.md). This note is neither.
+
+## This vault
+
+`docs/project-vault/` is Project Weave tracking Project Weave. It is a real
+vault, committed to the repository, holding this project's own Epics, tasks,
+milestones, and design notes.
+
+The point is that the product's hardest available user is the project building
+it. A gap here is a real gap: reaching for a hand-maintained table, or for
+another tool, is evidence of a view Weave does not offer yet.
+[ADR 0016](../../../decisions/0016-dogfood-vault-location.md) records why the
+vault lives here.
+
+### How work happens here
+
+**Weave can create notes, not change them.** Confirming **Create task** writes
+one new note. That is the only write: the path cannot modify, move, or delete
+an existing note. Everything else — indexing, load, settings, navigation, the
+dashboard — writes nothing.
+
+**So task status is hand-edited.** Moving a task to `done` means editing
+frontmatter by hand. The operation that would do it properly comes with
+[[Epics/Epic-mutation-kernel]].
+
+**Changes ship as a commit, not as a status page.** A commit carries its own
+gate result and the task-note status change it completes. `git log` is the
+history; [docs/CURRENT_WORK.md](../../../CURRENT_WORK.md) holds only what is in
+flight on the current checkout. The document workflow — living specifications,
+immutable decision records, one owner per fact — is described in
+[[Documents/Design/Documentation authority and document lifecycle]].
 
 ## Implementation roadmap (v1)
 
-Project Weave v1 is planned across nine ordered Epic notes. This table and the
-linked notes replace the former `docs/IMPLEMENTATION_ORDER.md` roadmap:
+Project Weave v1 is one milestone, [[Milestones/v1 release]], containing twelve
+Epics.
 
-| Slice | Epic | Status |
+Order is data, not naming. The milestone's `rank` places it among milestones;
+each Epic's `rank` places it within the milestone; `depends_on` states genuine
+prerequisites. An Epic note name is an identifier and implies no sequence, so
+renaming one never reorders anything. [ADR 0024](../../../decisions/0024-order-the-roadmap-by-milestone-and-rank.md)
+records why.
+
+The listing below is generated by hand only because the Epic model does not yet
+read those properties — see [[Tasks/Add Epic roadmap graph fields]], and
+[[Tasks/Decide how the Epic roadmap is rendered]] for replacing the listing
+itself. Each Epic's own `status` is the single record of how far it has got.
+
+| Rank | Epic | Prerequisite |
 |---|---|---|
-| 1. Template catalog | [[Epics/Slice-1-template-catalog]] | In progress |
-| 2. Shared reads + Agent A | [[Epics/Slice-2-shared-reads-agent]] | In progress |
-| 3. Mutation kernel | [[Epics/Slice-3-mutation-kernel]] | In progress |
-| 4. Task execution | [[Epics/Slice-4-task-execution]] | Not started |
-| 5. Design-to-task | [[Epics/Slice-5-design-to-task]] | Not started |
-| 6. Long-project org | [[Epics/Slice-6-long-project-org]] | Not started |
-| 7. Planning periods + Agent C | [[Epics/Slice-7-planning-periods]] | Not started |
-| 8. Controlled docs + Agent D | [[Epics/Slice-8-controlled-documents]] | Not started |
-| 9. Stabilize & ship v1 | [[Epics/Slice-9-stabilize-and-shipping]] | Not started |
+| 1000 | [[Epics/Epic-template-catalog]] | |
+| 2000 | [[Epics/Epic-shared-reads-agent]] | |
+| 3000 | [[Epics/Epic-mutation-kernel]] | |
+| 4000 | [[Epics/Epic-task-execution]] | |
+| 5000 | [[Epics/Epic-design-to-task]] | |
+| 6000 | [[Epics/Epic-long-project-org]] | |
+| 7000 | [[Epics/Epic-planning-periods]] | |
+| 8000 | [[Epics/Epic-controlled-documents]] | |
+| 9000 | [[Epics/Epic-stabilize-and-shipping]] | |
+| 10000 | [[Epics/Epic-project-structure-and-contracts]] | [[Epics/Epic-template-catalog]] |
+| 11000 | [[Epics/Epic-typed-document-catalog]] | [[Epics/Epic-project-structure-and-contracts]] |
+| 12000 | [[Epics/Epic-dogfood-vault-migration]] | [[Epics/Epic-typed-document-catalog]] |
+
+The last three are briefed in
+[[Documents/Design/Note structure and dogfood vault]]. Release and distribution
+are briefed in
+[[Documents/Design/Prerelease and optional MCP companion distribution]] and land
+under [[Epics/Epic-stabilize-and-shipping]].
 
 ### Sequencing rules
 
@@ -79,46 +116,28 @@ linked notes replace the former `docs/IMPLEMENTATION_ORDER.md` roadmap:
    order, and truthful partial-success reporting exist.
 7. Keep desktop transport conditional so the core plugin remains mobile-safe.
 
-### Representation gaps exposed by this port
+### Representation gaps
 
-- Epic order is encoded by the numbered note names and the table above. Weave
-  has no typed Epic rank or dependency relation, so the sequence is not yet
-  queryable or validated.
-- The Epic notes carry a `milestone` property for the intended v1 grouping,
-  but the current Epic model does not interpret it. Milestone membership is
-  derived from task links, so Project Weave cannot yet query that all nine
-  Epics belong to the v1 milestone.
-- A milestone requires `due_date`, while the retired roadmap intentionally had
-  no release date. The v1 milestone currently carries `2026-08-14`; treat it as
-  provisional until it is explicitly confirmed, not as a commitment inferred
-  from the roadmap.
+Each of these is Weave failing to represent something this project needs:
 
-## Current focus
+- Epic `rank`, `depends_on`, and `milestone` are authored on every Epic, but the
+  Epic model does not read them. The roadmap order above is therefore correct
+  data that Weave cannot yet query, validate for cycles, or render.
+- Milestone membership is derived from task links only, so Weave cannot answer
+  that all twelve Epics belong to the v1 milestone even though each says so.
+- Milestone `rank` is specified but unparsed, so milestone ordering is likewise
+  authored rather than derived. It is inert here regardless, since this project
+  has one milestone.
 
-1. Finish Slice 1 acceptance: record the remaining workbench/template manual
-   checks and resolve their findings.
-2. Finish Slice 2 acceptance: run desktop gateway Check 17, then update the
-   Epic outcome from its observed result.
-3. Continue Slice 3: add source-preserving existing-note mutations, then
-   implement reorder/Rebalance Backlog Ranks on that foundation.
-4. Keep every edit path behind the accepted creation flow. Multi-file
-   proposals need the preflight and partial-success reporting Design 10
-   requires before any bulk operation ships.
+## Where things live
 
-## New planned work
-
-The note-structure and dogfood-vault slice is tracked as three project Epics:
-
-| Epic | Status | Depends on |
-|---|---|---|
-| [[Epics/Epic-10-project-structure-and-contracts]] | planned | Slice 1 |
-| [[Epics/Epic-11-typed-document-catalog]] | planned | Epic 10 |
-| [[Epics/Epic-12-dogfood-vault-migration]] | planned | Epics 10 and 11 |
-
-The design brief is [[Documents/Design/Note structure and dogfood vault]].
-
-## Design index
-
-- [docs/spec/](../../../spec/README.md)
-- [docs/decisions/](../../../decisions/)
-- [docs/ARCHITECTURE.md](../../../ARCHITECTURE.md)
+| Question | Answer |
+|---|---|
+| What should be true? | [docs/spec/](../../../spec/README.md) |
+| What is built? | [README.md](../../../../README.md) |
+| Why, and what was rejected? | [docs/decisions/](../../../decisions/README.md) |
+| How do the pieces fit? | [docs/ARCHITECTURE.md](../../../ARCHITECTURE.md) |
+| What is outstanding? | The tasks in this project, in rank order |
+| How far has a slice got? | That slice's Epic note |
+| What is in flight now? | [docs/CURRENT_WORK.md](../../../CURRENT_WORK.md) |
+| What changed, and what passed? | `git log` |

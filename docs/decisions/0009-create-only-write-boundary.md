@@ -4,7 +4,7 @@ id: "0009"
 area: writes
 status: accepted
 canonical: false
-affects: ["10"]
+affects: ["validation-and-safe-writes"]
 ---
 
 # ADR 0009: Cross the write boundary with a create-only port and a re-checking commit service
@@ -67,10 +67,10 @@ nothing. Opening the created note is opt-in.
 
 - **A general `writeNote(path, content)` port:** rejected. It expresses overwrite by construction, so every future caller becomes a place where data loss must be re-argued. `AGENTS.md` forbids it directly.
 - **Re-rendering at commit instead of writing the proposal's bytes:** rejected. It would silently resolve drift by producing something the user never reviewed, which is precisely the failure the preview exists to prevent.
-- **Ignoring read-set drift because the index revision is unchanged:** rejected. Design 17 allows unrelated revision changes but requires the touched inputs to be re-compared; an edit to the project note is not unrelated.
-- **Auto-opening the created note:** rejected as a default. Design 10 says to navigate only if requested, and an unexpected tab switch after a write is disorienting.
-- **Deferring folder creation to a settings step:** rejected. Design 12 explicitly permits creating folders as part of a confirmed creation that needs them, and a separate step would create folders for tasks that are never made.
-- **Supporting multi-file proposals now:** deferred. Design 10 requires partial-success reporting and a no-write-if-any-changed rule for those, which is a larger contract than one note needs.
+- **Ignoring read-set drift because the index revision is unchanged:** rejected. The agent access and MCP spec allows unrelated revision changes but requires the touched inputs to be re-compared; an edit to the project note is not unrelated.
+- **Auto-opening the created note:** rejected as a default. The validation and safe writes spec says to navigate only if requested, and an unexpected tab switch after a write is disorienting.
+- **Deferring folder creation to a settings step:** rejected. The plugin experience spec explicitly permits creating folders as part of a confirmed creation that needs them, and a separate step would create folders for tasks that are never made.
+- **Supporting multi-file proposals now:** deferred. The validation and safe writes spec requires partial-success reporting and a no-write-if-any-changed rule for those, which is a larger contract than one note needs.
 
 ## Consequences
 

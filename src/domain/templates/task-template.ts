@@ -55,7 +55,7 @@ export interface TaskTemplateContext {
 }
 
 /**
- * Values a template can never override. Design 18 fixes the entity type, the
+ * Values a template can never override. the Vault note templates spec fixes the entity type, the
  * selected project relation, and a safe normalized target path; its remaining
  * invariants depend on services this slice does not implement.
  */
@@ -71,7 +71,7 @@ export interface TaskTemplateRequest {
   readonly inputs?: Readonly<Record<string, unknown>>;
 }
 
-/** Built-in variables a task creation context can resolve (Design 18). */
+/** Built-in variables a task creation context can resolve (the Vault note templates spec). */
 const BUILTIN_TASK_VARIABLES = new Set([
   'title',
   'date',
@@ -99,7 +99,7 @@ const BUILTIN_TASK_VARIABLES = new Set([
 /**
  * Task frontmatter properties whose value the creation context owns. Where a
  * template hard-codes one of these and the context supplies a value, the
- * context wins: that is the Design 18 precedence ladder applied to a static
+ * context wins: that is the the Vault note templates spec precedence ladder applied to a static
  * template default.
  */
 const CONTEXT_OWNED_PROPERTIES: Readonly<Record<string, string>> = {

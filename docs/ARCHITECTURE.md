@@ -14,7 +14,7 @@ workbench described by Designs 01, 02, 09, 16, and 17. ADRs 0006 and 0007
 record the platform baseline and workspace-view decisions. The deterministic
 task-template renderer, project template resolver, and exact task-creation
 proposal builder implement the first non-writing creation path from Plan
-Addendum 005, Design 18, Design 10, and ADR 0005.
+Addendum 005, the Vault note templates spec, the Validation and safe writes spec, and ADR 0005.
 
 ## Dependency direction
 

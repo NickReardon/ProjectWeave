@@ -2,7 +2,7 @@
 type: task
 title: Add safe project folder configuration
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-10-project-structure-and-contracts]]'
+epic: '[[Epics/Epic-project-structure-and-contracts]]'
 status: backlog
 priority: high
 created: 2026-08-09

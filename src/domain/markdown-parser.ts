@@ -480,11 +480,13 @@ function parseMilestone(
       diagnostics,
     ),
     status,
-    dueDate: readRequiredDate(
+    // the Scheduling and milestones spec: `due_date` is optional and informational. Milestone order comes
+    // from `rank`, so a milestone never needs a date to be sequenced (ADR 0024).
+    dueDate: readOptionalDate(
       frontmatter.due_date,
       base.path,
       'due_date',
-      'milestone.due_date',
+      'milestone.due_date.invalid',
       diagnostics,
     ),
     achievedAt,
@@ -879,34 +881,6 @@ function readOptionalPositiveInteger(
     ),
   );
   return null;
-}
-
-function readRequiredDate(
-  value: unknown,
-  path: string,
-  field: string,
-  codePrefix: string,
-  diagnostics: Diagnostic[],
-): string | null {
-  if (value === undefined || value === null || value === '') {
-    diagnostics.push(
-      diagnostic(
-        path,
-        `${codePrefix}.missing`,
-        'error',
-        `Required field \`${field}\` is missing.`,
-        field,
-      ),
-    );
-    return null;
-  }
-  return readOptionalDate(
-    value,
-    path,
-    field,
-    `${codePrefix}.invalid`,
-    diagnostics,
-  );
 }
 
 function readOptionalDate(

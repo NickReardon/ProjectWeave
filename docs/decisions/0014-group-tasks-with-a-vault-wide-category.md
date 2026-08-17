@@ -4,7 +4,7 @@ id: "0014"
 area: tasks
 status: accepted
 canonical: false
-affects: ["03"]
+affects: ["task-management"]
 ---
 
 # ADR 0014: Group tasks with a vault-wide category vocabulary

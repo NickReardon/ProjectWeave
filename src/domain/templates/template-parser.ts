@@ -17,9 +17,9 @@ import type {
   TemplateValue,
 } from './model';
 
-/** A frontmatter placeholder must occupy the whole scalar value (Design 18). */
+/** A frontmatter placeholder must occupy the whole scalar value (the Vault note templates spec). */
 const WHOLE_PLACEHOLDER_PATTERN = /^\{\{\s*([^{}]+?)\s*\}\}$/u;
-/** Template kind and variant keys (Design 18). */
+/** Template kind and variant keys (the Vault note templates spec). */
 const TEMPLATE_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]*$/u;
 /** Declared input names double as body/frontmatter variable names. */
 const INPUT_NAME_PATTERN = /^[a-z][a-z0-9_]*$/u;

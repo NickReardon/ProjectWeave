@@ -1,7 +1,7 @@
 import type { Diagnostic, DiagnosticSeverity } from '../model';
 
 /**
- * Frontmatter keys that describe the template itself. Design 18 reserves this
+ * Frontmatter keys that describe the template itself. the Vault note templates spec reserves this
  * set; rendering removes every one of them so template-only metadata never
  * reaches a created note.
  */
@@ -17,7 +17,7 @@ export const RESERVED_TEMPLATE_KEYS = [
 /** The only `template_schema` version this renderer understands. */
 export const SUPPORTED_TEMPLATE_SCHEMA = 1;
 
-/** Supported `template_inputs` value types (Design 18). */
+/** Supported `template_inputs` value types (the Vault note templates spec). */
 export const TEMPLATE_INPUT_TYPES = [
   'string',
   'markdown',

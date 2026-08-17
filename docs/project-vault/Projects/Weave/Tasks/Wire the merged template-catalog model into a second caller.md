@@ -1,7 +1,7 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Slice-1-template-catalog]]'
+epic: '[[Epics/Epic-template-catalog]]'
 status: done
 category: loose-end
 rank: 3200
@@ -17,7 +17,7 @@ project creation, while an ambiguous or malformed vault `project/default`
 still fails closed instead of silently producing different bytes.
 
 ADR 0013 stays `proposed` until the normative template contract in Plan
-Addendum 005 and Design 18 matches it.
+Addendum 005 and the Vault note templates spec matches it.
 
 ## Validation
 

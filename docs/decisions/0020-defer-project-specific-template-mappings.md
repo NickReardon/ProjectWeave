@@ -4,7 +4,7 @@ id: "0020"
 area: templates
 status: accepted
 canonical: false
-affects: ["18"]
+affects: ["vault-note-templates"]
 ---
 
 # ADR 0020: Defer project-specific template mappings

@@ -10,13 +10,17 @@ canonical: false
 - Date: YYYY-MM-DD
 - Owners: [name or team]
 
+Once this record is accepted, its body is not edited. A decision that changes
+is superseded by a new record; see [`README.md`](README.md).
+
 ## Context
 
 What forces, constraints, and goals make this decision necessary?
 
 ## Decision
 
-What has been decided?
+What has been decided? State the decision, not the design — a rule a reader
+must obey belongs in the owning specification under [`../spec/`](../spec/README.md).
 
 ## Alternatives considered
 

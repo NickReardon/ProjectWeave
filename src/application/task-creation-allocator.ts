@@ -27,7 +27,7 @@ export function taskFolderForProjectPath(projectPath: string): string {
 
 /**
  * Rank gap between consecutive new tasks
- * (docs/spec/15-scheduling-and-milestones.md).
+ * (docs/spec/scheduling-and-milestones.md).
  */
 export const RANK_GAP = 1000;
 
@@ -81,8 +81,8 @@ export type TaskRankAllocationResult = TaskRankAllocation | AllocationFailure;
  * This suggests a free path; it never reserves or creates one. The proposal
  * service re-checks the target through the vault port and fails closed on
  * `proposal.target.exists`, which stays the authoritative guard — this only
- * spares the user a collision they can predict. Design 03 requires a collision
- * to block creation and offer another filename, and Design 17 expects the
+ * spares the user a collision they can predict. the Task management spec requires a collision
+ * to block creation and offer another filename, and the Agent access and MCP spec expects the
  * generated name to remain visible and editable in the preview; suggesting a
  * free name satisfies both, because suggesting is not committing.
  */
@@ -154,10 +154,10 @@ export function allocateTaskPath(
 
 /**
  * Choose the backlog rank for a new task: one gap past the project's largest
- * existing rank (docs/spec/15-scheduling-and-milestones.md).
+ * existing rank (docs/spec/scheduling-and-milestones.md).
  *
  * The maximum spans every task in the project rather than only backlog ones.
- * Design 15 keeps a rank while a task is assigned elsewhere, so a
+ * the Scheduling and milestones spec keeps a rank while a task is assigned elsewhere, so a
  * status-scoped maximum would reissue a rank the project is still using.
  */
 export function allocateTaskRank(

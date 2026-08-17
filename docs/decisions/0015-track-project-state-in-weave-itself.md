@@ -2,9 +2,10 @@
 type: decision
 id: '0015'
 area: dogfooding
-status: proposed
+status: superseded
 canonical: false
 affects: ['0016']
+superseded_by: '0023'
 ---
 
 # ADR 0015: Track Project Weave's own working state in Project Weave

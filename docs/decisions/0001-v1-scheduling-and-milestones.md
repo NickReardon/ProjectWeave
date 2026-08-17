@@ -4,7 +4,7 @@ id: "0001"
 area: scheduling
 status: accepted
 canonical: false
-affects: ["15"]
+affects: ["scheduling-and-milestones"]
 ---
 
 # ADR 0001: Add basic scheduling and milestone features to v1
@@ -28,7 +28,7 @@ V1 will include:
 - `completed_at` plus reopen history for tasks transitioned to done;
 - a canonical project-scoped `milestone` note and optional task-to-milestone link.
 
-The complete behavioral contract is `docs/spec/15-scheduling-and-milestones.md`.
+The complete behavioral contract is `docs/spec/scheduling-and-milestones.md`.
 
 ## Alternatives considered
 
@@ -44,4 +44,4 @@ The complete behavioral contract is `docs/spec/15-scheduling-and-milestones.md`.
 - Positive: existing notes without the optional fields remain readable without migration.
 - Negative: the entity/index/view surface and test matrix grow before the first runtime slice.
 - Negative: rank rebalancing and reopen history require safe multi-field/bulk write handling.
-- Follow-up: update the original plan and existing feature designs to reference Design 15 wherever these fields affect behavior.
+- Follow-up: update the original plan and existing feature designs to reference the Scheduling and milestones spec wherever these fields affect behavior.

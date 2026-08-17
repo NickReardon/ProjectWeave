@@ -14,7 +14,7 @@ canonical: false
 
 Accepted on 2026-08-02. This addendum is part of the v1 implementation plan and supersedes earlier plan/design statements that leave these capabilities absent or undecided.
 
-The normative behavior is defined in [Design 15](../spec/15-scheduling-and-milestones.md), with rationale in [ADR 0001](../decisions/0001-v1-scheduling-and-milestones.md).
+The normative behavior is defined in [Scheduling and milestones](../spec/scheduling-and-milestones.md), with rationale in [ADR 0001](../decisions/0001-v1-scheduling-and-milestones.md).
 
 ## Approved v1 additions
 

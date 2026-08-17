@@ -1,7 +1,7 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Slice-1-template-catalog]]'
+epic: '[[Epics/Epic-template-catalog]]'
 status: backlog
 category: loose-end
 rank: 3900

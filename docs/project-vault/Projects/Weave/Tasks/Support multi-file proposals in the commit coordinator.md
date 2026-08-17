@@ -1,7 +1,7 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Slice-3-mutation-kernel]]'
+epic: '[[Epics/Epic-mutation-kernel]]'
 status: done
 category: loose-end
 rank: 3800

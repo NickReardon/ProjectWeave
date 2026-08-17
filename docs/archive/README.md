@@ -5,9 +5,9 @@ Project Weave arrived at its current shape. They do not define current
 behavior, do not override anything, and are not part of any reading order.
 
 For what should be true today, read [`../spec/`](../spec/README.md). For why a
-choice was made, read [`../decisions/`](../decisions). For what is implemented,
-read [`../../README.md`](../../README.md) and
-[`../CURRENT_WORK.md`](../CURRENT_WORK.md).
+choice was made, read [`../decisions/`](../decisions/README.md). For what is
+implemented, read [`../../README.md`](../../README.md). For what is in flight,
+read [`../CURRENT_WORK.md`](../CURRENT_WORK.md).
 
 ## Contents
 
@@ -21,6 +21,7 @@ read [`../../README.md`](../../README.md) and
 | [PLAN-ADDENDUM-005.md](PLAN-ADDENDUM-005.md)                   | Made note templates project-owned and shared by UI and agents.                          |
 | [PROJECT_PLAN.md](PROJECT_PLAN.md)                             | The bootstrap plan, predating the product surface and stack.                            |
 | [ADVERSARIAL-REVIEW.md](ADVERSARIAL-REVIEW.md)                 | A hostile code review of one specific past commit.                                       |
+| [AUTOMATED-VERIFICATION-LOG.md](AUTOMATED-VERIFICATION-LOG.md) | The append-only gate log `CURRENT_WORK.md` carried through commit `ef1db32`.            |
 
 Every normative statement these documents once carried now lives in
 [`../spec/`](../spec/README.md). Their internal links have been repointed to

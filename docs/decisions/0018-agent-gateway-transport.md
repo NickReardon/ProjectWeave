@@ -4,7 +4,7 @@ id: '0018'
 area: agent-access
 status: accepted
 canonical: false
-affects: ['17', '0004']
+affects: ['agent-access-and-mcp', '0004']
 ---
 
 # ADR 0018: Bridge agent access over a stdio companion and authenticated local IPC
@@ -18,7 +18,7 @@ affects: ['17', '0004']
 [ADR 0004](0004-agent-access-as-core-adapter.md) accepted a tool-neutral
 application API with a thin MCP adapter over it, and left one item open: select
 and record the desktop bridge transport and a pinned MCP protocol and SDK before
-implementing the adapter. [Design 17](../spec/17-agent-access-and-mcp.md) defers
+implementing the adapter. [Agent access and MCP](../spec/agent-access-and-mcp.md) defers
 the same choice, listing what any acceptable transport must do but not which one
 to build.
 
@@ -31,7 +31,7 @@ A project embedded in its own repository, as `docs/project-vault/` is under
 [ADR 0016](0016-dogfood-vault-location.md), is the same problem with a different
 vault.
 
-Three constraints follow, none of which Design 17 anticipated:
+Three constraints follow, none of which the Agent access and MCP spec anticipated:
 
 - The agent process starts in an arbitrary working directory, on a different
   drive from the vault, with no relationship to it on disk.
@@ -64,27 +64,27 @@ plugin over authenticated local IPC.
   application call if it does not match an active grant.
 - **A grant binds a vault and a project.** `AgentGrant` records the vault
   identity alongside the single normalized project path it already carried.
-  Design 17's one-project-per-grant rule is unchanged; the grant simply becomes
+  the Agent access and MCP spec's one-project-per-grant rule is unchanged; the grant simply becomes
   unambiguous when several vaults exist.
 - **The grant secret never lives in the repository.** A repository's MCP client
   configuration names the companion and reads the secret from the environment.
   The secret itself is stored with the grant in plugin-owned local settings and
-  in the developer's own environment, consistent with Design 17's rule that
+  in the developer's own environment, consistent with the Agent access and MCP spec's rule that
   grants are local settings and not synced vault content.
 - **Desktop facilities load conditionally.** The bridge and its `net` usage are
   imported only when the gateway is enabled on desktop. `manifest.json` keeps
   `isDesktopOnly: false` and mobile startup does not reach this code.
 - **Protocol and SDK are pinned.** The adapter targets MCP revision `2025-06-18`,
-  the revision Design 17 already cites, using the official TypeScript SDK
+  the revision the Agent access and MCP spec already cites, using the official TypeScript SDK
   (`@modelcontextprotocol/sdk` 1.30.0) and Zod 4.4.3 at exact versions rather
   than ranges, so a protocol revision never changes underneath a tested
-  adapter. Design 17 requires proposal handles to stay independent of transport
+  adapter. The agent access and MCP spec requires proposal handles to stay independent of transport
   sessions, so a version bump is an isolated, testable change.
 
 ## Alternatives considered
 
 - **Loopback TCP with a bearer token:** rejected. It is the more conventional
-  choice and Design 17 names it as acceptable, but it opens a listening port on
+  choice and the Agent access and MCP spec names it as acceptable, but it opens a listening port on
   the machine for a purpose that never needs one, and port allocation adds
   discovery state the pipe path does not.
 - **An MCP HTTP server hosted inside the plugin:** rejected. It removes the
@@ -93,7 +93,7 @@ plugin over authenticated local IPC.
   stdio.
 - **Obsidian's Local REST API plugin as the bridge:** rejected. It adds an
   external dependency outside this project's release and security control, and
-  exposes filesystem-shaped note operations that Design 17 forbids, which would
+  exposes filesystem-shaped note operations that the Agent access and MCP spec forbids, which would
   put the plugin's invariants behind a surface Project Weave does not define.
 - **An `obsidian://` protocol handler:** rejected. It is fire-and-forget with no
   response, so it cannot serve reads at all, and Project Weave registers no
@@ -118,6 +118,6 @@ plugin over authenticated local IPC.
 - Negative: developers configure a grant secret in their environment per
   repository, which is setup friction that a vault-local arrangement would not
   have.
-- Follow-up: Design 17's `AgentGrant` gains vault identity. Slice A implements
+- Follow-up: the Agent access and MCP spec's `AgentGrant` gains vault identity. Slice A implements
   the application query surface and transport; proposal capabilities remain a
   later slice.

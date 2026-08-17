@@ -2,7 +2,7 @@
 type: task
 title: Normalize decision documents and legacy design aliases
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-11-typed-document-catalog]]'
+epic: '[[Epics/Epic-typed-document-catalog]]'
 status: backlog
 priority: normal
 created: 2026-08-09

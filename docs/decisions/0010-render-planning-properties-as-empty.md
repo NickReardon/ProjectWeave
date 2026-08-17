@@ -4,7 +4,7 @@ id: "0010"
 area: templates
 status: accepted
 canonical: false
-affects: ["18"]
+affects: ["vault-note-templates"]
 ---
 
 # ADR 0010: Render the planning properties even when unset
@@ -22,7 +22,7 @@ affects: ["18"]
 
 ## Context
 
-Design 18 says a frontmatter placeholder whose known optional variable is unset
+The vault note templates spec says a frontmatter placeholder whose known optional variable is unset
 omits the property entirely. Applied to the packaged task template, that means a
 created task carries only the fields the creation context happened to supply.
 Every planning field the template declares — `epic`, `milestone`, `sprint`,

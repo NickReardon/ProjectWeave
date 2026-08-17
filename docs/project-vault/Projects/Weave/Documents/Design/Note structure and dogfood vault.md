@@ -24,10 +24,10 @@ created: 2026-08-09
 
 ## Requirements
 
-See the canonical contract in [Design 19](../../../../../spec/19-note-structure-and-dogfood-vault.md).
-The implementation is split across [[../../Epics/Epic-10-project-structure-and-contracts]],
-[[../../Epics/Epic-11-typed-document-catalog]], and
-[[../../Epics/Epic-12-dogfood-vault-migration]].
+See the canonical contract in [Note structure and dogfood vault](../../../../../spec/note-structure-and-dogfood-vault.md).
+The implementation is split across [[../../Epics/Epic-project-structure-and-contracts]],
+[[../../Epics/Epic-typed-document-catalog]], and
+[[../../Epics/Epic-dogfood-vault-migration]].
 
 ## Open questions
 

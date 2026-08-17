@@ -3,7 +3,7 @@ type: decision
 area: note-structure
 status: accepted
 canonical: false
-affects: ["02", "04", "10", "15", "18", "19"]
+affects: ["data-model-and-index", "projects-and-epics", "validation-and-safe-writes", "scheduling-and-milestones", "vault-note-templates", "note-structure-and-dogfood-vault"]
 ---
 
 # ADR 0019: Configurable project trees and warning-only typed documents

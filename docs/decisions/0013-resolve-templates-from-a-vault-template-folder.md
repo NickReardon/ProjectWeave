@@ -4,7 +4,7 @@ id: "0013"
 area: templates
 status: proposed
 canonical: false
-affects: ["18"]
+affects: ["vault-note-templates"]
 superseded_in_part_by: ["0020"]
 ---
 
@@ -48,277 +48,39 @@ The desired experience is simpler:
 
 ## Decision
 
-### One merged template catalog
+Resolve templates from a vault template library folder, merged into one catalog
+keyed by kind and variant, rather than requiring a per-project template map.
 
-Creation screens consume one catalog keyed by template kind and variant:
+- **One merged catalog.** Creation screens consume a single catalog keyed by
+  `kind/variant`. Precedence is evaluated independently per key, so replacing
+  one variant never displaces its neighbours.
+- **Discovery by convention.** `<library>/<kind>/<variant>.md`, exact direct
+  children only, filename authoritative. A copied file appears with no
+  registration step, which is what removes the project map from the ordinary
+  path.
+- **Creation property profiles.** Each kind owns a domain profile classifying
+  its fields as required, derived, defaulted, optional, or invariant. Templates
+  own presentation and body; Project Weave owns identity and invariants. This is
+  what lets a template be a body with no frontmatter at all.
+- **Failure is scoped per key and fails closed.** A broken candidate never
+  silently falls through to another rung, because that would write bytes the
+  user did not choose.
+- **A separate template-library reader.** Vault templates commonly live outside
+  indexed project roots, so the composition root constructs a second read-only
+  reader scoped to the library folder and routes proposal/commit rechecks
+  through it. The index coordinator keeps only the project-scoped reader, so the
+  promise that unrelated vault notes are not indexed stays true. This reuses the
+  existing `VaultReader` port and widens neither indexing nor writes.
 
-```text
-task/default
-task/bug
-epic/default
-milestone/default
-planning_period/default
-document/default
-document/design
-project/default
-```
-
-The catalog merges three sources:
-
-| Rung | Source | Purpose |
-| --- | --- | --- |
-| 1 | project | Optional specialization through `weave.templates.<kind>.<variant>` |
-| 2 | vault | Vault-wide templates in the configured template library folder |
-| 3 | plugin | Immutable templates shipped by Project Weave |
-
-Precedence is evaluated independently for each catalog key. A project may
-override `task/bug` without replacing the vault's `task/default` or
-`document/design`. A vault may replace the plugin's `task/default` while still
-using other plugin variants.
-
-Plugin templates are not restricted to `default`. Project Weave may ship a
-small, deliberate set of broadly useful named variants. Every shipped key is a
-compatibility surface and is added intentionally rather than as UI filler.
-`builtin:minimal` remains an explicit escape hatch that selects the plugin's
-minimal default for the requested kind even when a higher rung is broken.
-
-### Vault template library
-
-The setting currently called **Template scaffold folder** becomes the
-user-facing **Template library folder**. Its default remains
-`Templates/Project Weave`. The existing persisted key may remain during the
-first implementation to avoid an unnecessary settings migration; renaming the
-stored field requires a deliberate settings-version migration.
-
-The library has one direct child folder per `template_for` value and one direct
-Markdown file per variant:
-
-```text
-Templates/Project Weave/
-  project/default.md
-  task/default.md
-  task/bug.md
-  task/test.md
-  epic/default.md
-  milestone/default.md
-  planning_period/default.md
-  document/default.md
-  document/design.md
-  document/decision.md
-```
-
-Discovery rules are intentionally small and deterministic:
-
-- Only exact direct children matching `<library>/<kind>/<variant>.md` are
-  candidates. Nested archive, backup, or attachment folders are ignored.
-- The kind folder is the `template_for` value, not necessarily the output
-  entity type. `planning_period` produces the stable `sprint` entity schema,
-  while `document` has no canonical entity kind in v1.
-- Kind folders and variant stems match ASCII case-insensitively.
-- The variant is the filename stem, normalized to lowercase and validated
-  against `^[a-z0-9_-]+$`.
-- The filename is authoritative. `template_name` remains descriptive metadata.
-- Two candidate paths that normalize to the same kind and variant make only
-  that catalog key ambiguous and unavailable.
-- An empty configured library folder disables the vault rung. A missing folder
-  simply contributes no vault templates and causes no write or setup prompt.
-
-A manually copied valid template appears automatically; no index note or
-registration map is required. Template files remain ordinary Markdown and
-require only the matching `template_for` value. Missing `template_schema`
-defaults to schema 1, while the older `weave_template: true` marker remains
-optional for compatibility.
-
-### Optional project overrides
-
-Existing project mappings remain supported:
-
-```yaml
-weave:
-  templates:
-    task:
-      bug: "[[Project/Templates/Bug Task]]"
-    document:
-      design: "[[Project/Templates/Design]]"
-```
-
-They are an advanced portability and specialization feature, not a prerequisite
-for ordinary creation. A project with no template map sees the effective vault
-and plugin catalog. A malformed project map continues to fail closed rather
-than being silently hidden by a lower rung.
-
-### Creation property profiles
-
-Templates control presentation, optional properties, declared inputs, and body
-structure. Project Weave controls entity identity and operation invariants.
-
-Each creatable kind owns a domain-level creation property profile that
-classifies its fields as:
-
-- **required** — always present in the created note;
-- **derived** — calculated from the selected project, title, source, allocated
-  path/rank, and injected civil clock;
-- **defaulted** — assigned a documented initial lifecycle value;
-- **optional** — left unset or explicitly `null` according to that kind's
-  compatibility contract, never filled with invented data;
-- **invariant** — cannot be changed by a template.
-
-The structured kind mapping is:
-
-| Template kind | Created note identity |
-| --- | --- |
-| `project` | `type: project` |
-| `task` | `type: task` |
-| `epic` | `type: epic` |
-| `milestone` | `type: milestone` |
-| `planning_period` | `type: sprint` |
-| `document` | Ordinary Markdown document; `design` and `decision` are variants, not entity types |
-
-For example, every created task receives its title, selected project relation,
-an allowed initial status such as `backlog`, and an allocated rank regardless
-of whether its template repeats those properties. Optional planning properties
-follow the existing task compatibility contract: `epic`, `milestone`,
-`sprint`, `owner`, `priority`, `points`, and `due_date` remain visible as
-explicitly empty properties, while unset `depends_on` and `origin` are omitted.
-
-That contract is ADR 0010's, and accepting this ADR supersedes how it is kept.
-ADR 0010 achieves it by declaring the seven properties as empty statics in the
+This supersedes how ADR 0010's outcome is achieved. ADR 0010 keeps the seven
+optional planning properties visible by declaring them as empty statics in the
 packaged task template, which only holds for notes created from that template.
-The task creation profile makes it hold for every task, from any template, at
-which point the packaged template's declarations become redundant rather than
-load-bearing. ADR 0010's outcome is preserved exactly; its mechanism is
-replaced, and it is marked accordingly rather than rewritten.
+The task creation profile makes it hold for every task from any template, at
+which point those declarations become redundant rather than load-bearing. The
+outcome is preserved exactly; only the mechanism changes.
 
-A body-focused task template may therefore be as small as:
-
-```markdown
----
-template_for: task
----
-
-# {{title}}
-
-## Problem
-
-## Expected behavior
-
-## Acceptance criteria
-```
-
-The task creation profile supplies the canonical task frontmatter around that
-body. If a template explicitly declares an invariant property, its value must
-agree with the requested kind and context; a contradiction such as
-`task/bug.md` declaring `type: epic` makes the template unavailable.
-
-Value precedence, from lowest to highest, is:
-
-1. kind-profile fallback values;
-2. selected template static values and declared input defaults;
-3. creation context and derived values;
-4. explicit typed user or agent inputs;
-5. invariant overlay.
-
-The profile defines which fields a template or explicit input is allowed to
-influence. A bug template may default an optional priority, but it cannot
-change the entity type, selected project, safe target path, allocated identity,
-or another operation invariant.
-
-### Detection and validation
-
-Folder names classify templates, not ordinary project notes. Canonical
-frontmatter remains the only authority for whether an ordinary note is a task,
-epic, project, milestone, or sprint.
-
-For every structured creation:
-
-1. Resolve the effective catalog key and fingerprint the selected non-plugin
-   source.
-2. Parse the template and verify its declared kind, optional explicit schema,
-   inputs, YAML, placeholders, and body directives.
-3. Apply the kind profile, selected template, creation context, explicit typed
-   values, and invariant overlay.
-4. Render the exact target bytes and show them in preview.
-5. Run those bytes through the ordinary entity parser. Creation remains
-   disabled unless the result is recognized as the requested kind with valid
-   required relations and controlled values.
-6. At confirmation, re-read every non-plugin input, re-check target absence,
-   and parse the exact previewed bytes again before the create-only write.
-
-Documents use the same deterministic template and safe-write pipeline but do
-not pretend to be indexed entities. If Project Weave later needs canonical
-design-document detection, that requires an explicit document entity schema;
-it must not be inferred from selecting `document/design` during creation.
-
-### Straightforward creation UI
-
-Each create flow selects a kind by the action the user invoked: **Create
-task**, **Create epic**, **Create document**, and so on.
-
-- Always show one compact **Template** control and the destination where new
-  notes can be created. Disable the control when only one effective template
-  is usable.
-- If more than one variant exists, enable the **Template** picker.
-- Show friendly variant names and descriptions while preserving the stable key.
-- Changing the selection immediately regenerates the exact preview.
-- A broken selected variant shows its diagnostic and disables creation; it
-  never silently changes the bytes by falling through to another source.
-- `builtin:minimal` is an explicit user choice, not an automatic repair.
-- Template-declared inputs use type-appropriate controls. Ordinary optional
-  entity properties remain progressively disclosed.
-
-The same catalog, profiles, validation, and preview service serve commands,
-workbench UI, tests, and future agent proposals.
-
-### Adding a template
-
-Two paths are first-class:
-
-1. Copy or author a valid Markdown template at the documented vault path. It
-   appears automatically.
-2. Run **Add template** from the picker, workbench, or settings. Choose the
-   kind and variant, choose a plugin template or minimal template to copy,
-   preview the exact destination and bytes, confirm one create-only write, and
-   open the new file for editing.
-
-The command never overwrites an existing file, never edits a project map, and
-never scaffolds templates during activation or passive discovery. Renaming or
-deleting a template remains an ordinary explicit vault action; the catalog
-updates on the next read and existing created notes remain unchanged.
-
-### Reader and lifecycle boundaries
-
-Vault templates commonly live outside indexed project roots. The project index
-reader must remain scoped to those roots so the setting promise that unrelated
-vault notes are not indexed or diagnosed stays true.
-
-The composition root therefore creates a separate read-only template-library
-reader scoped to the configured library folder. `ObsidianVaultReader` already
-takes an arbitrary root list, so this is the existing adapter constructed with
-the library folder rather than a new one; only the routed reader used for
-proposal and commit rechecks is new. Creation proposal and commit
-composition can re-read both project inputs and template-library inputs through
-a small routed/composite reader. The index coordinator continues to receive
-only the project-scoped reader. This uses the existing `VaultReader` port; it
-does not widen indexing and does not introduce generic vault writes.
-
-Changing the template-library setting affects newly opened or refreshed
-creation flows. Editing a selected vault or project template while a preview is
-open invalidates the proposal by fingerprint at confirmation.
-
-## Failure behavior
-
-Failure is scoped and closed per selected catalog key:
-
-- A malformed or wrong-kind vault template blocks that variant without
-  poisoning its neighbours.
-- A broken higher-precedence candidate never silently falls through, because
-  that would create bytes different from the user's configured choice.
-- An absent candidate falls through normally to the next catalog rung.
-- A named variant that exists at no rung is unavailable; it never becomes the
-  ordinary default by accident.
-- Case-insensitive collisions make only that normalized key ambiguous.
-- Passive discovery, settings changes, and validation never create, edit,
-  normalize, or delete vault content.
+The resulting rules are specified in
+[Vault note templates](../spec/vault-note-templates.md).
 
 ## Alternatives considered
 
@@ -404,7 +166,7 @@ carries the documentation for the behavior it adds.
    planning period, or a document. That decision is a prerequisite of this
    step, not part of it.
 7. **Normative documentation and acceptance.** Update Plan Addendum 005 and
-   Design 18 so the authoritative precedence and property-profile rules match
+   the Vault note templates spec so the authoritative precedence and property-profile rules match
    this ADR. Update README, Architecture, Manual Checks, and Current Work.
    Manual acceptance covers adding `task/bug.md`, selecting it, project
    override precedence, invalid-template refusal, correct created properties,

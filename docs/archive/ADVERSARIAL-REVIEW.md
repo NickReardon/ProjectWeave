@@ -53,7 +53,7 @@ but headers, readiness, and other intercedent model state re-run the whole proje
 **L1 — `dependency_mode: advisory` is parsed and surfaced but never consulted.**
 `deriveReadiness` (src/indexing/index-builder.ts:688-742) always blocks on an unfinished
 same-project dependency; the mode is surfaced but inert (src/application/query-api.ts:84,
-225). Design 16 (docs/spec/16:115) says advisory mode must permit the transition with
+225). The streamlined long-project workflow spec (docs/spec/16:115) says advisory mode must permit the transition with
 acknowledgement. The edit slice isn't built, so this is latent — but the live Ready Now
 path reports advisory-mode projects exactly as enforced-blocked, and the readiness flag
 already encodes enforced semantics. Any later wiring of the advisory transition must

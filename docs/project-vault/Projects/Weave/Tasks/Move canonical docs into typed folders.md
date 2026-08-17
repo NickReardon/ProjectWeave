@@ -2,7 +2,7 @@
 type: task
 title: Move canonical docs into typed folders
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-12-dogfood-vault-migration]]'
+epic: '[[Epics/Epic-dogfood-vault-migration]]'
 status: backlog
 priority: high
 created: 2026-08-09

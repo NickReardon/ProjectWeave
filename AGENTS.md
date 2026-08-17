@@ -32,7 +32,8 @@ Edit the `AGENTS.md` source and run `./agents link` or `.\agents.cmd link`.
 | Architecture boundaries            | `docs/ARCHITECTURE.md`        |
 | Decision rationale                 | `docs/decisions/`             |
 | Outstanding work and manual checks | `docs/project-vault/`         |
-| Automated validation record        | `docs/CURRENT_WORK.md`        |
+| Work in flight on this checkout    | `docs/CURRENT_WORK.md`        |
+| Verification history               | `git log`                     |
 | Agent tooling                      | `docs/development/agents.md`  |
 | Testing procedure                  | `docs/development/testing.md` |
 | Release procedure                  | `docs/development/release.md` |
@@ -55,9 +56,15 @@ Subtree `AGENTS.md` files provide local conventions when that subtree is touched
 - Inspect the working tree first and preserve unrelated changes.
 - Work on a short-lived branch from `main`; keep commits small and coherent.
 - Keep one owner per fact and link to it from routers.
-- Update the owning specification with product behavior changes.
+- Update the owning specification with product behavior changes; specifications
+  are living documents and own current behavior.
 - Keep documentation and the behavior it describes in the same commit.
-- Record lasting architectural or product rationale in an ADR.
+- Record rationale in a decision record. Accepted records are immutable and are
+  superseded rather than edited; they never define current behavior.
 - Treat compatibility surfaces as versioned contracts; size releases by change.
 - Report automated and manual verification separately.
+- A commit carries its own gate result in its message and the task-note status
+  change it completes; `git log` is the verification and task-state accounting.
+- End every change by rewriting `docs/CURRENT_WORK.md` to a short description of
+  the state it leaves behind; never append to it.
 - Push, merge, release, and version changes follow explicit user requests.

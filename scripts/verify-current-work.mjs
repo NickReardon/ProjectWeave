@@ -3,42 +3,45 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 
 const DEFAULT_PATH = 'docs/CURRENT_WORK.md';
-const BRANCH_IDENTIFIER =
-  /(?:\b(?:branch|checkout|head)(?:\s+(?:at|from|is|named|on))?\s+`?|\bon\s+`?)(?:build|chore|codex|docs|feat|fix|refactor|release|test)\/[a-z0-9._/-]+\b/iu;
+
+/**
+ * CURRENT_WORK.md is a mid-flight record: what is in progress on this
+ * checkout, rewritten rather than appended. See ADR 0023. Checkout state is
+ * the point of the file, so this gate no longer rejects it; it rejects the
+ * file growing back into the accumulated accounting it used to be.
+ */
+const MAX_LINES = 90;
+
+/** A dated gate entry — the shape the archived append-only log was made of. */
+const DATED_EVIDENCE =
+  /\b(?:passed|ran|verified|succeeded)\b[^.]{0,80}?\bon\s+\d{4}-\d{2}-\d{2}\b|\bon\s+\d{4}-\d{2}-\d{2}\b[^.]{0,80}?\b(?:passed|ran|verified|succeeded)\b/iu;
 
 export function findCurrentWorkViolations(source) {
   const violations = [];
   const lines = source.split(/\r?\n/u);
 
+  if (lines.length > MAX_LINES) {
+    violations.push({
+      line: lines.length,
+      message: `keep the mid-flight record under ${MAX_LINES} lines; move finished history into the commit log`,
+    });
+  }
+
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
 
-    if (/^## (?:Snapshot|Active slices)\s*$/iu.test(line)) {
+    if (/^## Automated verification\s*$/iu.test(line)) {
       violations.push({
         line: lineNumber,
         message:
-          'remove checkout-oriented sections; describe only post-merge operational state',
+          'remove the accumulated verification log; a commit records the gate result for its own change',
       });
     }
-    if (/^\s*-\s+\*\*(?:Branch|Commit|Branch hygiene):\*\*/iu.test(line)) {
+    if (DATED_EVIDENCE.test(line)) {
       violations.push({
         line: lineNumber,
         message:
-          'remove current checkout identity; commits are allowed only as validation evidence',
-      });
-    }
-    if (BRANCH_IDENTIFIER.test(line)) {
-      violations.push({
-        line: lineNumber,
-        message:
-          'remove branch identifiers; keep pre-merge handoff details outside CURRENT_WORK.md',
-      });
-    }
-    if (/^\s*(?:[-*]|\d+\.)\s+.*\bmerge\b.*\b(?:branch|main)\b/iu.test(line)) {
-      violations.push({
-        line: lineNumber,
-        message:
-          'write the next decision for the post-merge state, not as a merge instruction',
+          'remove dated gate evidence; `git log` is the accounting and cannot drift from it',
       });
     }
   }
@@ -53,7 +56,7 @@ export function assertCurrentWork(source, path = DEFAULT_PATH) {
   }
 
   throw new Error(
-    `${path} contains volatile checkout state:\n${violations
+    `${path} is accumulating history instead of recording mid-flight state:\n${violations
       .map(({ line, message }) => `- line ${line}: ${message}`)
       .join('\n')}`,
   );
@@ -63,7 +66,7 @@ async function main() {
   const path = process.argv[2] ?? DEFAULT_PATH;
   const source = await readFile(path, 'utf8');
   assertCurrentWork(source, path);
-  console.log(`Current-work handoff verified: ${path}`);
+  console.log(`Mid-flight record verified: ${path}`);
 }
 
 function errorMessage(error) {

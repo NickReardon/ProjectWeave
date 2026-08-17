@@ -3,7 +3,7 @@ type: milestone
 title: Project Weave v1 Release Milestone
 project: "[[Projects/Weave/Project]]"
 status: planned
-due_date: 2026-08-14
+rank: 1000
 owner: ""
 origin: "[[Projects/Weave/Project]]"
 created: 2026-08-07
@@ -13,31 +13,32 @@ created: 2026-08-07
 
 ## Outcome
 
-All nine slice Epics pass their exit gates, manual checks are recorded, and the
+All twelve Epics pass their exit gates, manual checks are recorded, and the
 plugin ships a stable v1.
 
-The required `due_date` is currently provisional. The roadmap being ported did
-not set a release date, so `2026-08-14` must be confirmed before it is treated
-as a release commitment.
+This milestone is undated by choice. `due_date` is optional and informational,
+and ordering comes from `rank`, so no release date is implied or required. See
+[ADR 0024](../../../../decisions/0024-order-the-roadmap-by-milestone-and-rank.md).
 
 ## Success conditions
 
-- [ ] Slice 1 accepted: creation flow, template catalog, remaining desktop checks
-- [ ] Slice 2 implemented: shared reads + Agent Slice A (read-only bounded API)
-- [ ] Slice 3 implemented: typed mutation kernel + multi-file preflight
-- [ ] Slice 4 implemented: task editor, Board, Plan, My Work perspectives
-- [ ] Slice 5 implemented: design-to-task planning + Agent Slice B
-- [ ] Slice 6 implemented: epic, milestone, planning period entities
-- [ ] Slice 7 implemented: optional planning periods + Agent Slice C
-- [ ] Slice 8 implemented: controlled document patch engine + Agent Slice D
-- [ ] Slice 9 accepted: schemas frozen, skill shipped, benchmarks recorded, desktop/mobile/manual checks passed
+- [ ] [[Epics/Epic-template-catalog]] accepted: creation flow, template catalog, remaining desktop checks
+- [ ] [[Epics/Epic-shared-reads-agent]]: shared reads + Agent Slice A (read-only bounded API)
+- [ ] [[Epics/Epic-mutation-kernel]]: typed mutation kernel + multi-file preflight
+- [ ] [[Epics/Epic-task-execution]]: task editor, Board, Plan, My Work perspectives
+- [ ] [[Epics/Epic-design-to-task]]: design-to-task planning + Agent Slice B
+- [ ] [[Epics/Epic-long-project-org]]: epic, milestone, planning period entities
+- [ ] [[Epics/Epic-planning-periods]]: optional planning periods + Agent Slice C
+- [ ] [[Epics/Epic-controlled-documents]]: controlled document patch engine + Agent Slice D
+- [ ] [[Epics/Epic-stabilize-and-shipping]] accepted: schemas frozen, skill shipped, benchmarks recorded, desktop/mobile/manual checks passed
+- [ ] [[Epics/Epic-project-structure-and-contracts]], [[Epics/Epic-typed-document-catalog]], and [[Epics/Epic-dogfood-vault-migration]] accepted
 
 ## Included work
 
-Task membership is derived from task `milestone` links. The nine slice Epics
-also declare this milestone, but the current Epic model does not interpret that
-property; the intended Epic grouping is therefore documented rather than
-queryable.
+Task membership is derived from task `milestone` links. All twelve Epics declare
+this milestone and carry a `rank` that orders them within it. The Epic model
+does not yet interpret either property, so the grouping and its order are
+authored but not queryable; [[Tasks/Add Epic roadmap graph fields]] closes that.
 
 ## Cross-cutting acceptance
 

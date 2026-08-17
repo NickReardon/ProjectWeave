@@ -6,50 +6,76 @@ import {
   findCurrentWorkViolations,
 } from './verify-current-work.mjs';
 
-const VALID_HANDOFF = `# Project Weave Current Work
+const VALID_RECORD = `# Project Weave Current Work
 
-## Operational state
+## In flight
 
-- The complete gate passed against source commit \`abc1234\`.
-- Detailed release steps remain in \`docs/development/release.md\`.
+Documentation authority repair. Four ranked tasks are done.
 
-## Next decision point
+## Verified, not yet committed
 
-1. Complete the outstanding manual checks.
+The complete gate passes over the documentation work.
+
+## Next
+
+1. Split the prerelease changes from the authority changes and commit each.
 `;
 
-test('accepts post-merge operational state and immutable evidence', () => {
-  assert.deepEqual(findCurrentWorkViolations(VALID_HANDOFF), []);
-  assert.doesNotThrow(() => assertCurrentWork(VALID_HANDOFF));
+test('accepts a mid-flight record, including checkout state', () => {
+  assert.deepEqual(findCurrentWorkViolations(VALID_RECORD), []);
+  assert.doesNotThrow(() => assertCurrentWork(VALID_RECORD));
 });
 
-test('rejects checkout-oriented sections and fields', () => {
-  const source = `${VALID_HANDOFF}
+test('accepts the branch and commit detail the old gate rejected', () => {
+  const source = `${VALID_RECORD}
 ## Snapshot
 
-- **Branch:** codex/current-work-workflow
+- **Branch:** feat/multi-file-commit-coordinator
 - **Commit:** abc1234
-- **Branch hygiene:** clean
 
-## Active slices
+1. Merge the dashboard branch into main.
 `;
 
-  const violations = findCurrentWorkViolations(source);
-  assert.equal(violations.length, 5);
-  assert.throws(() => assertCurrentWork(source), /volatile checkout state/u);
+  assert.deepEqual(findCurrentWorkViolations(source), []);
 });
 
-test('rejects branch identifiers and landing instructions', () => {
-  const source = `${VALID_HANDOFF}
-1. Merge the dashboard branch into main.
-- Validation ran on feat/all-tasks.
+test('rejects the accumulated verification log', () => {
+  const source = `${VALID_RECORD}
+## Automated verification
 `;
 
   assert.deepEqual(
     findCurrentWorkViolations(source).map(({ message }) => message),
     [
-      'write the next decision for the post-merge state, not as a merge instruction',
-      'remove branch identifiers; keep pre-merge handoff details outside CURRENT_WORK.md',
+      'remove the accumulated verification log; a commit records the gate result for its own change',
     ],
   );
+  assert.throws(() => assertCurrentWork(source), /accumulating history/u);
+});
+
+test('rejects dated gate evidence in either order', () => {
+  const trailing = `${VALID_RECORD}
+- \`npm run check\` passed on 2026-08-09 against source commit \`ef1db32\`.
+`;
+  const leading = `${VALID_RECORD}
+- On 2026-08-09, \`npm run check\` passed against source commit \`ef1db32\`.
+`;
+
+  for (const source of [trailing, leading]) {
+    assert.deepEqual(
+      findCurrentWorkViolations(source).map(({ message }) => message),
+      [
+        'remove dated gate evidence; `git log` is the accounting and cannot drift from it',
+      ],
+    );
+  }
+});
+
+test('rejects a record that has grown back into an accounting', () => {
+  const source = `${VALID_RECORD}${'\nfiller line'.repeat(100)}`;
+
+  const messages = findCurrentWorkViolations(source).map(
+    ({ message }) => message,
+  );
+  assert.ok(messages.some((message) => message.includes('under 90 lines')));
 });

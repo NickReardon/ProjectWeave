@@ -4,7 +4,7 @@ id: "0012"
 area: projects
 status: accepted
 canonical: false
-affects: ["04"]
+affects: ["projects-and-epics"]
 ---
 
 # ADR 0012: Give each created project its own folder
@@ -33,33 +33,25 @@ them apart by path.
 
 ## Decision
 
-**Placement.** A created project note lands at `<root>/<Title>/Project.md`,
-where `<root>` is one of the indexed project folders from settings. The folder
-is the project's identity; the note that defines it has a fixed name.
+Give every created project its own folder, at `<root>/<Title>/Project.md`, and
+make the folder rather than the filename carry the project's identity.
 
-**Filename.** `Project.md`, not the title. The folder already carries the name,
-ADR 0008 derives the task folder from the note's parent, and the fixture vault
-has used `Projects/Game/Project.md` since the beginning.
+- **Placement:** the folder is the identity; the note that defines it takes the
+  fixed name `Project.md`. A project note needs its own folder because ADR 0008
+  derives the task root from the note's parent, so two project notes sharing a
+  folder would share one `Tasks` folder.
+- **Naming:** the folder name comes from the same title sanitizer ADR 0008 uses
+  for task filenames, so one title yields one predictable name across kinds.
+- **Collisions:** folder-level, and suffixed the same way ADR 0008 suffixes task
+  filenames. Suggesting a free folder is not reserving one;
+  `proposal.target.exists` remains the authoritative block.
+- **Occupancy:** derived from note paths. The vault port exposes notes, not
+  directories, and this decision does not widen it.
+- **Root selection:** an input to allocation, validated but not chosen here.
+  Picking among several configured roots is a UI concern.
 
-**Folder name.** Derived from the title by the same sanitizer ADR 0008 uses for
-task filenames, so one title yields one predictable name across both kinds.
-
-**Collisions are folder-level.** An occupied folder is a collision even when it
-holds no project note, because ADR 0008 would file the new project's tasks
-inside it. Suffixing follows ADR 0008 — a deterministic ` 2`, ` 3`, … bounded at
-100 attempts, compared case-insensitively — and suggesting a free folder is not
-reserving one: the proposal service's `proposal.target.exists` check remains the
-authoritative block.
-
-**Occupied folders are derived from note paths.** The vault port exposes notes,
-not directories, and this decision does not widen it. A folder containing no
-Markdown is therefore invisible to allocation; the proposal check and the writer
-both still refuse to overwrite, so the worst case is a suggestion that lands in
-an existing empty folder.
-
-**Root selection is the caller's.** Allocation takes the root as an input and
-validates it. Choosing among several configured roots is a UI concern, and this
-decision does not settle it.
+The resulting rules are specified in
+[Projects and epics](../spec/projects-and-epics.md).
 
 ## Alternatives considered
 

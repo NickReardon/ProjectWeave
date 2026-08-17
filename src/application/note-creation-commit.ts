@@ -66,7 +66,7 @@ export type NoteCreationCommitResult =
  * Commits one previously confirmed create-only proposal, of any kind.
  *
  * This is the only path to a project-content write. It implements the safe
- * write sequence in docs/spec/10-validation-and-safe-writes.md: re-check the
+ * write sequence in docs/spec/validation-and-safe-writes.md: re-check the
  * complete read set and every target, validate every output in memory, then
  * write in the proposal's deterministic order. A multi-file failure stops the
  * sequence and reports exactly what was and was not written.

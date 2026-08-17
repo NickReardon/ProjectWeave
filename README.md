@@ -11,15 +11,17 @@ in [docs/spec/](docs/spec/README.md); [CURRENT-DESIGN.md](CURRENT-DESIGN.md) is
 a one-page map of where each kind of truth lives.
 
 Contributors and coding agents should begin with [AGENTS.md](AGENTS.md), which
-defines the branch and small-commit workflow. Automated-validation evidence is
-in [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md); remaining manual checks,
-known loose ends, and the next decision point are tracked as tasks in
-[docs/project-vault/](docs/project-vault/), Project Weave's own dogfood vault;
-commit history is the record of what changed. The dependency-ordered remaining
-roadmap is represented by the project, Epic, and milestone notes in
-[docs/project-vault/](docs/project-vault/).
+defines the branch and small-commit workflow. Work in flight on the current
+checkout is in [docs/CURRENT_WORK.md](docs/CURRENT_WORK.md), and `git log` is
+the record of what changed and what verification passed. Remaining manual
+checks, known loose ends, slice progress, and the dependency-ordered roadmap
+are tracked as project, Epic, milestone, and task notes in
+[docs/project-vault/](docs/project-vault/), Project Weave's own dogfood vault.
 
 ## Current status
+
+This section describes capability — what the plugin does today. It does not
+track slice progress; the Epic notes in the dogfood vault own that.
 
 Implemented today:
 
@@ -182,7 +184,7 @@ its caller supplies.
 
 Template metadata keys, frontmatter and body placeholder syntax, the
 `{{#if}}` construct, and the date and time formats are specified in
-[Design 18 — Project note templates](docs/spec/18-project-note-templates.md).
+[Vault note templates](docs/spec/vault-note-templates.md).
 
 ## Development
 
@@ -276,7 +278,7 @@ project, it is selected automatically. Ready Now and All Tasks open exact
 existing task notes in another tab, leaving the workbench open. All Tasks
 starts with the non-terminal statuses and can be filtered by status, priority,
 epic, milestone, owner, category, due state, and text across titles and paths;
-[Design 09](docs/spec/09-project-workbench.md) specifies the behavior in full.
+[Project workbench](docs/spec/project-workbench.md) specifies the behavior in full.
 
 ## Versioning and exports
 

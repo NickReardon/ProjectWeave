@@ -110,4 +110,4 @@ Supported date/time placeholders should align where practical with Obsidian's fa
 
 ## Normative design
 
-Detailed rendering rules, schemas, variables, safety behavior, agent contracts, and tests are defined in [Design 18](../spec/18-project-note-templates.md).
+Detailed rendering rules, schemas, variables, safety behavior, agent contracts, and tests are defined in [Vault note templates](../spec/vault-note-templates.md).
