@@ -20,35 +20,35 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-`feat/github-prerelease-experience` is pushed with the separated three-file
-Obsidian plugin and optional companion outputs, pinned release updater, and
-manual BRAT prerelease workflow. Private prerelease `0.7.0-beta.1` targets
-`06dbdd0`. Its first updater trial proved the destination stays untouched on a
-download failure and exposed that private assets require GitHub's authenticated
-release API. The fix is committed and pushed as `a4dc90f`; its real retry
-installed the three beta.1 assets into the disposable vault and preserved
-`data.json`.
+Nothing. Local `main` now contains the separated plugin and companion outputs,
+pinned GitHub-release updater, authenticated private-asset fix, prerelease
+workflow, and recorded beta.1 proof. The merge and this handoff are not pushed.
+
+Private prerelease `0.7.0-beta.1` still targets `06dbdd0`; the authenticated
+updater fix landed afterward in `a4dc90f` and passed against those real assets.
 
 ## Verified
 
-`npm run check` passes with separate plugin and companion inventory checks. The
-configured test-vault export installs only `main.js`, `manifest.json`, and
-`styles.css`; automated updater coverage proves failed downloads leave the
-target untouched and successful updates preserve `data.json`.
+The complete post-merge `npm run check` passes on local `main`: 368 Vitest tests,
+50 script tests, zero diagnostics across 80 dogfood notes, the production build,
+and separate plugin and companion inventory verification.
 
 ## Next
 
-1. Decide and record the public license, author/support metadata, and companion
+1. Push local `main` when authorized so the workflow exists on GitHub's default
+   branch.
+2. Exercise the manual prerelease workflow from remote `main`, then test BRAT
+   from a clean disposable vault and finish recording
+   [[Tasks/Accept the BRAT preview and optional companion setup]].
+3. Decide and record the public license, author/support metadata, and companion
    install location needed by
    [[Tasks/Prepare public preview metadata and optional agent setup]].
-2. Merge the workflow-bearing branch when authorized, then exercise the manual
-   prerelease workflow from the default branch.
-3. Exercise BRAT from a clean disposable vault, then finish recording
-   [[Tasks/Accept the BRAT preview and optional companion setup]].
 
 ## Loose ends
 
-- `0.7.0-beta.1` was published manually because the prerelease workflow is not
-  yet present on the default branch; the workflow itself remains unexercised.
+- `0.7.0-beta.1` was published manually from a commit before the authenticated
+  private-asset fix; the workflow itself remains unexercised.
+- The repository is private, so beta.1 proves the authenticated path rather than
+  the eventual public no-token installation experience.
 - `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound
   references and is still a deletion candidate.
