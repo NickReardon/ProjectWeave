@@ -20,11 +20,12 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-`feat/github-prerelease-experience` carries the separated three-file Obsidian
-plugin and optional companion outputs, a pinned GitHub-release updater for an
-exact environment-configured plugin folder, and the manual BRAT prerelease
-workflow. It is not pushed or merged. No GitHub tag or release exists for this
-work.
+`feat/github-prerelease-experience` is pushed with the separated three-file
+Obsidian plugin and optional companion outputs, pinned release updater, and
+manual BRAT prerelease workflow. Private prerelease `0.7.0-beta.1` targets
+`06dbdd0`. Its first updater trial proved the destination stays untouched on a
+download failure and exposed that private assets require GitHub's authenticated
+release API; the API fix is ready for a real retry.
 
 ## Verified
 
@@ -38,15 +39,14 @@ target untouched and successful updates preserve `data.json`.
 1. Decide and record the public license, author/support metadata, and companion
    install location needed by
    [[Tasks/Prepare public preview metadata and optional agent setup]].
-2. Push this branch and run one explicitly authorized disposable prerelease to
-   finish [[Tasks/Automate the BRAT prerelease channel]].
-3. Use that real release to exercise BRAT and the pinned updater from clean
-   disposable vaults, then record
+2. Retry the pinned updater against private release `0.7.0-beta.1`, then publish
+   a new preview from the fixed commit if the authenticated path passes.
+3. Exercise BRAT and the pinned updater from clean disposable vaults, then record
    [[Tasks/Accept the BRAT preview and optional companion setup]].
 
 ## Loose ends
 
-- The preview workflow exists locally but is intentionally unproven against a
-  real GitHub release because publishing needs an explicit release decision.
+- `0.7.0-beta.1` was published manually because the prerelease workflow is not
+  yet present on the default branch; the workflow itself remains unexercised.
 - `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound
   references and is still a deletion candidate.

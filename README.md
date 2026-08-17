@@ -39,7 +39,9 @@ PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.1
 Then run `npm run plugin:update`. It downloads all three assets from that exact
 GitHub release, validates them before touching the destination, preserves
 `data.json`, and removes the obsolete in-plugin companion file. Reload Obsidian
-or disable and re-enable Project Weave afterward.
+or disable and re-enable Project Weave afterward. A private test repository
+also requires `GITHUB_TOKEN` in the process environment; public releases do
+not.
 
 ## Current status
 

@@ -9,7 +9,8 @@ import {
   installGitHubRelease,
   loadGitHubUpdateEnvironment,
   parseGitHubUpdateOptions,
-  releaseAssetUrl,
+  releaseAssetApiUrl,
+  releaseByTagUrl,
 } from './install-github-release.mjs';
 
 const VERSION = '0.7.0-beta.42';
@@ -29,9 +30,19 @@ function releaseFetch(overrides = {}) {
     'styles.css': '.project-weave { display: block; }',
     ...overrides,
   };
+  const entries = Object.entries(assets)
+    .filter(([, body]) => body !== undefined)
+    .map(([name, body], index) => ({ id: index + 1, name, body }));
   return async (url) => {
-    const file = new URL(url).pathname.split('/').at(-1);
-    const body = assets[file];
+    const pathname = new URL(url).pathname;
+    if (pathname.includes('/releases/tags/')) {
+      return Response.json({
+        tag_name: VERSION,
+        assets: entries.map(({ id, name }) => ({ id, name })),
+      });
+    }
+    const id = Number(pathname.split('/').at(-1));
+    const body = entries.find((entry) => entry.id === id)?.body;
     return body === undefined
       ? new Response('missing', { status: 404 })
       : new Response(body, { status: 200 });
@@ -83,20 +94,62 @@ test('rejects a broad vault or plugins directory', () => {
   );
 });
 
-test('builds only managed release asset URLs', () => {
+test('builds only safe GitHub release API URLs', () => {
   assert.equal(
-    releaseAssetUrl('NickReardon/ProjectWeave', VERSION, 'main.js'),
-    `https://github.com/NickReardon/ProjectWeave/releases/download/${VERSION}/main.js`,
+    releaseByTagUrl('NickReardon/ProjectWeave', VERSION),
+    `https://api.github.com/repos/NickReardon/ProjectWeave/releases/tags/${VERSION}`,
+  );
+  assert.equal(
+    releaseAssetApiUrl('NickReardon/ProjectWeave', 42, 'main.js'),
+    'https://api.github.com/repos/NickReardon/ProjectWeave/releases/assets/42',
   );
   assert.throws(
     () =>
-      releaseAssetUrl(
+      releaseAssetApiUrl(
         'NickReardon/ProjectWeave',
-        VERSION,
+        42,
         'project-weave-mcp.cjs',
       ),
     /unmanaged/u,
   );
+});
+
+test('authenticates release metadata and asset API requests', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'project-weave-github-auth-'));
+  const requests = [];
+  const fetchImpl = releaseFetch();
+  try {
+    await installGitHubRelease({
+      pluginPath: pluginPath(root),
+      version: VERSION,
+      token: 'test-token',
+      fetchImpl: async (url, options) => {
+        requests.push({ url, options });
+        return fetchImpl(url, options);
+      },
+    });
+
+    assert.equal(requests.length, 4);
+    assert.ok(
+      requests.every(
+        ({ options }) => options.headers.Authorization === 'Bearer test-token',
+      ),
+    );
+    assert.equal(
+      requests[0].options.headers.Accept,
+      'application/vnd.github+json',
+    );
+    assert.ok(
+      requests
+        .slice(1)
+        .every(
+          ({ options }) =>
+            options.headers.Accept === 'application/octet-stream',
+        ),
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('downloads and validates everything before changing the plugin folder', async () => {

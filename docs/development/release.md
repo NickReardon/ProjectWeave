@@ -164,7 +164,9 @@ Then run `npm run plugin:update`. The destination must be the exact
 The updater downloads the pinned release's three plugin assets to staging,
 validates the manifest ID/version and bundle, backs up managed installed files,
 then replaces them while preserving `data.json`. A download or validation
-failure leaves the installed plugin untouched. Reload Obsidian afterward.
+failure leaves the installed plugin untouched. Private-repository testing also
+requires `GITHUB_TOKEN` in the process environment; public releases do not.
+Reload Obsidian afterward.
 
 ## Dogfood vault
 

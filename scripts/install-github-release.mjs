@@ -88,14 +88,21 @@ export function assertPluginDirectory(path) {
   return pluginPath;
 }
 
-export function releaseAssetUrl(repository, version, file) {
+export function releaseByTagUrl(repository, version) {
   if (!REPOSITORY.test(repository) || !SEMANTIC_VERSION.test(version)) {
     throw new Error('Cannot build a release URL from unsafe input.');
+  }
+  return `https://api.github.com/repos/${repository}/releases/tags/${encodeURIComponent(version)}`;
+}
+
+export function releaseAssetApiUrl(repository, assetId, file) {
+  if (!REPOSITORY.test(repository) || !Number.isSafeInteger(assetId)) {
+    throw new Error('Cannot build a release asset URL from unsafe input.');
   }
   if (!PLUGIN_RUNTIME_FILES.includes(file)) {
     throw new Error(`Refusing to download an unmanaged plugin file: ${file}.`);
   }
-  return `https://github.com/${repository}/releases/download/${encodeURIComponent(version)}/${file}`;
+  return `https://api.github.com/repos/${repository}/releases/assets/${String(assetId)}`;
 }
 
 export async function installGitHubRelease({
@@ -126,15 +133,52 @@ export async function installGitHubRelease({
       mkdir(stagedPlugin, { recursive: true }),
       mkdir(backupDirectory, { recursive: true }),
     ]);
-    const headers = {
-      Accept: 'application/octet-stream',
+    const apiHeaders = {
+      Accept: 'application/vnd.github+json',
       'User-Agent': 'Project-Weave-release-updater',
+      'X-GitHub-Api-Version': '2022-11-28',
       ...(token === null ? {} : { Authorization: `Bearer ${token}` }),
     };
+    const releaseResponse = await fetchImpl(
+      releaseByTagUrl(repository, version),
+      { headers: apiHeaders, redirect: 'follow' },
+    );
+    if (!releaseResponse.ok) {
+      throw new Error(
+        `GitHub release ${version} could not be read (${String(releaseResponse.status)}).`,
+      );
+    }
+    const release = await releaseResponse.json();
+    if (release?.tag_name !== version || !Array.isArray(release.assets)) {
+      throw new Error(`GitHub release ${version} returned invalid metadata.`);
+    }
+    const assets = new Map();
+    for (const asset of release.assets) {
+      if (
+        asset !== null &&
+        typeof asset === 'object' &&
+        typeof asset.name === 'string' &&
+        Number.isSafeInteger(asset.id)
+      ) {
+        if (assets.has(asset.name)) {
+          throw new Error(
+            `GitHub release ${version} contains duplicate ${asset.name} assets.`,
+          );
+        }
+        assets.set(asset.name, asset.id);
+      }
+    }
     await Promise.all(
       PLUGIN_RUNTIME_FILES.map(async (file) => {
-        const url = releaseAssetUrl(repository, version, file);
-        const response = await fetchImpl(url, { headers, redirect: 'follow' });
+        const assetId = assets.get(file);
+        if (!Number.isSafeInteger(assetId)) {
+          throw new Error(`GitHub release ${version} did not provide ${file}.`);
+        }
+        const url = releaseAssetApiUrl(repository, assetId, file);
+        const response = await fetchImpl(url, {
+          headers: { ...apiHeaders, Accept: 'application/octet-stream' },
+          redirect: 'follow',
+        });
         if (!response.ok) {
           throw new Error(
             `GitHub release ${version} did not provide ${file} (${String(response.status)}).`,
