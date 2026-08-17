@@ -25,7 +25,9 @@ public-readiness documentation slice: MIT license, named support metadata,
 contribution/security guidance, privacy/network disclosures, current preview
 references, and a pinned companion checksum/install path. The earlier corrected
 run `32012926052` published `0.7.0-beta.32012926052` from `de86a86`; these
-follow-up changes pass the repository gate and are ready to commit and push.
+follow-up changes pass the repository gate and are committed and pushed as
+`6f6b8fb`. GitHub now has the public description/topics and protected `main`
+(the `Check` workflow plus one approving review); visibility remains private.
 
 ## Verified
 
@@ -38,11 +40,10 @@ slice also passes the post-change gate.
 
 ## Next
 
-1. Commit and push the public-readiness slice.
-2. Test BRAT from the prepared clean disposable vault and finish recording
+1. Test BRAT from the prepared clean disposable vault and finish recording
    [[Tasks/Accept the BRAT preview and optional companion setup]].
-3. Exercise the optional companion install, scoped client, and failure paths.
-4. Decide when to make the repository public after the clean-checkout review of
+2. Exercise the optional companion install, scoped client, and failure paths.
+3. Decide when to make the repository public after the clean-checkout review of
    [[Tasks/Prepare public preview metadata and optional agent setup]].
    [[Tasks/Prepare public preview metadata and optional agent setup]].
 
@@ -51,7 +52,11 @@ slice also passes the post-change gate.
 - BRAT and companion-client acceptance require interactive external clients and
   remain unverified even though the release artifacts themselves are verified.
 - GitHub's public visibility, secret scanning, and branch-protection settings
-  remain external repository decisions; no visibility change has been made.
+  remain partly external repository decisions; visibility is unchanged and
+  secret scanning is unavailable on the current private-repository plan.
+- Dependabot may continue to display the nanoid alert until it refreshes; the
+  lockfile now resolves the dev-only chain to patched `3.3.18`, and npm audit
+  reports zero vulnerabilities.
 - The repository is private, so beta.1 proves the authenticated path rather than
   the eventual public no-token installation experience.
 - `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound
