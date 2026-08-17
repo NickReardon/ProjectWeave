@@ -29,10 +29,18 @@ release.
 
 ## Next
 
-Build into a vault and look at the agent grant row at narrow width, since its
-responsive fix was reasoned from the stylesheet rather than observed. Then
-publish a new prerelease and rerun the clean BRAT and matching-companion
-acceptance against those artifacts.
+Prerelease `0.7.0-beta.32068417927` is published from the merged source. Its
+manifest names that version, the companion checksum verifies, and the plugin
+bundle carries the lazy `require("node:net")` rather than the dynamic import
+that failed the previous acceptance. Probing the published companion with fake
+credentials returns the actionable gateway message and never answers
+`initialize`.
+
+What remains is the part that needs Obsidian: install the prerelease through
+BRAT into a clean vault, run the companion against a real MCP client, and look
+at the agent grant row at narrow width, since its responsive fix was reasoned
+from the stylesheet rather than observed. Record the result on
+[[Tasks/Accept the BRAT preview and optional companion setup]].
 
 ## Loose ends
 
