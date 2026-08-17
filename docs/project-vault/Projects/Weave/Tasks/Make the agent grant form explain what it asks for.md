@@ -2,7 +2,7 @@
 type: task
 title: Make the agent grant form explain what it asks for
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-shared-reads-agent]]'
+epic: '[[Epics/Epic-agent-grant-lifecycle]]'
 status: backlog
 category: enhancement
 priority: high
@@ -54,14 +54,14 @@ even is.
 
 ## Agreed direction
 
-The grant form moves out of the settings row and into a dialog, and grants
-become configurable after they exist.
+The grant form moves out of the settings row and into a dialog, and a grant is
+fixed once it exists.
 
 **A dialog, not a settings row.** `Setting` gives one label and a control strip,
 which is why three inputs share a single name and why the row's responsive
 layout has already been repaired twice. Every other multi-input surface in this
 plugin is a modal. The settings entry reduces to a list of existing grants with
-create, edit, and revoke actions.
+create and revoke actions.
 
 **Immutable once created.** A grant is not edited after the fact. Correcting one
 means revoking it and creating a replacement. Editing is deliberately deferred

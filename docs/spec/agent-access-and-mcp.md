@@ -484,6 +484,51 @@ slices and are not present in the read-only grant schema.
 
 First enablement explains that granted note text may be sent by the MCP client to its configured model/provider. Project Weave itself performs no model/network call.
 
+### Grant lifecycle and creation
+
+A grant is **immutable once created**. There is no update operation on an
+existing grant's project, content roots, or any other scoped value. Correcting
+a mistaken grant means revoking it and creating a replacement; nothing about
+this rules out adding an edit operation later, but until one exists, creation
+and revocation are the only two operations a grant supports. Immutability
+keeps the security story simple: a secret already handed to a client covers
+exactly what it covered at issuance, and scope cannot silently widen
+underneath a connection that already holds the credential.
+
+Because a mistake is permanent rather than repairable, **local resolution
+gates creation**. The chosen project and every chosen content root must
+resolve against the current vault — the project against the index of
+projects, each content root against the vault's file tree — before the create
+action is available. This resolution is local: it is answered from the vault
+and index the plugin already holds, never a round trip through the agent
+gateway, and it succeeds or fails identically whether the gateway is enabled
+or disabled. A content-root list is optional and an empty list always
+resolves, since a grant with no content roots is a valid metadata-only grant.
+
+Settings presents agent grants through a creation surface separate from the
+list of existing grants, following this plugin's general modal convention for
+multi-field decisions (see [Plugin experience](plugin-experience.md)). The
+settings entry itself is a list of existing grants with create and revoke
+actions; there is no inline multi-field row.
+
+**Creation stays atomic.** Pressing create both creates the grant and hands
+over its secret in one step; a resolution failure blocks the action before
+either happens. A grant either exists with its secret delivered, or it does
+not exist — there is no reachable state where a grant exists but its secret
+was never captured. What is delivered at creation is a complete client
+configuration — endpoint, grant id, and secret together — because a client
+needs all three to connect and transcribing them by hand from separate
+displayed values is itself a source of setup error.
+
+**The grant list conveys scope without an editor.** Each listed grant states
+the project it may read, whether it is metadata-only or which content roots
+additionally expose Markdown bodies, and enough identity to recognize it when
+deciding whether to revoke it and to configure a client against it. A grant's
+scope must be readable from the list alone; immutability is only tolerable
+because reading a grant never requires opening it. What identifies a grant in
+the list — a free-text label, creation order, or some other distinguishing
+detail — is settled by task-level design rather than fixed here.
+
 ### Read-only slice
 
 The initial read-only adapter does not register or advertise proposal/write

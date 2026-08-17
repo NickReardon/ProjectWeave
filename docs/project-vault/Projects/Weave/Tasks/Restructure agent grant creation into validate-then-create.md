@@ -2,7 +2,7 @@
 type: task
 title: Restructure agent grant creation into validate-then-create
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-shared-reads-agent]]'
+epic: '[[Epics/Epic-agent-grant-lifecycle]]'
 status: backlog
 category: enhancement
 priority: high
