@@ -4,6 +4,7 @@ import {
   COMPANION_RUNTIME_FILES,
   PLUGIN_RUNTIME_FILES,
   verifyDirectoryInventory,
+  verifyPluginRuntimeImports,
 } from './release-inventory.mjs';
 
 await verifyDirectoryInventory({
@@ -27,25 +28,7 @@ const companion = await readFile(
   'dist/companion/project-weave-mcp.cjs',
   'utf8',
 );
-const requiredModules = [
-  ...bundle.matchAll(/require\((['"])([^'"]+)\1\)/gu),
-].flatMap((match) => (match[2] === undefined ? [] : [match[2]]));
-const unexpectedModules = [
-  ...new Set(
-    requiredModules.filter(
-      (moduleName) =>
-        moduleName !== 'obsidian' &&
-        !moduleName.startsWith('@codemirror/') &&
-        !moduleName.startsWith('@lezer/'),
-    ),
-  ),
-].sort();
-
-if (unexpectedModules.length > 0) {
-  throw new Error(
-    `Release bundle contains unsupported runtime imports: ${unexpectedModules.join(', ')}.`,
-  );
-}
+const requiredModules = verifyPluginRuntimeImports(bundle);
 
 if (bundle.includes('sourceMappingURL')) {
   throw new Error('Production release bundle must not contain a source map.');
@@ -86,6 +69,4 @@ if (!companion.includes('2025-06-18')) {
 
 console.log(`Plugin inventory verified: ${pluginInventory.join(', ')}`);
 console.log(`Companion inventory verified: ${companionInventory.join(', ')}`);
-console.log(
-  `Runtime imports verified: ${[...new Set(requiredModules)].sort().join(', ')}`,
-);
+console.log(`Runtime imports verified: ${requiredModules.join(', ')}`);

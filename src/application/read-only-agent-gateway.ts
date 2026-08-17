@@ -28,6 +28,7 @@ export interface AgentGrant {
 
 export interface AgentGatewayRequest {
   readonly requestId: string;
+  readonly companionVersion: string;
   readonly grantId: string;
   readonly secret: string;
   readonly operation: ReadOnlyAgentOperation;
@@ -62,6 +63,7 @@ export class ReadOnlyAgentGateway {
   readonly #enabled: () => boolean;
   readonly #vaultId: () => string;
   readonly #grants: () => readonly AgentGrant[];
+  readonly #pluginVersion: () => string;
   readonly #queryApi: () => ProjectWeaveQueryApi;
   readonly #digestSecret: SecretDigester;
 
@@ -69,12 +71,14 @@ export class ReadOnlyAgentGateway {
     readonly enabled: () => boolean;
     readonly vaultId: () => string;
     readonly grants: () => readonly AgentGrant[];
+    readonly pluginVersion: () => string;
     readonly queryApi: () => ProjectWeaveQueryApi;
     readonly digestSecret: SecretDigester;
   }) {
     this.#enabled = options.enabled;
     this.#vaultId = options.vaultId;
     this.#grants = options.grants;
+    this.#pluginVersion = options.pluginVersion;
     this.#queryApi = options.queryApi;
     this.#digestSecret = options.digestSecret;
   }
@@ -106,6 +110,14 @@ export class ReadOnlyAgentGateway {
         request.requestId,
         'gateway.authentication_failed',
         'The grant credentials are invalid.',
+      );
+    }
+    const pluginVersion = this.#pluginVersion();
+    if (request.companionVersion !== pluginVersion) {
+      return denied(
+        request.requestId,
+        'gateway.companion_incompatible',
+        `MCP companion ${request.companionVersion || 'unknown'} is incompatible with Project Weave ${pluginVersion}. Install project-weave-mcp.cjs from the same release tag.`,
       );
     }
 

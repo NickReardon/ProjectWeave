@@ -55,3 +55,24 @@ the companion SHA-256 matched
 `c5fbeda4a707e1928d88a9de20d771df2e5988e691f3eba50577f4c0c7abe6c6`.
 The disposable vault is prepared with Obsidian `1.12.7` and BRAT `2.2.0`; the
 actual BRAT command and runtime checks remain outstanding.
+
+On 2026-08-17, BRAT 2.2.0 installed public prerelease
+`0.7.0-beta.32018589204` from source
+`b5a397b14c25c483e29de077d8d450c282f76b54` into the disposable vault using
+only `main.js`, `manifest.json`, and `styles.css`. Obsidian 1.13.7 (installer
+1.12.7) loaded that exact version on Windows 11, and the README download
+installed the matching companion with its published checksum intact. Core
+desktop use remained available without the companion; mobile-emulation smoke
+evidence is recorded in Check 14.
+
+The published prerelease is not accepted. Enabling its gateway failed because
+the bundled desktop adapter retained `import("node:net")`, which Electron tried
+to fetch as a browser module. Acceptance also showed that the bridge request
+carried no plugin/companion compatibility version. The current branch replaces
+the dynamic Node imports with lazy desktop-only `require` calls, makes release
+verification reject dynamic `node:` imports, and adds an exact same-release-tag
+handshake. With prospective same-version artifacts, a purpose-built MCP SDK
+1.30.0 client under Node 24.11.1 passed all ten tools, project/root boundaries,
+revocation, and shutdown; the prior companion failed closed with actionable
+same-tag guidance. A new prerelease and a clean rerun of this task remain
+required before inviting testers.

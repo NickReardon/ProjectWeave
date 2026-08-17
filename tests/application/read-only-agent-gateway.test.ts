@@ -54,6 +54,18 @@ describe('ReadOnlyAgentGateway', () => {
     );
   });
 
+  it('fails closed with same-tag guidance for an incompatible companion', async () => {
+    const response = await createGateway(() => true).handle({
+      ...request('project_context'),
+      companionVersion: '0.6.0',
+    });
+    expect(response.ok).toBe(false);
+    if (response.ok) throw new Error('Expected incompatible response');
+    expect(response.error.code).toBe('gateway.companion_incompatible');
+    expect(response.error.message).toContain('Project Weave 0.7.0-beta.1');
+    expect(response.error.message).toContain('same release tag');
+  });
+
   it('overwrites caller project scope with the authenticated one-project grant', async () => {
     const gateway = createGateway(() => true);
     const response = await gateway.handle({
@@ -132,6 +144,7 @@ function createGateway(enabled: () => boolean): ReadOnlyAgentGateway {
     enabled,
     vaultId: () => 'vault-1',
     grants: () => [GRANT],
+    pluginVersion: () => '0.7.0-beta.1',
     queryApi: () => new ProjectWeaveQueryApi(() => snapshot),
     digestSecret: async (secret) => `digest:${secret}`,
   });
@@ -139,12 +152,14 @@ function createGateway(enabled: () => boolean): ReadOnlyAgentGateway {
 
 function request(operation: (typeof READ_ONLY_AGENT_OPERATIONS)[number]): {
   readonly requestId: string;
+  readonly companionVersion: string;
   readonly grantId: string;
   readonly secret: string;
   readonly operation: typeof operation;
 } {
   return {
     requestId: 'request-1',
+    companionVersion: '0.7.0-beta.1',
     grantId: GRANT.id,
     secret: 'correct',
     operation,

@@ -542,7 +542,7 @@ the creation profile, not the template.
 
 ---
 
-### 17. Read-only agent gateway — unrun
+### 17. Read-only agent gateway ✅ passed
 
 **Desktop only.** This check opens a local named pipe or Unix socket while the
 gateway is enabled. It does not write vault Markdown.

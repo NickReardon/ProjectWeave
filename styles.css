@@ -29,6 +29,27 @@
   font-size: var(--font-ui-smaller);
 }
 
+/* A grant has more controls than a normal Obsidian setting. Give its label
+   the full row and let the fields reflow to the settings pane's actual width
+   instead of shrinking the description and clipping the action button. */
+.project-weave-agent-grant-setting {
+  display: block;
+}
+
+.project-weave-agent-grant-setting .setting-item-control {
+  display: grid;
+  gap: var(--size-4-2);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  margin-top: var(--size-4-3);
+  width: 100%;
+}
+
+.project-weave-agent-grant-setting .setting-item-control input,
+.project-weave-agent-grant-setting .setting-item-control button {
+  min-width: 0;
+  width: 100%;
+}
+
 .project-weave-workbench {
   /* The workbench lives in a pane, not the window. Sizing off the viewport
      leaves a narrow pane in a wide window laid out for space it does not

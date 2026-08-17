@@ -237,11 +237,15 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
     let grantLabel = '';
     let grantProject = '';
     let grantRoots = '';
-    new Setting(containerEl)
+    const agentGrantSetting = new Setting(containerEl)
       .setName('Create agent grant')
       .setDesc(
         'The secret is copied to the clipboard once. Content folders are optional comma-separated vault paths for document reads.',
-      )
+      );
+    agentGrantSetting.settingEl.classList.add(
+      'project-weave-agent-grant-setting',
+    );
+    agentGrantSetting
       .addText((text) =>
         text.setPlaceholder('Repository name').onChange((value) => {
           grantLabel = value;

@@ -9,6 +9,7 @@ import {
   COMPANION_RUNTIME_FILES,
   PLUGIN_RUNTIME_FILES,
   verifyDirectoryInventory,
+  verifyPluginRuntimeImports,
 } from './release-inventory.mjs';
 
 test('keeps the Obsidian plugin and optional companion inventories separate', () => {
@@ -58,4 +59,21 @@ test('verifies an exact directory inventory', async () => {
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('allows lazy desktop Node requires but rejects dynamic Node imports', () => {
+  assert.deepEqual(
+    verifyPluginRuntimeImports(
+      'require("obsidian"); require("node:net"); require("node:fs/promises");',
+    ),
+    ['node:fs/promises', 'node:net', 'obsidian'],
+  );
+  assert.throws(
+    () => verifyPluginRuntimeImports('import("node:net")'),
+    /unsupported dynamic Node imports: node:net/u,
+  );
+  assert.throws(
+    () => verifyPluginRuntimeImports('require("node:child_process")'),
+    /unsupported runtime imports: node:child_process/u,
+  );
 });

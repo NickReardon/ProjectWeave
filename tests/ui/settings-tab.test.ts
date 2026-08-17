@@ -59,5 +59,14 @@ describe('ProjectWeaveSettingTab', () => {
       (input) => input.type === 'checkbox',
     );
     expect(gatewayToggle?.checked).toBe(false);
+
+    const grantForm = tab.containerEl.querySelector(
+      '.project-weave-agent-grant-setting',
+    );
+    expect(grantForm).not.toBeNull();
+    expect(grantForm?.querySelectorAll('input')).toHaveLength(3);
+    expect(grantForm?.querySelector('button')?.textContent).toBe(
+      'Create and copy secret',
+    );
   });
 });

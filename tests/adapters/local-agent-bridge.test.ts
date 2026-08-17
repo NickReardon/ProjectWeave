@@ -1,4 +1,5 @@
-import { createConnection } from 'node:net';
+import * as fileSystem from 'node:fs/promises';
+import * as network from 'node:net';
 import { describe, expect, it } from 'vitest';
 
 import { LocalAgentBridge } from '../../src/adapters/desktop/local-agent-bridge';
@@ -16,7 +17,10 @@ describe('LocalAgentBridge', () => {
         result: { revision: 7 },
       }),
     };
-    const bridge = new LocalAgentBridge(gateway, endpoint);
+    const bridge = new LocalAgentBridge(gateway, endpoint, {
+      fileSystem,
+      network,
+    });
     expect(bridge.state).toEqual({ listening: false, endpoint: null });
 
     await bridge.start();
@@ -42,7 +46,7 @@ async function exchange(
   endpoint: string,
   request: Readonly<Record<string, unknown>>,
 ): Promise<unknown> {
-  const socket = createConnection(endpoint);
+  const socket = network.createConnection(endpoint);
   socket.setEncoding('utf8');
   await new Promise<void>((resolve, reject) => {
     socket.once('connect', resolve);
