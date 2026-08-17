@@ -13,7 +13,7 @@ export default tseslint.config(
       'node_modules/**',
       'templates/**',
       'test-vault/**',
-      'docs/project-vault/.obsidian/**',
+      '**/.obsidian/**',
     ],
   },
   eslint.configs.recommended,

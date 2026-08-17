@@ -3,7 +3,7 @@ type: spec
 area: workflow
 status: current
 canonical: true
-related_decisions: ["0002"]
+related_decisions: ["0002", "0026"]
 ---
 
 # Streamlined Long-Project Workflow
@@ -15,6 +15,10 @@ This document implements the direction in [the product brief](product-brief.md) 
 ## Goal
 
 Let a solo developer or small team carry one large project from evolving Markdown design through ordered execution while requiring only the project-management concepts they choose to use.
+
+## Relationship to the Project workbench
+
+This document and the [Project workbench](project-workbench.md) describe one surface, not two: the workbench is the persistent Obsidian view (established in [ADR 0007](../decisions/0007-use-a-persistent-obsidian-workbench-view.md)) that presents the Plan, Board, and My Work destinations specified below. This document owns the workflow model: the task lifecycle, progressive disclosure, ranked backlog ordering, priority/due filtering, and the backlog/board boundary. Project workbench owns the view mechanics that render it — opening, perspective consistency/refresh, empty states, and mobile/accessibility.
 
 ## Core mental model
 

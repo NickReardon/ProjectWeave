@@ -2,8 +2,14 @@
 
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import type { ProjectSummary } from '../../src/application/query-api';
 import type ProjectWeavePlugin from '../../src/main';
-import { ProjectWeaveSettingTab } from '../../src/ui/settings-tab';
+import {
+  lastListSegment,
+  matchingProjects,
+  ProjectWeaveSettingTab,
+  replaceLastListSegment,
+} from '../../src/ui/settings-tab';
 import { installObsidianDom } from '../helpers/obsidian-dom';
 import { createStubApp } from '../helpers/obsidian-stub';
 
@@ -68,5 +74,72 @@ describe('ProjectWeaveSettingTab', () => {
     expect(grantForm?.querySelector('button')?.textContent).toBe(
       'Create and copy secret',
     );
+  });
+});
+
+function project(path: string, title: string): ProjectSummary {
+  return {
+    ref: { kind: 'project', path, fingerprint: 'fingerprint' },
+    title,
+    status: 'active',
+  };
+}
+
+describe('matchingProjects', () => {
+  const projects = [
+    project('Projects/Game/Project.md', 'Game'),
+    project('Projects/Tools/Project.md', 'Tools'),
+  ];
+
+  it('returns every indexed project for an empty query', () => {
+    expect(matchingProjects(projects, '')).toHaveLength(2);
+  });
+
+  it('matches on title or path, case-insensitively', () => {
+    expect(matchingProjects(projects, 'game')).toEqual([projects[0]]);
+    expect(matchingProjects(projects, 'TOOLS/PROJECT')).toEqual([projects[1]]);
+  });
+
+  it('sorts matches by title', () => {
+    const result = matchingProjects(projects, '');
+    expect(result.map((entry) => entry.title)).toEqual(['Game', 'Tools']);
+  });
+});
+
+describe('lastListSegment', () => {
+  it('returns the whole value when there is no comma', () => {
+    expect(lastListSegment('Projects/Game/Documents')).toBe(
+      'Projects/Game/Documents',
+    );
+  });
+
+  it('returns the text after the last comma', () => {
+    expect(lastListSegment('Projects/Game/Documents, Proj')).toBe(' Proj');
+  });
+});
+
+describe('replaceLastListSegment', () => {
+  it('replaces a single segment', () => {
+    expect(replaceLastListSegment('Proj', 'Projects/Game/Documents')).toBe(
+      'Projects/Game/Documents',
+    );
+  });
+
+  it('preserves already-entered segments when completing a later one', () => {
+    expect(
+      replaceLastListSegment(
+        'Projects/Game/Documents, Ass',
+        'Projects/Game/Assets',
+      ),
+    ).toBe('Projects/Game/Documents, Projects/Game/Assets');
+  });
+
+  it('trims whitespace consistently with how #createAgentGrant parses roots', () => {
+    expect(
+      replaceLastListSegment(
+        '  Projects/Game/Documents ,  ',
+        'Projects/Game/Assets',
+      ),
+    ).toBe('Projects/Game/Documents, Projects/Game/Assets');
   });
 });

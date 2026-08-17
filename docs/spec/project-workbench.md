@@ -3,7 +3,7 @@ type: spec
 area: workbench
 status: current
 canonical: true
-related_decisions: ["0007", "0011"]
+related_decisions: ["0007", "0011", "0026"]
 ---
 
 # Project Workbench
@@ -11,6 +11,10 @@ related_decisions: ["0007", "0011"]
 ## Goal
 
 Provide focused planning and execution views for one project while using the same indexed Markdown entities and domain rules as the portfolio dashboard.
+
+## Relationship to the Streamlined workflow
+
+The Project workbench and [Streamlined long-project workflow](streamlined-long-project-workflow.md) describe one surface, not two. This document owns the persistent view's mechanics: opening and project selection, the perspective list and what each renders, refresh/consistency guarantees, empty/invalid states, and mobile/accessibility behavior. Streamlined long-project workflow owns the workflow model those perspectives present, including the task lifecycle, progressive disclosure, ranked backlog ordering, priority/due filtering, and the backlog/board boundary. Where a perspective below implements part of that workflow, it links to the owning section instead of restating it.
 
 ## Opening and context
 
@@ -20,9 +24,9 @@ Open from a project note, portfolio card, command palette, or related entity. If
 
 ### Backlog
 
-Non-terminal tasks with no current sprint. Group by epic or none; show status, readiness, owner, points, priority, and dependency warnings.
+Shows the project's tasks within the backlog/board boundary owned by [Streamlined long-project workflow](streamlined-long-project-workflow.md#ranked-backlog). Group by epic or none; show status, readiness, owner, points, priority, and dependency warnings.
 
-Ordering is by manual rank, and the perspective supports the reorder and rebalance actions specified in [Scheduling and milestones](scheduling-and-milestones.md). Rank ordering and its interaction with priority are specified in [Streamlined long-project workflow](streamlined-long-project-workflow.md).
+Ordering follows the ranked-backlog rules owned by [Streamlined long-project workflow](streamlined-long-project-workflow.md#ranked-backlog), including rank's interaction with priority. The perspective supports the reorder and rebalance actions specified in [Scheduling and milestones](scheduling-and-milestones.md).
 
 ### Current sprint
 
@@ -64,7 +68,7 @@ Show non-terminal tasks with a due date, separated into overdue and due-today gr
 
 Create/edit task, change status/owner/sprint, manage dependencies, create next iteration, open epic/origin, and start sprint planning are available according to context. Multi-select MAY support batch planning, subject to safe-write rules.
 
-The workbench also offers a project-status selector and filters for priority and due state. The controlled values and their meanings are specified in [Scheduling and milestones](scheduling-and-milestones.md).
+The workbench also offers a project-status selector, whose controlled values are specified in [Scheduling and milestones](scheduling-and-milestones.md). Priority and due-state filtering are owned by [Streamlined long-project workflow](streamlined-long-project-workflow.md#board).
 
 ## Consistency and refresh
 

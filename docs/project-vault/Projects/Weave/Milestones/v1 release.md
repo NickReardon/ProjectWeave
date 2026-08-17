@@ -56,7 +56,7 @@ authored but not queryable; [[Tasks/Add Epic roadmap graph fields]] closes that.
 
 ## Progress
 
-> Derived from member tasks with ``milestone`` property set to: [[Project Weave v1 Release Milestone]]
+> Derived from member tasks with ``milestone`` property set to: [[Milestones/v1 release]]
 
 <!-- progress-placeholder -->
 
