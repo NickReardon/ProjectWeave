@@ -56,13 +56,9 @@ Subtree `AGENTS.md` files provide local conventions when that subtree is touched
 - Inspect the working tree first and preserve unrelated changes.
 - Work on a short-lived branch from `main`; keep commits small and coherent.
 - Keep one owner per fact and link to it from routers.
-- Update the owning specification with product behavior changes; specifications
-  are living documents and own current behavior.
+- Product behavior changes update the owning, living specification.
 - Keep documentation and the behavior it describes in the same commit.
-- Land a design before building it: write the specification and decision record,
-  create the Epic, tasks, and milestone assignment, and commit that. Only then
-  branch off to implement. Intended behavior is stated up front; implemented
-  behavior changes alongside the code.
+- Land a design before branching to build it.
 - Record rationale in a decision record. Accepted records are immutable and are
   superseded rather than edited; they never define current behavior.
 - Treat compatibility surfaces as versioned contracts; size releases by change.
