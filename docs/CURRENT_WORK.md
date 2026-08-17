@@ -45,7 +45,6 @@ slice also passes the post-change gate.
 2. Exercise the optional companion install, scoped client, and failure paths.
 3. Decide when to make the repository public after the clean-checkout review of
    [[Tasks/Prepare public preview metadata and optional agent setup]].
-   [[Tasks/Prepare public preview metadata and optional agent setup]].
 
 ## Loose ends
 
