@@ -20,42 +20,37 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-A documentation-model overhaul, uncommitted, across 132 paths and five decision
-records:
+Nothing. The working tree is clean at 0.6.0.
 
-- **0021** — the MCP companion ships as an optional release asset, not a fourth
-  plugin file. Predates this work; docs only, tooling not yet changed.
-- **0022, 0023** — specifications are living and own current behavior; decision
-  records are immutable once accepted. One owner per fact. `CURRENT_WORK.md`
-  became this file, and the accumulated gate log moved to the archive.
-- **0024** — roadmap order comes from milestone and rank, not filenames. Epic
-  notes renamed and ranked; milestone `due_date` became optional.
-- **0025** — specifications are named by subject, not numbered. 20 files
-  renamed, ~190 references rewritten.
+The documentation-model overhaul landed as two commits on
+`feat/multi-file-commit-coordinator`: the optional MCP companion distribution,
+then the document model, roadmap ordering, and specification naming. Neither is
+pushed or merged.
+
+The branch name predates this work and describes none of it. Worth renaming or
+merging before more lands on it.
 
 ## Verified
 
-`npm run check` passes end to end: 34 Vitest files with 368 tests, 36 script
-tests, a clean dogfood diagnostics run over 79 notes, the production build, and
-release-inventory verification. `agents doctor` resolves all 11 pointers.
+`npm run check` passes: 34 Vitest files with 368 tests, 36 script tests, a clean
+dogfood diagnostics run over 79 notes, the production build, and release
+inventory verification. `agents doctor` resolves all 11 pointers.
 
 ## Next
 
-1. **Bump the version before committing.** `milestone.due_date.missing` is no
-   longer emitted and a required frontmatter field became optional — a
-   compatibility surface moved while records stayed at 0.5.6. `version:check`
-   only proves `package.json` and `manifest.json` agree, so it cannot catch this.
-2. **Commit.** The prerelease work (0021) is separable; the rest interlocks,
-   because 0025 supersedes part of 0022 and 0024's edits sit in files 0022
-   rewrote. Two commits is the safe split.
-3. Run Check 17, the desktop read-only agent gateway, and record the outcome on
-   its task note and the shared-reads Epic.
-4. [[Tasks/Gate documentation links and naming]] — the gate went green this
-   session with a broken wikilink in the tree. Both large renames were verified
-   by hand-written sweeps.
+1. Run Check 17, the desktop read-only agent gateway, and record the outcome on
+   its task note and the shared-reads Epic. It is the only task in `todo`.
+2. [[Tasks/Gate documentation links and naming]] — nothing verifies that links
+   resolve. The gate went green with a broken wikilink during the rename work,
+   and both large renames were checked by hand-written sweeps.
+3. [[Tasks/Separate plugin and companion release inventories]] — ADR 0021
+   changed the specification; the build, export, and verification tooling still
+   treats the companion as a fourth plugin file.
 
-## Loose end
+## Loose ends
 
-`docs/IMPLEMENTATION_ORDER.md` is a compatibility pointer with no inbound
-references, and it now states two things that are false. It is a deletion
-candidate awaiting a decision.
+- `docs/IMPLEMENTATION_ORDER.md` is a compatibility pointer with no inbound
+  references, and it now states two things that are false. A deletion candidate
+  awaiting a decision.
+- Milestone `rank` is specified but unparsed, so roadmap order is authored
+  rather than derived. [[Tasks/Add Epic roadmap graph fields]] closes it.
