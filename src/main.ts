@@ -405,6 +405,7 @@ export default class ProjectWeavePlugin extends Plugin {
       enabled: () => this.settings.agentGatewayEnabled,
       vaultId: () => this.settings.agentVaultId,
       grants: () => this.settings.agentGrants,
+      pluginVersion: () => this.manifest.version,
       queryApi: () => this.#readSource.current.queryApi,
       digestSecret,
     });

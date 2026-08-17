@@ -13,22 +13,24 @@ verified, and what is next. Rewrite it rather than appending history.
 
 ## In flight
 
-The agent-grant settings form now uses a scoped responsive grid so its three
-fields and action button reflow within narrow settings panes instead of
-collapsing the description and clipping the button.
+None.
 
 ## Verified
 
-The scoped settings-tab regression passes, and the complete `npm run check`
-gate passes with 368 Vitest tests and 58 script tests.
+The responsive agent-grant settings layout, desktop bridge loader, exact
+plugin/companion version handshake, and release-bundle regression are
+implemented. The complete `npm run check` gate passes with 369 Vitest tests and
+59 script tests. Desktop gateway check 17 passes against a real MCP client;
+mobile-emulation smoke evidence is recorded separately from full acceptance.
 
 ## Next
 
-Visually confirm the agent-grant form at narrow desktop settings-pane widths.
+Publish a new prerelease from the accepted source, then rerun the clean BRAT and
+matching-companion acceptance task against those release artifacts.
 
 ## Loose ends
 
-- Narrow-width Obsidian layout acceptance is interactive; DOM coverage verifies
-  the scoped responsive hook and complete form controls but not rendered CSS.
-- BRAT, companion-client, and mobile acceptance remain interactive follow-up
-  work; automated evidence does not mark them complete.
+- The public prerelease tested during acceptance still contains the broken
+  dynamic Node import; only a new prerelease can prove the fix end to end.
+- Full mobile check 11a through 11g remains outstanding; the current evidence is
+  a successful workbench and gateway-isolation smoke test in mobile emulation.

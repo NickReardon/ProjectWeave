@@ -2,6 +2,8 @@ import type {
   AgentGatewayRequest,
   AgentGatewayResponse,
 } from '../../application/read-only-agent-gateway';
+import type * as NodeFileSystemPromises from 'node:fs/promises';
+import type * as NodeNetwork from 'node:net';
 import type { Server, Socket } from 'node:net';
 
 const MAX_REQUEST_BYTES = 1_048_576;
@@ -15,16 +17,27 @@ export interface AgentGatewayHandler {
   handle(request: AgentGatewayRequest): Promise<AgentGatewayResponse>;
 }
 
+interface LocalAgentBridgeNodeRuntime {
+  readonly fileSystem: typeof NodeFileSystemPromises;
+  readonly network: typeof NodeNetwork;
+}
+
 /** NDJSON bridge over a local named pipe or Unix-domain socket. */
 export class LocalAgentBridge {
   readonly #gateway: AgentGatewayHandler;
   readonly #endpoint: string;
+  #nodeRuntime: LocalAgentBridgeNodeRuntime | null;
   #server: Server | null = null;
   readonly #sockets = new Set<Socket>();
 
-  public constructor(gateway: AgentGatewayHandler, endpoint: string) {
+  public constructor(
+    gateway: AgentGatewayHandler,
+    endpoint: string,
+    nodeRuntime: LocalAgentBridgeNodeRuntime | null = null,
+  ) {
     this.#gateway = gateway;
     this.#endpoint = endpoint;
+    this.#nodeRuntime = nodeRuntime;
   }
 
   public get state(): LocalAgentBridgeState {
@@ -36,12 +49,14 @@ export class LocalAgentBridge {
 
   public async start(): Promise<void> {
     if (this.#server !== null) return;
-    const net = await import('node:net');
+    const runtime = this.#nodeRuntime ?? loadNodeRuntime();
+    this.#nodeRuntime = runtime;
     if (process.platform !== 'win32') {
-      const fs = await import('node:fs/promises');
-      await fs.rm(this.#endpoint, { force: true });
+      await runtime.fileSystem.rm(this.#endpoint, { force: true });
     }
-    const server = net.createServer((socket) => this.#accept(socket));
+    const server = runtime.network.createServer((socket) =>
+      this.#accept(socket),
+    );
     this.#server = server;
     await new Promise<void>((resolve, reject) => {
       const onError = (error: Error): void => {
@@ -68,8 +83,7 @@ export class LocalAgentBridge {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
     if (process.platform !== 'win32') {
-      const fs = await import('node:fs/promises');
-      await fs.rm(this.#endpoint, { force: true });
+      await this.#nodeRuntime?.fileSystem.rm(this.#endpoint, { force: true });
     }
   }
 
@@ -115,6 +129,17 @@ export class LocalAgentBridge {
     }
     if (!socket.destroyed) socket.write(JSON.stringify(response) + '\n');
   }
+}
+
+function loadNodeRuntime(): LocalAgentBridgeNodeRuntime {
+  // These stay inside the desktop-only lazy adapter. Top-level Node imports
+  // would make the otherwise mobile-compatible plugin fail during load.
+  /* eslint-disable @typescript-eslint/no-require-imports -- intentional lazy desktop boundary */
+  const network = require('node:net') as typeof NodeNetwork;
+  const fileSystem =
+    require('node:fs/promises') as typeof NodeFileSystemPromises;
+  /* eslint-enable @typescript-eslint/no-require-imports */
+  return { fileSystem, network };
 }
 
 export function localAgentEndpoint(vaultId: string): string {

@@ -296,7 +296,9 @@ PROJECT_WEAVE_GRANT_SECRET=<secret copied at creation>
 
 The companion exposes only bounded read tools. Entity metadata stays within the
 grant's project; Markdown bodies additionally require an allowed content root.
-Disabling the gateway closes the local endpoint. Mobile never starts it.
+The plugin and companion must come from the same exact release tag; a mismatch
+fails closed and tells the client to install the matching companion. Disabling
+the gateway closes the local endpoint. Mobile never starts it.
 
 ## Privacy and network behavior
 

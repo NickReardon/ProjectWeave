@@ -8,6 +8,12 @@ export const PLUGIN_RUNTIME_FILES = Object.freeze([
 
 export const COMPANION_RUNTIME_FILES = Object.freeze(['project-weave-mcp.cjs']);
 
+const ALLOWED_PLUGIN_RUNTIME_MODULES = Object.freeze([
+  'obsidian',
+  'node:fs/promises',
+  'node:net',
+]);
+
 export async function verifyDirectoryInventory({ directory, expected, label }) {
   const actual = (await readdir(directory)).sort();
   assertExactInventory({ actual, expected, label });
@@ -30,4 +36,38 @@ export function assertExactInventory({ actual, expected, label }) {
     extra.length === 0 ? null : `unexpected ${extra.join(', ')}`,
   ].filter(Boolean);
   throw new Error(`${label} inventory mismatch: ${details.join('; ')}.`);
+}
+
+export function verifyPluginRuntimeImports(bundle) {
+  const requiredModules = [
+    ...bundle.matchAll(/require\((['"])([^'"]+)\1\)/gu),
+  ].flatMap((match) => (match[2] === undefined ? [] : [match[2]]));
+  const dynamicNodeModules = [
+    ...bundle.matchAll(/\bimport\((['"])(node:[^'"]+)\1\)/gu),
+  ].flatMap((match) => (match[2] === undefined ? [] : [match[2]]));
+  if (dynamicNodeModules.length > 0) {
+    throw new Error(
+      `Release bundle contains unsupported dynamic Node imports: ${[
+        ...new Set(dynamicNodeModules),
+      ]
+        .sort()
+        .join(', ')}.`,
+    );
+  }
+  const unexpectedModules = [
+    ...new Set(
+      requiredModules.filter(
+        (moduleName) =>
+          !ALLOWED_PLUGIN_RUNTIME_MODULES.includes(moduleName) &&
+          !moduleName.startsWith('@codemirror/') &&
+          !moduleName.startsWith('@lezer/'),
+      ),
+    ),
+  ].sort();
+  if (unexpectedModules.length > 0) {
+    throw new Error(
+      `Release bundle contains unsupported runtime imports: ${unexpectedModules.join(', ')}.`,
+    );
+  }
+  return [...new Set(requiredModules)].sort();
 }

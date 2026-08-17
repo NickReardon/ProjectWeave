@@ -163,6 +163,7 @@ class BridgeClient {
       socket.write(
         JSON.stringify({
           requestId,
+          companionVersion: PROJECT_WEAVE_VERSION,
           grantId: this.#grantId,
           secret: this.#secret,
           operation,
