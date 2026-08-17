@@ -48,6 +48,7 @@ const tasks = new Map([
   ['current-work:check', () => npmScript('current-work:check')],
   ['current-work:merge-ready', () => npmScript('current-work:merge-ready')],
   ['docs:check', () => npmScript('docs:check')],
+  ['docs:links', () => npmScript('docs:links')],
   ['export', (args) => npmScriptWithArgs('export', args)],
   ['release', () => npmScript('release')],
   ['version:show', () => npmScript('version:show')],
@@ -129,6 +130,7 @@ async function taskCheck(args = []) {
       ? 'current-work:merge-ready'
       : 'current-work:check',
     'docs:check',
+    'docs:links',
     'format:check',
     'lint',
     'typecheck',
@@ -312,7 +314,7 @@ async function linkTargets(target, source) {
 
 function usage() {
   console.log(
-    `usage: ./agents <task> [args]\n\ncore:\n  setup                 install locked dependencies\n  dev                   watch and rebuild the development plugin\n  build                 build the production plugin\n  test | test:watch     run Vitest and Node tests\n  lint                  check formatting, ESLint, and TypeScript\n  format                apply repository formatting\n  check [--merge-ready] regenerate context and run the complete CI gate\n\nproject operations:\n  diagnostics [args]    scan a configured vault\n  diagnostics:check     scan the committed dogfood vault\n  export [args]         build verified installable artifacts\n  release               run the gate and export artifacts\n  project-vault:install build into the dogfood vault\n  plugin:update         install a pinned GitHub release into PROJECT_WEAVE_PLUGIN_PATH\n  test-vault:create     create a disposable test vault\n  test-vault:reset      reset the disposable test vault\n  test-vault:setup      seed and install into the test vault\n  test-vault:update     update its installed plugin\n  version:show          print the synchronized version\n  version:patch|minor|major\n  version:set VERSION\n\nfocused checks:\n  format:check | typecheck | current-work:check | current-work:merge-ready\n  docs:check | version:check | verify:release\n\nagent context:\n  link                  regenerate tool-specific context files\n  doctor                audit context cost, pointers, and generated files`,
+    `usage: ./agents <task> [args]\n\ncore:\n  setup                 install locked dependencies\n  dev                   watch and rebuild the development plugin\n  build                 build the production plugin\n  test | test:watch     run Vitest and Node tests\n  lint                  check formatting, ESLint, and TypeScript\n  format                apply repository formatting\n  check [--merge-ready] regenerate context and run the complete CI gate\n\nproject operations:\n  diagnostics [args]    scan a configured vault\n  diagnostics:check     scan the committed dogfood vault\n  export [args]         build verified installable artifacts\n  release               run the gate and export artifacts\n  project-vault:install build into the dogfood vault\n  plugin:update         install a pinned GitHub release into PROJECT_WEAVE_PLUGIN_PATH\n  test-vault:create     create a disposable test vault\n  test-vault:reset      reset the disposable test vault\n  test-vault:setup      seed and install into the test vault\n  test-vault:update     update its installed plugin\n  version:show          print the synchronized version\n  version:patch|minor|major\n  version:set VERSION\n\nfocused checks:\n  format:check | typecheck | current-work:check | current-work:merge-ready\n  docs:check | docs:links | version:check | verify:release\n\nagent context:\n  link                  regenerate tool-specific context files\n  doctor                audit context cost, pointers, and generated files`,
   );
 }
 
