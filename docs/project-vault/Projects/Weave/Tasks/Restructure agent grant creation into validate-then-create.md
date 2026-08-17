@@ -2,7 +2,7 @@
 type: task
 title: Restructure agent grant creation into validate-then-create
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-shared-reads-agent]]'
+epic: '[[Epics/Epic-agent-grant-lifecycle]]'
 status: backlog
 category: enhancement
 priority: high
@@ -12,6 +12,14 @@ created: 2026-08-17
 ---
 
 # Restructure agent grant creation into validate-then-create
+
+> **Part of one redesign.** The grant form moves out of the settings row into a
+> dialog, and grants stay immutable once created. Because a mistake can only be
+> corrected by revoking and recreating, the ordering below is load-bearing
+> rather than a convenience. See
+> [[Tasks/Make the agent grant form explain what it asks for]], which owns the
+> redesign; land them together rather than as separate passes over the same
+> control.
 
 ## Summary
 

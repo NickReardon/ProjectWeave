@@ -66,8 +66,8 @@ immutable decision records, one owner per fact — is described in
 
 ## Implementation roadmap (v1)
 
-Project Weave v1 is one milestone, [[Milestones/v1 release]], containing twelve
-Epics.
+Project Weave v1 is one milestone, [[Milestones/v1 release]], containing
+thirteen Epics.
 
 Order is data, not naming. The milestone's `rank` places it among milestones;
 each Epic's `rank` places it within the milestone; `depends_on` states genuine
@@ -84,6 +84,7 @@ itself. Each Epic's own `status` is the single record of how far it has got.
 |---|---|---|
 | 1000 | [[Epics/Epic-template-catalog]] | |
 | 2000 | [[Epics/Epic-shared-reads-agent]] | |
+| 2500 | [[Epics/Epic-agent-grant-lifecycle]] | [[Epics/Epic-shared-reads-agent]] |
 | 3000 | [[Epics/Epic-mutation-kernel]] | |
 | 4000 | [[Epics/Epic-task-execution]] | |
 | 5000 | [[Epics/Epic-design-to-task]] | |
