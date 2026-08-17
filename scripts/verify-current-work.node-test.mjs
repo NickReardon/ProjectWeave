@@ -26,6 +26,46 @@ test('accepts a mid-flight record, including checkout state', () => {
   assert.doesNotThrow(() => assertCurrentWork(VALID_RECORD));
 });
 
+test('merge-ready mode requires an empty in-flight section', () => {
+  const clean = `# Project Weave Current Work\n\n## In flight\n\nNone.\n\n## Verified\n\nThe gate passes.`;
+  assert.doesNotThrow(() =>
+    assertCurrentWork(clean, 'CURRENT_WORK.md', { mergeReady: true }),
+  );
+
+  const dirty = clean.replace('None.', 'Keep reviewing the release notes.');
+  assert.throws(
+    () => assertCurrentWork(dirty, 'CURRENT_WORK.md', { mergeReady: true }),
+    /only `None\.`/u,
+  );
+});
+
+test('ordinary mode continues to allow in-flight text', () => {
+  assert.doesNotThrow(() =>
+    assertCurrentWork(VALID_RECORD, 'CURRENT_WORK.md', { mergeReady: false }),
+  );
+});
+
+test('merge-ready mode rejects duplicate in-flight sections', () => {
+  const duplicate = `# Project Weave Current Work
+
+## In flight
+
+None.
+
+## Next
+
+Ship it.
+
+## In flight
+
+None.
+`;
+  assert.throws(
+    () => assertCurrentWork(duplicate, 'CURRENT_WORK.md', { mergeReady: true }),
+    /exactly one `## In flight`/u,
+  );
+});
+
 test('accepts the branch and commit detail the old gate rejected', () => {
   const source = `${VALID_RECORD}
 ## Snapshot

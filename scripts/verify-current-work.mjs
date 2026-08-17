@@ -16,9 +16,46 @@ const MAX_LINES = 90;
 const DATED_EVIDENCE =
   /\b(?:passed|ran|verified|succeeded)\b[^.]{0,80}?\bon\s+\d{4}-\d{2}-\d{2}\b|\bon\s+\d{4}-\d{2}-\d{2}\b[^.]{0,80}?\b(?:passed|ran|verified|succeeded)\b/iu;
 
-export function findCurrentWorkViolations(source) {
+export function findCurrentWorkViolations(source, { mergeReady = false } = {}) {
   const violations = [];
   const lines = source.split(/\r?\n/u);
+
+  if (mergeReady) {
+    const headingIndexes = lines.flatMap((line, index) =>
+      /^## In flight\s*$/iu.test(line) ? [index] : [],
+    );
+    if (headingIndexes.length === 0) {
+      violations.push({
+        line: 1,
+        message: 'merge-ready records must contain an `## In flight` section',
+      });
+    } else if (headingIndexes.length > 1) {
+      violations.push({
+        line: headingIndexes[1] + 1,
+        message:
+          'merge-ready records must contain exactly one `## In flight` section',
+      });
+    } else {
+      const [headingIndex] = headingIndexes;
+      const endIndex = lines.findIndex(
+        (line, index) => index > headingIndex && /^##\s+/u.test(line),
+      );
+      const body = lines.slice(
+        headingIndex + 1,
+        endIndex === -1 ? lines.length : endIndex,
+      );
+      const meaningful = body
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      if (meaningful.length !== 1 || meaningful[0] !== 'None.') {
+        violations.push({
+          line: headingIndex + 2,
+          message:
+            'merge-ready records must contain only `None.` in the `## In flight` section',
+        });
+      }
+    }
+  }
 
   if (lines.length > MAX_LINES) {
     violations.push({
@@ -49,8 +86,8 @@ export function findCurrentWorkViolations(source) {
   return violations;
 }
 
-export function assertCurrentWork(source, path = DEFAULT_PATH) {
-  const violations = findCurrentWorkViolations(source);
+export function assertCurrentWork(source, path = DEFAULT_PATH, options = {}) {
+  const violations = findCurrentWorkViolations(source, options);
   if (violations.length === 0) {
     return;
   }
@@ -63,10 +100,16 @@ export function assertCurrentWork(source, path = DEFAULT_PATH) {
 }
 
 async function main() {
-  const path = process.argv[2] ?? DEFAULT_PATH;
+  const argumentsProvided = process.argv.slice(2);
+  const mergeReady = argumentsProvided.includes('--merge-ready');
+  const path =
+    argumentsProvided.find((argument) => !argument.startsWith('-')) ??
+    DEFAULT_PATH;
   const source = await readFile(path, 'utf8');
-  assertCurrentWork(source, path);
-  console.log(`Mid-flight record verified: ${path}`);
+  assertCurrentWork(source, path, { mergeReady });
+  console.log(
+    `${mergeReady ? 'Merge-ready' : 'Mid-flight'} record verified: ${path}`,
+  );
 }
 
 function errorMessage(error) {

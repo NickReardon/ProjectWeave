@@ -18,6 +18,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "current-work:check": "node scripts/verify-current-work.mjs",
+    "current-work:merge-ready": "node scripts/verify-current-work.mjs --merge-ready",
+    "docs:check": "node scripts/verify-evergreen-docs.mjs",
     "version:check": "node scripts/project-version.mjs check",
     "version:show": "node scripts/project-version.mjs show",
     "version:patch": "node scripts/project-version.mjs patch",

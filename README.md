@@ -32,17 +32,16 @@ testing**; BRAT downloads `main.js`, `manifest.json`, and `styles.css` directly
 into the vault's `.obsidian/plugins/project-weave/` folder and handles later
 updates.
 
-The current preview is
-[`0.7.0-beta.32012926052`](https://github.com/NickReardon/ProjectWeave/releases/tag/0.7.0-beta.32012926052),
-built from commit `de86a86340c27f08487c714a72c56de9933f5c67`. BRAT installs only
-the three plugin files; it never installs the optional companion.
+Choose an exact preview tag from the [GitHub Releases](https://github.com/NickReardon/ProjectWeave/releases)
+page. BRAT installs only the three plugin files; it never installs the
+optional companion.
 
 The repository also provides a pinned direct-update harness. Put the exact
 plugin destination and release tag in the ignored local `.env` file:
 
 ```text
 PROJECT_WEAVE_PLUGIN_PATH=D:\\Vault\\.obsidian\\plugins\\project-weave
-PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.32012926052
+PROJECT_WEAVE_RELEASE_VERSION=PASTE_EXACT_PRERELEASE_TAG_HERE
 ```
 
 Then run `npm run plugin:update`. It downloads all three assets from that exact
@@ -55,17 +54,17 @@ not.
 ### Optional MCP companion
 
 The companion is a separate, desktop-only download. It is not installed by
-BRAT or by the plugin. This example is pinned to the current preview release:
+BRAT or by the plugin. Choose the same exact tag from GitHub Releases:
 
 ```shell
-release=https://github.com/NickReardon/ProjectWeave/releases/download/0.7.0-beta.32012926052
+tag="PASTE_EXACT_PRERELEASE_TAG_HERE"
+release="https://github.com/NickReardon/ProjectWeave/releases/download/$tag"
 curl --fail --location "$release/project-weave-mcp.cjs" --output project-weave-mcp.cjs
 curl --fail --location "$release/project-weave-mcp.cjs.sha256" --output project-weave-mcp.cjs.sha256
 sha256sum --check project-weave-mcp.cjs.sha256
 ```
 
-The published SHA-256 is
-`c5fbeda4a707e1928d88a9de20d771df2e5988e691f3eba50577f4c0c7abe6c6`.
+The checksum file published with the selected release is authoritative.
 Remove both downloaded files and the MCP client configuration to remove the
 companion. Core plugin use does not depend on it.
 
