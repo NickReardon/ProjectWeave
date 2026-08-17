@@ -13,6 +13,14 @@ created: 2026-08-17
 
 # Restructure agent grant creation into validate-then-create
 
+> **Part of one redesign.** The grant form moves out of the settings row into a
+> dialog, and grants stay immutable once created. Because a mistake can only be
+> corrected by revoking and recreating, the ordering below is load-bearing
+> rather than a convenience. See
+> [[Tasks/Make the agent grant form explain what it asks for]], which owns the
+> redesign; land them together rather than as separate passes over the same
+> control.
+
 ## Summary
 
 Agent grant creation currently performs path interpretation and secret
