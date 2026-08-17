@@ -1,12 +1,11 @@
-import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm, stat } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
-export const PLUGIN_RUNTIME_FILES = [
-  'main.js',
-  'manifest.json',
-  'project-weave-mcp.cjs',
-  'styles.css',
-];
+import { PLUGIN_RUNTIME_FILES } from './release-inventory.mjs';
+
+export { PLUGIN_RUNTIME_FILES } from './release-inventory.mjs';
+
+export const RETIRED_PLUGIN_RUNTIME_FILES = ['project-weave-mcp.cjs'];
 
 const DEFAULT_CONFIG_PATH = '.project-weave-test-vault';
 const TEST_VAULT_ENVIRONMENT_KEY = 'PROJECT_WEAVE_TEST_VAULT';
@@ -80,6 +79,11 @@ export async function installPluginInTestVault({
   }
 
   await mkdir(pluginDirectory, { recursive: true });
+  await Promise.all(
+    RETIRED_PLUGIN_RUNTIME_FILES.map((file) =>
+      rm(join(pluginDirectory, file), { force: true }),
+    ),
+  );
   await Promise.all(
     PLUGIN_RUNTIME_FILES.map((file) =>
       copyFile(join(sourceDirectory, file), join(pluginDirectory, file)),

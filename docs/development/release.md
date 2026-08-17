@@ -88,10 +88,10 @@ complete, never on the minor position running high.
 | BRAT preview | Invited testers and test devices | GitHub prerelease built from an explicit ref | BRAT |
 | Community stable | General users | Stable GitHub release matching the default branch | Obsidian |
 
-Every channel installs exactly `main.js`, `manifest.json`,
-`project-weave-mcp.cjs`, and `styles.css`. A ZIP can accompany a release for
-manual installation, but BRAT and Obsidian need the four files as individual
-release assets.
+Every plugin channel installs exactly `main.js`, `manifest.json`, and
+`styles.css`. A ZIP can accompany a release for manual installation. The
+optional `project-weave-mcp.cjs` companion is separately built, checksummed,
+published, installed, and updated.
 
 ## Release sequence
 
@@ -127,8 +127,8 @@ npm run test-vault:update
 ```
 
 This command checks synchronized versions, builds the production bundle,
-verifies its exact inventory, regenerates `export/project-weave/` and the ZIP,
-and copies the four runtime files to:
+verifies both exact inventories, regenerates `export/project-weave/`, the ZIP,
+and `export/companion/`, then copies the three plugin runtime files to:
 
 ```text
 <vault>/.obsidian/plugins/project-weave/
@@ -147,8 +147,24 @@ Local testing loop:
 3. Reload Obsidian or disable and re-enable Project Weave.
 4. Perform focused manual checks and confirm passive behavior changed no
    Markdown.
-5. Record automated-verification evidence in `CURRENT_WORK.md`; record
-   check results and defects as tasks in `docs/project-vault/`.
+5. Record check results and completed task state in the commit; rewrite
+   `CURRENT_WORK.md` to the short state the checkout now leaves behind.
+
+### Update a plugin folder from a tagged GitHub release
+
+For the same artifact path a tester receives, set these ignored `.env` values:
+
+```text
+PROJECT_WEAVE_PLUGIN_PATH=D:\\Path\\To\\Vault\\.obsidian\\plugins\\project-weave
+PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.1
+```
+
+Then run `npm run plugin:update`. The destination must be the exact
+`.obsidian/plugins/project-weave` folder, not a vault or general plugins folder.
+The updater downloads the pinned release's three plugin assets to staging,
+validates the manifest ID/version and bundle, backs up managed installed files,
+then replaces them while preserving `data.json`. A download or validation
+failure leaves the installed plugin untouched. Reload Obsidian afterward.
 
 ## Dogfood vault
 
@@ -172,7 +188,7 @@ file.
 npm run project-vault:install
 ```
 
-This builds the production bundle and copies the four runtime files to:
+This builds the production bundle and copies the three plugin runtime files to:
 
 ```text
 docs/project-vault/.obsidian/plugins/project-weave/
@@ -193,9 +209,10 @@ contents. Do not add the legacy `manifest-beta.json` mechanism.
 - [Obsidian beta-testing guidance](https://docs.obsidian.md/Plugins/Releasing/Beta-testing%20plugins)
 - [BRAT developer guide](https://github.com/TfTHacker/obsidian42-brat/blob/main/BRAT-DEVELOPER-GUIDE.md)
 
-### Planned preview action
+### Preview publication action
 
-Add a manually dispatched GitHub Actions workflow with:
+The manually dispatched **Publish BRAT prerelease** GitHub Actions workflow
+requires:
 
 - `ref`: branch, tag, or commit SHA to build;
 - `target_version`: intended stable version, for example `0.4.0`.
@@ -204,13 +221,15 @@ The action must:
 
 1. Check out and record the exact commit.
 2. Run `npm ci`, the complete gate, and the ordinary export.
-3. Derive a unique version such as `0.4.0-beta.27`.
+3. Derive a unique version such as `0.7.0-beta.27`.
 4. Stamp that version only into the generated release manifest. Do not change
    the tracked stable version files on the tested branch.
 5. Require the release tag, release name, and released manifest version to
    match.
-6. Create a GitHub prerelease containing the three individual assets.
-7. Record the source ref, SHA, validation result, and test focus in its notes.
+6. Create a GitHub prerelease containing the three individual plugin assets,
+   plus the separately checksummed optional companion.
+7. Record the source ref, SHA, validation result, compatibility, companion
+   checksum, preview limitations, and test focus in its notes.
 
 Maintain one moving preview channel. Competing “latest” prereleases from
 unrelated branches make BRAT selection ambiguous. Freeze BRAT to an exact tag

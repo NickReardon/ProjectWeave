@@ -5,14 +5,24 @@ import esbuild from 'esbuild';
 
 const production = process.argv[2] === 'production';
 const outputDirectory = 'dist';
+const pluginOutputDirectory = `${outputDirectory}/plugin`;
+const companionOutputDirectory = `${outputDirectory}/companion`;
 const project = JSON.parse(await readFile('package.json', 'utf8'));
-const version = JSON.stringify(project.version);
+const buildVersion =
+  process.env.PROJECT_WEAVE_BUILD_VERSION?.trim() || project.version;
+if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(buildVersion)) {
+  throw new Error('PROJECT_WEAVE_BUILD_VERSION is not a semantic version.');
+}
+const version = JSON.stringify(buildVersion);
 
 await rm(outputDirectory, { recursive: true, force: true });
-await mkdir(outputDirectory, { recursive: true });
 await Promise.all([
-  cp('manifest.json', `${outputDirectory}/manifest.json`),
-  cp('styles.css', `${outputDirectory}/styles.css`),
+  mkdir(pluginOutputDirectory, { recursive: true }),
+  mkdir(companionOutputDirectory, { recursive: true }),
+]);
+await Promise.all([
+  cp('manifest.json', `${pluginOutputDirectory}/manifest.json`),
+  cp('styles.css', `${pluginOutputDirectory}/styles.css`),
 ]);
 
 const plugin = await esbuild.context({
@@ -41,7 +51,7 @@ const plugin = await esbuild.context({
   format: 'cjs',
   logLevel: 'info',
   minify: production,
-  outfile: `${outputDirectory}/main.js`,
+  outfile: `${pluginOutputDirectory}/main.js`,
   sourcemap: production ? false : 'inline',
   target: 'es2022',
   treeShaking: true,
@@ -54,7 +64,7 @@ const companion = await esbuild.context({
   format: 'cjs',
   logLevel: 'info',
   minify: production,
-  outfile: `${outputDirectory}/project-weave-mcp.cjs`,
+  outfile: `${companionOutputDirectory}/project-weave-mcp.cjs`,
   platform: 'node',
   sourcemap: production ? false : 'inline',
   target: 'node22',

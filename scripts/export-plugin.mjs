@@ -2,22 +2,25 @@ import {
   copyFile,
   mkdir,
   readFile,
-  readdir,
   rm,
   stat,
   writeFile,
 } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join, resolve, sep } from 'node:path';
 
 import { assertProjectVersion, readProjectState } from './project-version.mjs';
+import { installConfiguredTestVault } from './test-vault-installer.mjs';
 import {
-  installConfiguredTestVault,
+  COMPANION_RUNTIME_FILES,
   PLUGIN_RUNTIME_FILES,
-} from './test-vault-installer.mjs';
+  verifyDirectoryInventory,
+} from './release-inventory.mjs';
 import { createZip } from './zip.mjs';
 
 const RELEASE_FILES = PLUGIN_RUNTIME_FILES;
 const EXPORT_ROOT = resolve('export');
+const COMPANION_EXPORT_ROOT = resolve(EXPORT_ROOT, 'companion');
 const supportedArguments = new Set(['--require-test-vault']);
 const argumentsProvided = process.argv.slice(2);
 const unsupportedArguments = argumentsProvided.filter(
@@ -39,25 +42,53 @@ if (typeof pluginId !== 'string' || !/^[a-z0-9-]+$/u.test(pluginId)) {
 
 const pluginDirectory = resolve(EXPORT_ROOT, pluginId);
 const zipPath = resolve(EXPORT_ROOT, pluginId + '-' + version + '.zip');
+const companionPath = resolve(
+  COMPANION_EXPORT_ROOT,
+  COMPANION_RUNTIME_FILES[0],
+);
+const companionChecksumPath = companionPath + '.sha256';
 assertWithinExport(pluginDirectory);
 assertWithinExport(zipPath);
+assertWithinExport(companionPath);
+assertWithinExport(companionChecksumPath);
 
 await mkdir(EXPORT_ROOT, { recursive: true });
 await rm(pluginDirectory, { recursive: true, force: true });
 await rm(zipPath, { force: true });
+await rm(COMPANION_EXPORT_ROOT, { recursive: true, force: true });
 await mkdir(pluginDirectory, { recursive: true });
+await mkdir(COMPANION_EXPORT_ROOT, { recursive: true });
 await Promise.all(
   RELEASE_FILES.map((file) =>
-    copyFile(join('dist', file), join(pluginDirectory, file)),
+    copyFile(join('dist', 'plugin', file), join(pluginDirectory, file)),
   ),
 );
+await copyFile(
+  join('dist', 'companion', COMPANION_RUNTIME_FILES[0]),
+  companionPath,
+);
+const companionBytes = await readFile(companionPath);
+const companionChecksum = createHash('sha256')
+  .update(companionBytes)
+  .digest('hex');
+await writeFile(
+  companionChecksumPath,
+  `${companionChecksum}  ${COMPANION_RUNTIME_FILES[0]}\n`,
+);
 
-const inventory = (await readdir(pluginDirectory)).sort();
-if (JSON.stringify(inventory) !== JSON.stringify(RELEASE_FILES)) {
-  throw new Error(
-    'Exported plugin inventory mismatch: ' + inventory.join(', ') + '.',
-  );
-}
+await verifyDirectoryInventory({
+  directory: pluginDirectory,
+  expected: RELEASE_FILES,
+  label: 'Exported plugin',
+});
+await verifyDirectoryInventory({
+  directory: COMPANION_EXPORT_ROOT,
+  expected: [
+    COMPANION_RUNTIME_FILES[0],
+    COMPANION_RUNTIME_FILES[0] + '.sha256',
+  ],
+  label: 'Exported companion',
+});
 
 const entries = await Promise.all(
   RELEASE_FILES.map(async (file) => ({
@@ -77,6 +108,14 @@ console.log(
     ' (' +
     String(zipSize) +
     ' bytes)',
+);
+console.log(
+  'Companion exported: ' +
+    join('export', 'companion', COMPANION_RUNTIME_FILES[0]),
+);
+console.log(
+  'Companion checksum exported: ' +
+    join('export', 'companion', COMPANION_RUNTIME_FILES[0] + '.sha256'),
 );
 
 const testVaultPluginDirectory = await installConfiguredTestVault({

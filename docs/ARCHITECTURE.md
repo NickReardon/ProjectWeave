@@ -234,9 +234,9 @@ caller exists, so nothing in the current plugin can commit a proposed note.
 
 ## Release boundary
 
-The repository contains source, tests, fixtures, and design material. The
-installable dist directory contains exactly main.js, manifest.json,
-project-weave-mcp.cjs, and styles.css. The core plugin remains
+The repository contains source, tests, fixtures, and design material.
+`dist/plugin/` contains exactly `main.js`, `manifest.json`, and `styles.css`;
+`dist/companion/` separately contains `project-weave-mcp.cjs`. The core plugin remains
 mobile-compatible; the desktop-only local bridge is conditionally imported
 only when agent access is enabled, while the companion runs as a separate
 Node.js process.

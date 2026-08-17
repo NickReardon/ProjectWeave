@@ -4,7 +4,7 @@ import { readProjectState } from './project-version.mjs';
 import { installPluginInTestVault } from './test-vault-installer.mjs';
 
 const PROJECT_VAULT_PATH = resolve('docs/project-vault');
-const DIST_DIRECTORY = resolve('dist');
+const DIST_DIRECTORY = resolve('dist/plugin');
 
 const state = await readProjectState();
 const pluginId = state.manifest.id;

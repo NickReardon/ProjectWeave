@@ -1,21 +1,32 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
-const expected = [
-  'main.js',
-  'manifest.json',
-  'project-weave-mcp.cjs',
-  'styles.css',
-];
-const actual = (await readdir('dist')).sort();
+import {
+  COMPANION_RUNTIME_FILES,
+  PLUGIN_RUNTIME_FILES,
+  verifyDirectoryInventory,
+} from './release-inventory.mjs';
 
-if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-  throw new Error(
-    `Release inventory mismatch. Expected ${expected.join(', ')}; received ${actual.join(', ') || '(empty)'}.`,
-  );
-}
+await verifyDirectoryInventory({
+  directory: 'dist',
+  expected: ['companion', 'plugin'],
+  label: 'Build output',
+});
+const pluginInventory = await verifyDirectoryInventory({
+  directory: 'dist/plugin',
+  expected: PLUGIN_RUNTIME_FILES,
+  label: 'Plugin',
+});
+const companionInventory = await verifyDirectoryInventory({
+  directory: 'dist/companion',
+  expected: COMPANION_RUNTIME_FILES,
+  label: 'Companion',
+});
 
-const bundle = await readFile('dist/main.js', 'utf8');
-const companion = await readFile('dist/project-weave-mcp.cjs', 'utf8');
+const bundle = await readFile('dist/plugin/main.js', 'utf8');
+const companion = await readFile(
+  'dist/companion/project-weave-mcp.cjs',
+  'utf8',
+);
 const requiredModules = [
   ...bundle.matchAll(/require\((['"])([^'"]+)\1\)/gu),
 ].flatMap((match) => (match[2] === undefined ? [] : [match[2]]));
@@ -73,7 +84,8 @@ if (!companion.includes('2025-06-18')) {
   throw new Error('MCP companion does not carry protocol 2025-06-18 support.');
 }
 
-console.log(`Release inventory verified: ${actual.join(', ')}`);
+console.log(`Plugin inventory verified: ${pluginInventory.join(', ')}`);
+console.log(`Companion inventory verified: ${companionInventory.join(', ')}`);
 console.log(
   `Runtime imports verified: ${[...new Set(requiredModules)].sort().join(', ')}`,
 );

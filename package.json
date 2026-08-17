@@ -3,7 +3,7 @@
   "version": "0.6.0",
   "private": true,
   "description": "A Markdown-first, dependency-aware project workbench for Obsidian.",
-  "main": "dist/main.js",
+  "main": "dist/plugin/main.js",
   "type": "module",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -30,6 +30,7 @@
     "test-vault:setup": "npm run test-vault:create -- --point && npm run test-vault:update",
     "test-vault:update": "npm run export -- --require-test-vault",
     "project-vault:install": "npm run build && node scripts/project-vault-install.mjs",
+    "plugin:update": "node scripts/install-github-release.mjs",
     "release": "npm run check && node scripts/export-plugin.mjs",
     "agents": "node scripts/agents.mjs",
     "check": "node scripts/agents.mjs check"

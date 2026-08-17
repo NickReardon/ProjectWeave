@@ -1,0 +1,147 @@
+name: Publish BRAT prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Branch, tag, or full commit SHA to build
+        required: true
+        type: string
+      target_version:
+        description: Intended stable MAJOR.MINOR.PATCH version
+        required: true
+        type: string
+      test_focus:
+        description: What invited testers should exercise
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-weave-prerelease
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build prerelease artifacts
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.preview.outputs.source_sha }}
+      version: ${{ steps.preview.outputs.version }}
+
+    steps:
+      - name: Check out the explicit source ref
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Derive the unique preview version
+        id: preview
+        env:
+          TARGET_VERSION: ${{ inputs.target_version }}
+        shell: bash
+        run: |
+          if [[ ! "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "target_version must be MAJOR.MINOR.PATCH" >&2
+            exit 64
+          fi
+          preview_version="${TARGET_VERSION}-beta.${GITHUB_RUN_NUMBER}"
+          source_sha="$(git rev-parse HEAD)"
+          echo "version=$preview_version" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run the complete gate
+        env:
+          PROJECT_WEAVE_BUILD_VERSION: ${{ steps.preview.outputs.version }}
+        run: npm run check
+
+      - name: Export separate plugin and companion artifacts
+        env:
+          PROJECT_WEAVE_BUILD_VERSION: ${{ steps.preview.outputs.version }}
+        run: npm run export
+
+      - name: Stamp the generated manifest and release notes
+        env:
+          PROJECT_WEAVE_BUILD_VERSION: ${{ steps.preview.outputs.version }}
+          PROJECT_WEAVE_SOURCE_SHA: ${{ steps.preview.outputs.source_sha }}
+          PROJECT_WEAVE_TEST_FOCUS: ${{ inputs.test_focus }}
+        run: node scripts/prepare-prerelease.mjs
+
+      - name: Verify the companion checksum
+        working-directory: export/companion
+        run: sha256sum --check project-weave-mcp.cjs.sha256
+
+      - name: Stage the publication payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-weave-${{ steps.preview.outputs.version }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            export/project-weave/main.js
+            export/project-weave/manifest.json
+            export/project-weave/styles.css
+            export/companion/project-weave-mcp.cjs
+            export/companion/project-weave-mcp.cjs.sha256
+            export/prerelease-notes.md
+
+  publish:
+    name: Publish prerelease
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the verified publication payload
+        uses: actions/download-artifact@v5
+        with:
+          name: project-weave-${{ needs.build.outputs.version }}
+          path: release
+
+      - name: Refuse an existing tag or release
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_VERSION: ${{ needs.build.outputs.version }}
+        shell: bash
+        run: |
+          if gh api --silent "repos/$GH_REPO/git/ref/tags/$PREVIEW_VERSION"; then
+            echo "Tag already exists: $PREVIEW_VERSION" >&2
+            exit 1
+          fi
+          if gh release view "$PREVIEW_VERSION"; then
+            echo "Release already exists: $PREVIEW_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Publish the tagged prerelease
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_VERSION: ${{ needs.build.outputs.version }}
+          SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
+        shell: bash
+        run: |
+          gh release create "$PREVIEW_VERSION" \
+            release/project-weave/main.js \
+            release/project-weave/manifest.json \
+            release/project-weave/styles.css \
+            release/companion/project-weave-mcp.cjs \
+            release/companion/project-weave-mcp.cjs.sha256 \
+            --target "$SOURCE_SHA" \
+            --title "$PREVIEW_VERSION" \
+            --notes-file release/prerelease-notes.md \
+            --prerelease \
+            --latest=false

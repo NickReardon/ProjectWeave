@@ -14,7 +14,8 @@ Make Project Weave safe to install, enable, reload, disable, upgrade, and uninst
 
 ## User-visible behavior
 
-- Installation places only `main.js`, `manifest.json`, `project-weave-mcp.cjs`, and `styles.css` in the plugin folder.
+- Installation places only `main.js`, `manifest.json`, and `styles.css` in the
+  plugin folder. The optional MCP companion is installed and updated separately.
 - First activation MAY show onboarding and MAY create plugin settings/cache through Obsidian's plugin data store.
 - Activation indexes existing notes but creates, edits, moves, renames, or deletes none of them unless the user has configured the derived diagnostics report; that report is the only non-creation vault output and contains no canonical note content.
 - Deactivation closes Project Weave resources cleanly and changes no content.

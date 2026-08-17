@@ -3,7 +3,7 @@ type: task
 title: Automate the BRAT prerelease channel
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-stabilize-and-shipping]]'
-status: backlog
+status: waiting
 category: chore
 priority: high
 rank: 2600
@@ -36,3 +36,9 @@ runs the complete gate, and publishes one unambiguous Project Weave prerelease.
 
 Exercise a dry run or disposable prerelease, inspect every asset and digest,
 and confirm the workflow cannot publish from an ambiguous or failing source.
+
+The manual workflow, generated-version build override, manifest stamping,
+release-note generator, checksum verification, and failure-before-publication
+ordering are implemented and covered locally. Completion waits on the public
+metadata dependency and an explicitly authorized disposable GitHub prerelease;
+no tag or release has been published from this branch.

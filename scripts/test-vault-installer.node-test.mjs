@@ -8,6 +8,7 @@ import {
   installConfiguredTestVault,
   installPluginInTestVault,
   PLUGIN_RUNTIME_FILES,
+  RETIRED_PLUGIN_RUNTIME_FILES,
   resolveConfiguredTestVaultPath,
 } from './test-vault-installer.mjs';
 
@@ -57,6 +58,10 @@ test('updates only runtime plugin files and preserves local settings', async () 
     await mkdir(sourceDirectory, { recursive: true });
     await mkdir(pluginDirectory, { recursive: true });
     await writeFile(join(pluginDirectory, 'data.json'), '{"keep":true}');
+    await writeFile(
+      join(pluginDirectory, RETIRED_PLUGIN_RUNTIME_FILES[0]),
+      'old companion',
+    );
 
     for (const file of PLUGIN_RUNTIME_FILES) {
       await writeFile(join(sourceDirectory, file), 'new ' + file);
@@ -80,6 +85,10 @@ test('updates only runtime plugin files and preserves local settings', async () 
         'new ' + file,
       );
     }
+    await assert.rejects(
+      readFile(join(pluginDirectory, RETIRED_PLUGIN_RUNTIME_FILES[0])),
+      { code: 'ENOENT' },
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

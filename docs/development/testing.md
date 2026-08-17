@@ -30,7 +30,7 @@ npm run test-vault:setup
 
 That does the whole thing: seeds `test-vault/` at the repository root, points
 `.project-weave-test-vault` at it, builds, and installs `main.js`,
-`manifest.json`, `project-weave-mcp.cjs`, and `styles.css` into
+`manifest.json`, and `styles.css` into
 `.obsidian/plugins/project-weave`. The
 seeded `community-plugins.json` already enables the plugin, so it loads rather
 than waiting to be switched on.
@@ -552,8 +552,9 @@ gateway is enabled. It does not write vault Markdown.
 2. Enable it, create a grant for `Projects/Game/Project.md`, and allow
    `Projects/Game/Design` as its document root. Record the endpoint and grant
    id, and place the one-time secret in the MCP client's local environment.
-3. Configure the client to run
-   `node <plugin folder>/project-weave-mcp.cjs`, then call project context,
+3. Download the matching optional companion release asset, verify its published
+   SHA-256 checksum, and configure the client to run
+   `node <companion folder>/project-weave-mcp.cjs`; then call project context,
    search, and an exact read of `Projects/Game/Design/Travel.md`.
 4. Attempt to read a Markdown note outside the allowed root and to supply a
    different project path in a request.

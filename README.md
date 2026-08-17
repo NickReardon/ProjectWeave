@@ -18,6 +18,29 @@ checks, known loose ends, slice progress, and the dependency-ordered roadmap
 are tracked as project, Epic, milestone, and task notes in
 [docs/project-vault/](docs/project-vault/), Project Weave's own dogfood vault.
 
+## Preview installation and updates
+
+Project Weave is not yet listed in Obsidian's Community Plugins directory.
+Published previews use tagged GitHub prereleases from
+[`NickReardon/ProjectWeave`](https://github.com/NickReardon/ProjectWeave).
+Invited testers can add that repository through **BRAT: Add a beta plugin for
+testing**; BRAT downloads `main.js`, `manifest.json`, and `styles.css` directly
+into the vault's `.obsidian/plugins/project-weave/` folder and handles later
+updates.
+
+The repository also provides a pinned direct-update harness. Put the exact
+plugin destination and release tag in the ignored local `.env` file:
+
+```text
+PROJECT_WEAVE_PLUGIN_PATH=D:\\Vault\\.obsidian\\plugins\\project-weave
+PROJECT_WEAVE_RELEASE_VERSION=0.7.0-beta.1
+```
+
+Then run `npm run plugin:update`. It downloads all three assets from that exact
+GitHub release, validates them before touching the destination, preserves
+`data.json`, and removes the obsolete in-plugin companion file. Reload Obsidian
+or disable and re-enable Project Weave afterward.
+
 ## Current status
 
 This section describes capability — what the plugin does today. It does not
@@ -220,8 +243,9 @@ of `./agents check`; warnings and info remain visible for review without failing
 the automated gate.
 
 Use `./agents dev` for a watching development bundle. A production build writes
-exactly `main.js`, `manifest.json`, `project-weave-mcp.cjs`, and `styles.css`
-to `dist/`. Install those files only in a disposable development vault.
+the three-file Obsidian package to `dist/plugin/` and the optional
+`project-weave-mcp.cjs` companion to `dist/companion/`. Install plugin files
+only in a disposable development vault.
 
 Manual checks against Obsidian — the procedure, the disposable test vault, and
 the recorded results — are in
@@ -237,7 +261,7 @@ an MCP client to launch the companion with Node.js and supply the endpoint,
 grant id, and secret through its environment:
 
 ```text
-node <vault>/.obsidian/plugins/project-weave/project-weave-mcp.cjs
+node <companion install folder>/project-weave-mcp.cjs
 PROJECT_WEAVE_ENDPOINT=<endpoint shown in settings>
 PROJECT_WEAVE_GRANT_ID=<grant id shown in settings>
 PROJECT_WEAVE_GRANT_SECRET=<secret copied at creation>
@@ -311,7 +335,9 @@ and Community directory steps.
 Run `./agents export` to build and verify the plugin, then generate:
 
 - `export/project-weave/` — the directly installable Obsidian plugin folder;
-- `export/project-weave-<version>.zip` — a ZIP containing that plugin folder.
+- `export/project-weave-<version>.zip` — a ZIP containing that plugin folder;
+- `export/companion/project-weave-mcp.cjs` and its SHA-256 file — the optional
+  desktop agent companion, installed separately from the plugin.
 
 The entire `export/` directory is Git-ignored. `./agents release` runs the
 complete validation gate and then produces the same export artifacts and

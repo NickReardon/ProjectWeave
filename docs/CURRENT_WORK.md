@@ -20,37 +20,33 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-Nothing. The working tree is clean at 0.6.0.
-
-The documentation-model overhaul landed as two commits on
-`feat/multi-file-commit-coordinator`: the optional MCP companion distribution,
-then the document model, roadmap ordering, and specification naming. Neither is
-pushed or merged.
-
-The branch name predates this work and describes none of it. Worth renaming or
-merging before more lands on it.
+`feat/github-prerelease-experience` carries the separated three-file Obsidian
+plugin and optional companion outputs, a pinned GitHub-release updater for an
+exact environment-configured plugin folder, and the manual BRAT prerelease
+workflow. It is not pushed or merged. No GitHub tag or release exists for this
+work.
 
 ## Verified
 
-`npm run check` passes: 34 Vitest files with 368 tests, 36 script tests, a clean
-dogfood diagnostics run over 79 notes, the production build, and release
-inventory verification. `agents doctor` resolves all 11 pointers.
+`npm run check` passes with separate plugin and companion inventory checks. The
+configured test-vault export installs only `main.js`, `manifest.json`, and
+`styles.css`; automated updater coverage proves failed downloads leave the
+target untouched and successful updates preserve `data.json`.
 
 ## Next
 
-1. Run Check 17, the desktop read-only agent gateway, and record the outcome on
-   its task note and the shared-reads Epic. It is the only task in `todo`.
-2. [[Tasks/Gate documentation links and naming]] — nothing verifies that links
-   resolve. The gate went green with a broken wikilink during the rename work,
-   and both large renames were checked by hand-written sweeps.
-3. [[Tasks/Separate plugin and companion release inventories]] — ADR 0021
-   changed the specification; the build, export, and verification tooling still
-   treats the companion as a fourth plugin file.
+1. Decide and record the public license, author/support metadata, and companion
+   install location needed by
+   [[Tasks/Prepare public preview metadata and optional agent setup]].
+2. Push this branch and run one explicitly authorized disposable prerelease to
+   finish [[Tasks/Automate the BRAT prerelease channel]].
+3. Use that real release to exercise BRAT and the pinned updater from clean
+   disposable vaults, then record
+   [[Tasks/Accept the BRAT preview and optional companion setup]].
 
 ## Loose ends
 
-- `docs/IMPLEMENTATION_ORDER.md` is a compatibility pointer with no inbound
-  references, and it now states two things that are false. A deletion candidate
-  awaiting a decision.
-- Milestone `rank` is specified but unparsed, so roadmap order is authored
-  rather than derived. [[Tasks/Add Epic roadmap graph fields]] closes it.
+- The preview workflow exists locally but is intentionally unproven against a
+  real GitHub release because publishing needs an explicit release decision.
+- `docs/IMPLEMENTATION_ORDER.md` remains a compatibility pointer with no inbound
+  references and is still a deletion candidate.
