@@ -42,6 +42,7 @@ Implementation is committed and pushed as `6f6b8fb` on
 `test/brat-preview-acceptance`: MIT licensing,
 named author/support metadata, contribution and security guidance, explicit
 privacy/network disclosures, a pinned companion download and checksum command,
-and a current preview reference are present. Final acceptance still requires
-following those instructions from a clean checkout and deciding when to make
-the repository public.
+and a current preview reference are present. The repository is now public with
+the description, topics, branch protection, and secret scanning configured.
+Final acceptance still requires following these instructions from a clean
+checkout.
