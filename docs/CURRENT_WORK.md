@@ -20,9 +20,9 @@ Intended behavior lives in `docs/spec/`. See
 
 ## In flight
 
-Nothing. Local `main` now contains the separated plugin and companion outputs,
-pinned GitHub-release updater, authenticated private-asset fix, prerelease
-workflow, and recorded beta.1 proof. The merge and this handoff are not pushed.
+Nothing. Local and remote `main` now contain the separated plugin and companion
+outputs, pinned GitHub-release updater, authenticated private-asset fix,
+prerelease workflow, and recorded beta.1 proof.
 
 Private prerelease `0.7.0-beta.1` still targets `06dbdd0`; the authenticated
 updater fix landed afterward in `a4dc90f` and passed against those real assets.
@@ -35,12 +35,10 @@ and separate plugin and companion inventory verification.
 
 ## Next
 
-1. Push local `main` when authorized so the workflow exists on GitHub's default
-   branch.
-2. Exercise the manual prerelease workflow from remote `main`, then test BRAT
+1. Exercise the manual prerelease workflow from remote `main`, then test BRAT
    from a clean disposable vault and finish recording
    [[Tasks/Accept the BRAT preview and optional companion setup]].
-3. Decide and record the public license, author/support metadata, and companion
+2. Decide and record the public license, author/support metadata, and companion
    install location needed by
    [[Tasks/Prepare public preview metadata and optional agent setup]].
 
