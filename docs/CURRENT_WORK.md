@@ -25,7 +25,9 @@ Obsidian plugin and optional companion outputs, pinned release updater, and
 manual BRAT prerelease workflow. Private prerelease `0.7.0-beta.1` targets
 `06dbdd0`. Its first updater trial proved the destination stays untouched on a
 download failure and exposed that private assets require GitHub's authenticated
-release API; the API fix is ready for a real retry.
+release API. The fix is committed and pushed as `a4dc90f`; its real retry
+installed the three beta.1 assets into the disposable vault and preserved
+`data.json`.
 
 ## Verified
 
@@ -39,9 +41,9 @@ target untouched and successful updates preserve `data.json`.
 1. Decide and record the public license, author/support metadata, and companion
    install location needed by
    [[Tasks/Prepare public preview metadata and optional agent setup]].
-2. Retry the pinned updater against private release `0.7.0-beta.1`, then publish
-   a new preview from the fixed commit if the authenticated path passes.
-3. Exercise BRAT and the pinned updater from clean disposable vaults, then record
+2. Merge the workflow-bearing branch when authorized, then exercise the manual
+   prerelease workflow from the default branch.
+3. Exercise BRAT from a clean disposable vault, then finish recording
    [[Tasks/Accept the BRAT preview and optional companion setup]].
 
 ## Loose ends

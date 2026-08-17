@@ -39,5 +39,11 @@ locally configured Obsidian plugin directory.
 
 Automated tests cover local configuration precedence, destination safety,
 managed URLs, failure without target mutation, settings preservation, and
-retired-file cleanup. The complete gate passes. A real network install remains
-part of preview acceptance after a prerelease exists.
+retired-file cleanup. The complete gate passes.
+
+Private prerelease `0.7.0-beta.1` exposed and proved the real network boundary:
+the browser-style asset URL returned 404 without changing the installed plugin,
+then the authenticated GitHub release-assets API installed `main.js`,
+`manifest.json`, and `styles.css` into the disposable test vault. Its manifest
+reported `0.7.0-beta.1`, the folder contained no companion, and the existing
+`data.json` state was unchanged.

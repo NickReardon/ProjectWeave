@@ -40,5 +40,6 @@ and confirm the workflow cannot publish from an ambiguous or failing source.
 The manual workflow, generated-version build override, manifest stamping,
 release-note generator, checksum verification, and failure-before-publication
 ordering are implemented and covered locally. Completion waits on the public
-metadata dependency and an explicitly authorized disposable GitHub prerelease;
-no tag or release has been published from this branch.
+metadata dependency and an explicitly authorized workflow run. Private
+prerelease `0.7.0-beta.1` was published manually from `06dbdd0` to test the
+artifact updater, so the workflow itself remains unexercised.

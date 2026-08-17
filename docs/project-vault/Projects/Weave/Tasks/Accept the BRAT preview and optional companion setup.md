@@ -37,3 +37,11 @@ prerelease before inviting testers.
 
 Run the BRAT and companion paths from clean disposable environments, then
 record the evidence here before changing this task to done.
+
+## Partial evidence
+
+On 2026-08-17, the pinned updater installed private prerelease
+`0.7.0-beta.1` from GitHub into the disposable test vault using authenticated
+release-asset downloads. The installed manifest and exact three-file inventory
+matched the tag, and local settings were preserved. BRAT, Obsidian runtime, and
+companion-client acceptance remain outstanding.
