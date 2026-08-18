@@ -6,9 +6,7 @@ status: planned
 origin: '[[Documents/Design/Note structure and dogfood vault]]'
 created: 2026-08-09
 milestone: '[[Milestones/v1 release]]'
-rank: 12000
-depends_on:
-  - '[[Epics/Epic-project-structure-and-contracts]]'
+rank: 3200
 ---
 
 # Dogfood vault migration
@@ -22,10 +20,18 @@ short routing pointers until the old locations are no longer canonical. When
 this lands, `docs/spec/` and `docs/decisions/` are no longer document
 locations.
 
-The dependency on [[Epics/Epic-typed-document-catalog]] was dropped by
-[ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md).
-That Epic decides whether the plugin recognizes a document's kind, not where
-the document lives, and typed documents are warning-only.
+This Epic has no prerequisites, which is deliberate and recent. The dependency
+on [[Epics/Epic-typed-document-catalog]] was dropped by
+[ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md):
+that Epic decides whether the plugin recognizes a document's kind, not where
+the document lives, and typed documents are warning-only. The dependency on
+[[Epics/Epic-project-structure-and-contracts]] went with
+[[Tasks/Create the dogfood document tree]], which moved to that Epic — it
+configures a project's folder map, which is that Epic's subject, and is the
+only part of this work that needed the plugin to change.
+
+What is left is relocation: moving files, migrating the links and tooling paths
+that point at them, and proving the result. None of it waits on a build.
 
 ## Governing documents
 

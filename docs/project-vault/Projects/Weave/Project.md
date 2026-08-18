@@ -86,17 +86,28 @@ itself. Each Epic's own `status` is the single record of how far it has got.
 | 2000 | [[Epics/Epic-shared-reads-agent]] | |
 | 2500 | [[Epics/Epic-agent-grant-lifecycle]] | [[Epics/Epic-shared-reads-agent]] |
 | 3000 | [[Epics/Epic-mutation-kernel]] | |
+| 3200 | [[Epics/Epic-dogfood-vault-migration]] | |
+| 3400 | [[Epics/Epic-project-structure-and-contracts]] | [[Epics/Epic-template-catalog]] |
+| 3600 | [[Epics/Epic-typed-document-catalog]] | [[Epics/Epic-project-structure-and-contracts]] |
 | 4000 | [[Epics/Epic-task-execution]] | |
 | 5000 | [[Epics/Epic-design-to-task]] | |
 | 6000 | [[Epics/Epic-long-project-org]] | |
 | 7000 | [[Epics/Epic-planning-periods]] | |
 | 8000 | [[Epics/Epic-controlled-documents]] | |
 | 9000 | [[Epics/Epic-stabilize-and-shipping]] | |
-| 10000 | [[Epics/Epic-project-structure-and-contracts]] | [[Epics/Epic-template-catalog]] |
-| 11000 | [[Epics/Epic-typed-document-catalog]] | [[Epics/Epic-project-structure-and-contracts]] |
-| 12000 | [[Epics/Epic-dogfood-vault-migration]] | [[Epics/Epic-typed-document-catalog]] |
 
-The last three are briefed in
+**Organization is the next goal.** The three Epics at 3200 through 3600 are the
+organization slice: one document tree, a project that can describe its own
+folders and contracts, and a plugin that recognizes the documents in them. They
+ranked last until now, which put Project Weave's own structure behind every
+feature that would be authored against it.
+
+Relocation leads because it is unblocked. [ADR 0029](../../../decisions/0029-hold-every-project-document-in-the-vault.md)
+settled that moving a document does not wait on the plugin recognizing it, so
+[[Epics/Epic-dogfood-vault-migration]] carries no prerequisite and can start
+while the active Epics finish.
+
+The three are briefed in
 [[Documents/Design/Note structure and dogfood vault]]. Release and distribution
 are briefed in
 [[Documents/Design/Prerelease and optional MCP companion distribution]] and land

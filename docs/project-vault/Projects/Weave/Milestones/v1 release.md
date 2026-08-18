@@ -13,7 +13,7 @@ created: 2026-08-07
 
 ## Outcome
 
-All twelve Epics pass their exit gates, manual checks are recorded, and the
+All thirteen Epics pass their exit gates, manual checks are recorded, and the
 plugin ships a stable v1.
 
 This milestone is undated by choice. `due_date` is optional and informational,
@@ -24,18 +24,19 @@ and ordering comes from `rank`, so no release date is implied or required. See
 
 - [ ] [[Epics/Epic-template-catalog]] accepted: creation flow, template catalog, remaining desktop checks
 - [ ] [[Epics/Epic-shared-reads-agent]]: shared reads + Agent Slice A (read-only bounded API)
+- [ ] [[Epics/Epic-agent-grant-lifecycle]]: grant dialog, readable grant list, immutable lifecycle
 - [ ] [[Epics/Epic-mutation-kernel]]: typed mutation kernel + multi-file preflight
+- [ ] **Organization**, the next goal: [[Epics/Epic-dogfood-vault-migration]] relocates every document into the vault, [[Epics/Epic-project-structure-and-contracts]] lets a project describe its own folders and contracts, and [[Epics/Epic-typed-document-catalog]] makes the plugin recognize what is there
 - [ ] [[Epics/Epic-task-execution]]: task editor, Board, Plan, My Work perspectives
 - [ ] [[Epics/Epic-design-to-task]]: design-to-task planning + Agent Slice B
 - [ ] [[Epics/Epic-long-project-org]]: epic, milestone, planning period entities
 - [ ] [[Epics/Epic-planning-periods]]: optional planning periods + Agent Slice C
 - [ ] [[Epics/Epic-controlled-documents]]: controlled document patch engine + Agent Slice D
 - [ ] [[Epics/Epic-stabilize-and-shipping]] accepted: schemas frozen, skill shipped, benchmarks recorded, desktop/mobile/manual checks passed
-- [ ] [[Epics/Epic-project-structure-and-contracts]], [[Epics/Epic-typed-document-catalog]], and [[Epics/Epic-dogfood-vault-migration]] accepted
 
 ## Included work
 
-Task membership is derived from task `milestone` links. All twelve Epics declare
+Task membership is derived from task `milestone` links. All thirteen Epics declare
 this milestone and carry a `rank` that orders them within it. The Epic model
 does not yet interpret either property, so the grouping and its order are
 authored but not queryable; [[Tasks/Add Epic roadmap graph fields]] closes that.

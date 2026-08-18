@@ -1,6 +1,7 @@
 ---
 type: task
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-dogfood-vault-migration]]'
 status: backlog
 category: loose-end
 rank: 3000

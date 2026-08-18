@@ -2,6 +2,7 @@
 type: task
 title: Resolve the duplicate 0025 decision record numbers
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-dogfood-vault-migration]]'
 status: backlog
 category: chore
 priority: normal
