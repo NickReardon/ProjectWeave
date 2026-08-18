@@ -27,6 +27,13 @@ current behavior; `decisions/README.md` owns that rule.
 
 - Product decisions update the owning specification and ship with a concise
   record from `decisions/0000-template.md` in the same commit.
+- A design lands before it is built: the specification and decision record, the
+  Epic, and its tasks and milestone assignment commit together, and only then
+  does an implementation branch start. The plan is what gets reviewed, so the
+  work items are citable before code exists. This does not conflict with
+  shipping documentation alongside behavior: `spec/` states intended behavior
+  and is written up front, while `../README.md` states implemented behavior and
+  moves with the code.
 - An accepted decision record is not edited. A changed decision is superseded
   by a new record, and the old one gains `superseded_by` and keeps its text.
 - A rule a reader must obey lives in the owning specification, never in a
