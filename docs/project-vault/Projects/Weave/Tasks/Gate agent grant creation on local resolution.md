@@ -3,7 +3,7 @@ type: task
 title: Gate agent grant creation on local resolution
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-agent-grant-lifecycle]]'
-status: backlog
+status: done
 category: enhancement
 priority: high
 rank: 6600

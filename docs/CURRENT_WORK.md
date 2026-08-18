@@ -37,17 +37,17 @@ credentials returns the actionable gateway message and never answers
 `initialize`.
 
 What remains is the part that needs Obsidian: install the prerelease through
-BRAT into a clean vault, run the companion against a real MCP client, and look
-at the agent grant row at narrow width, since its responsive fix was reasoned
-from the stylesheet rather than observed. Record the result on
+BRAT into a clean vault and run the companion against a real MCP client.
+Record the result on
 [[Tasks/Accept the BRAT preview and optional companion setup]].
 
-The agent grant redesign is specified rather than built. [[Epics/Epic-agent-grant-lifecycle]]
-carries the dialog surface, the grant list description, resolution gating
-creation, and copying a complete client configuration. Two decisions inside it
-are deliberately unresolved and belong to whoever picks it up: whether the
-free-text grant label survives, and whether content scope becomes an explicit
-choice rather than one inferred from an empty field.
+The agent grant redesign is built. Creation happens in a modal with labeled
+fields, the settings entry lists grants and what each permits, read scope is an
+explicit choice rather than an inference from a blank field, local resolution
+gates creation, and the clipboard carries a complete `mcpServers` entry with a
+bracketed placeholder for the companion path. Grants remain immutable and the
+persisted shape is unchanged. The new modal has not been seen at narrow width in
+Obsidian; that is the outstanding check.
 
 ## Loose ends
 

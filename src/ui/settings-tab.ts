@@ -1,19 +1,15 @@
-import {
-  AbstractInputSuggest,
-  Notice,
-  PluginSettingTab,
-  Setting,
-  TFolder,
-} from 'obsidian';
+import { Notice, PluginSettingTab, Setting } from 'obsidian';
 import type { App, SearchComponent } from 'obsidian';
 
 import type ProjectWeavePlugin from '../main';
-import type { ProjectSummary } from '../application/query-api';
 import {
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
   normalizeVaultFolderPath,
 } from '../settings/project-weave-settings';
+import { AgentGrantCreationModal } from './agent-grant-creation-modal';
+import { describeAgentGrantScope } from './agent-grant-form';
+import { VaultFolderSuggest } from './vault-suggest';
 
 export class ProjectWeaveSettingTab extends PluginSettingTab {
   readonly #plugin: ProjectWeavePlugin;
@@ -219,53 +215,41 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl).setName('Agent grants').setHeading();
+    if (this.#plugin.settings.agentGrants.length === 0) {
+      containerEl.createEl('p', {
+        cls: 'setting-item-description',
+        text: 'No agent grants exist yet. Create one to let a local MCP client read one project.',
+      });
+    }
     for (const grant of this.#plugin.settings.agentGrants) {
       new Setting(containerEl)
         .setName(grant.label)
         .setDesc(
-          `Grant id ${grant.id} · ${grant.projectPath} · ${grant.contentRoots.length === 0 ? 'entity metadata only' : grant.contentRoots.join(', ')}`,
+          `Grant id ${grant.id} · Project ${grant.projectPath} · ${describeAgentGrantScope(grant.contentRoots)}`,
         )
         .addExtraButton((button) =>
           button
             .setIcon('trash')
-            .setTooltip('Revoke this agent grant')
+            .setTooltip(`Revoke "${grant.label}"`)
             .onClick(() => {
               void this.#removeAgentGrant(grant.id);
             }),
         );
     }
 
-    let grantLabel = '';
-    let grantProject = '';
-    let grantRoots = '';
-    const agentGrantSetting = new Setting(containerEl)
-      .setName('Create agent grant')
+    new Setting(containerEl)
+      .setName('Create grant')
       .setDesc(
-        'The secret is copied to the clipboard once. Content folders are optional comma-separated vault paths for document reads.',
-      );
-    agentGrantSetting.settingEl.classList.add(
-      'project-weave-agent-grant-setting',
-    );
-    agentGrantSetting
-      .addText((text) =>
-        text.setPlaceholder('Repository name').onChange((value) => {
-          grantLabel = value;
-        }),
+        'Opens a dialog to scope a new read-only grant to one indexed project.',
       )
-      .addSearch((search) => {
-        grantProject = this.#configureProjectSearch(search, (value) => {
-          grantProject = value;
-        });
-      })
-      .addSearch((search) => {
-        grantRoots = this.#configureContentRootsSearch(search, (value) => {
-          grantRoots = value;
-        });
-      })
       .addButton((button) =>
-        button.setButtonText('Create and copy secret').onClick(() => {
-          void this.#createAgentGrant(grantLabel, grantProject, grantRoots);
-        }),
+        button
+          .setButtonText('Create grant')
+          .setCta()
+          .onClick(() => {
+            this.#openAgentGrantModal();
+          }),
       );
   }
 
@@ -279,44 +263,6 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
     suggest.onSelect((folder) => {
       search.setValue(folder.path);
       onValue(folder.path);
-    });
-    return search.getValue();
-  }
-
-  /**
-   * A grant scopes to one indexed project, so this suggests only projects
-   * already in the index rather than arbitrary vault files.
-   */
-  #configureProjectSearch(
-    search: SearchComponent,
-    onValue: (value: string) => void,
-  ): string {
-    search.setPlaceholder('Projects/Game/Project.md').onChange(onValue);
-    const suggest = new ProjectPathSuggest(this.app, search.inputEl, () =>
-      this.#plugin.listIndexedProjects(),
-    );
-    suggest.onSelect((project) => {
-      search.setValue(project.ref.path);
-      onValue(project.ref.path);
-    });
-    return search.getValue();
-  }
-
-  /**
-   * Content roots are comma-separated vault folder paths. Suggestions apply
-   * only to the segment currently being typed, and selecting one preserves
-   * the other already-entered segments.
-   */
-  #configureContentRootsSearch(
-    search: SearchComponent,
-    onValue: (value: string) => void,
-  ): string {
-    search.setPlaceholder('Projects/Game/Documents').onChange(onValue);
-    const suggest = new VaultFolderListSuggest(this.app, search.inputEl);
-    suggest.onSelect((folder) => {
-      const merged = replaceLastListSegment(search.getValue(), folder.path);
-      search.setValue(merged);
-      onValue(merged);
     });
     return search.getValue();
   }
@@ -445,36 +391,14 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
     }
   }
 
-  async #createAgentGrant(
-    label: string,
-    projectPath: string,
-    roots: string,
-  ): Promise<void> {
-    try {
-      const created = await this.#plugin.createAgentGrant({
-        label,
-        projectPath,
-        contentRoots: roots
-          .split(',')
-          .map((root) => root.trim())
-          .filter((root) => root.length > 0),
-      });
-      try {
-        await navigator.clipboard.writeText(created.secret);
-      } catch (error) {
-        await this.#plugin.removeAgentGrant(created.grant.id);
-        throw new Error(
-          'The secret could not be copied, so the grant was not kept.',
-          { cause: error },
-        );
-      }
-      new Notice(
-        `Project Weave grant created. Secret copied once; grant id ${created.grant.id}.`,
-      );
-      this.display();
-    } catch (error) {
-      new Notice('Project Weave: ' + errorMessage(error));
-    }
+  #openAgentGrantModal(): void {
+    new AgentGrantCreationModal(this.app, {
+      listIndexedProjects: () => this.#plugin.listIndexedProjects(),
+      endpoint: this.#plugin.agentGatewayEndpoint,
+      createGrant: (input) => this.#plugin.createAgentGrant(input),
+      removeGrant: (id) => this.#plugin.removeAgentGrant(id),
+      onCreated: () => this.display(),
+    }).open();
   }
 
   async #removeAgentGrant(id: string): Promise<void> {
@@ -494,124 +418,6 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       new Notice('Project Weave could not open its dashboard.');
     }
   }
-}
-
-class VaultFolderSuggest extends AbstractInputSuggest<TFolder> {
-  protected override getSuggestions(query: string): TFolder[] {
-    return matchingFolders(this.app, query);
-  }
-
-  public override renderSuggestion(
-    folder: TFolder,
-    element: HTMLElement,
-  ): void {
-    element.setText(folder.path);
-  }
-}
-
-/**
- * Suggests vault folders for a comma-separated list field, matching only
- * against the segment currently being edited (the text after the last
- * comma) rather than the whole field value.
- */
-class VaultFolderListSuggest extends AbstractInputSuggest<TFolder> {
-  protected override getSuggestions(query: string): TFolder[] {
-    return matchingFolders(this.app, lastListSegment(query));
-  }
-
-  public override renderSuggestion(
-    folder: TFolder,
-    element: HTMLElement,
-  ): void {
-    element.setText(folder.path);
-  }
-}
-
-/**
- * Suggests already-indexed projects, since a grant may only be scoped to a
- * project the index recognizes.
- */
-class ProjectPathSuggest extends AbstractInputSuggest<ProjectSummary> {
-  readonly #listProjects: () => Promise<readonly ProjectSummary[]>;
-
-  public constructor(
-    app: App,
-    textInputEl: HTMLInputElement,
-    listProjects: () => Promise<readonly ProjectSummary[]>,
-  ) {
-    super(app, textInputEl);
-    this.#listProjects = listProjects;
-  }
-
-  protected override async getSuggestions(
-    query: string,
-  ): Promise<ProjectSummary[]> {
-    return matchingProjects(await this.#listProjects(), query);
-  }
-
-  public override renderSuggestion(
-    project: ProjectSummary,
-    element: HTMLElement,
-  ): void {
-    element.setText(`${project.title} — ${project.ref.path}`);
-  }
-}
-
-/** Pure filter behind {@link ProjectPathSuggest}, exported for direct testing. */
-export function matchingProjects(
-  projects: readonly ProjectSummary[],
-  query: string,
-): ProjectSummary[] {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  return projects
-    .filter(
-      (project) =>
-        normalizedQuery.length === 0 ||
-        project.title.toLocaleLowerCase().includes(normalizedQuery) ||
-        project.ref.path.toLocaleLowerCase().includes(normalizedQuery),
-    )
-    .slice()
-    .sort((left, right) => left.title.localeCompare(right.title));
-}
-
-function matchingFolders(app: App, query: string): TFolder[] {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  return app.vault
-    .getAllLoadedFiles()
-    .filter((file): file is TFolder => file instanceof TFolder)
-    .filter(
-      (folder) =>
-        folder.path.length > 0 &&
-        folder.path !== '/' &&
-        folder.path !== '.obsidian' &&
-        !folder.path.startsWith('.obsidian/') &&
-        (normalizedQuery.length === 0 ||
-          folder.path.toLocaleLowerCase().includes(normalizedQuery)),
-    )
-    .sort((left, right) => left.path.localeCompare(right.path));
-}
-
-/** The comma-separated segment currently being typed, i.e. after the last comma. */
-export function lastListSegment(value: string): string {
-  const segments = value.split(',');
-  return segments[segments.length - 1] ?? '';
-}
-
-/**
- * Replaces the segment currently being typed with `replacement`, trimming
- * and dropping empty segments the same way `#createAgentGrant` parses this
- * field on submit, so the preview matches what will be saved.
- */
-export function replaceLastListSegment(
-  value: string,
-  replacement: string,
-): string {
-  const segments = value.split(',');
-  segments[segments.length - 1] = replacement;
-  return segments
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0)
-    .join(', ');
 }
 
 function errorMessage(error: unknown): string {

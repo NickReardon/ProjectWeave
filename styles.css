@@ -29,28 +29,29 @@
   font-size: var(--font-ui-smaller);
 }
 
-/* A grant has more controls than a normal Obsidian setting. Give its label
-   the full row and let the fields reflow to the settings pane's actual width
-   instead of shrinking the description and clipping the action button. */
-.project-weave-agent-grant-setting {
-  display: block;
-}
-
-.project-weave-agent-grant-setting .setting-item-control {
-  display: grid;
+/* Agent grant creation moved into a modal (see ADR 0028), so its fields lay
+   out the same way the other creation-preview modals already do: a narrow
+   column that stacks label/control per field rather than the settings
+   pane's full width, which is what the retired inline row needed the grid
+   hack above for. */
+.project-weave-agent-grant-modal {
+  display: flex;
+  flex-direction: column;
   gap: var(--size-4-2);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-  margin-top: var(--size-4-3);
-  width: 100%;
 }
 
-.project-weave-agent-grant-setting .setting-item-control input,
-.project-weave-agent-grant-setting .setting-item-control button,
-.project-weave-agent-grant-setting
-  .setting-item-control
-  .search-input-container {
-  min-width: 0;
-  width: 100%;
+.project-weave-agent-grant-modal__summary {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.project-weave-agent-grant-modal__status {
+  font-size: var(--font-ui-small);
+  margin: 0;
+}
+
+.project-weave-agent-grant-modal__status--error {
+  color: var(--text-error);
 }
 
 .project-weave-workbench {

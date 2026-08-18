@@ -1,7 +1,7 @@
 {
   "id": "project-weave",
   "name": "Project Weave",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "minAppVersion": "1.8.0",
   "description": "Turn Markdown designs into dependency-aware project work without mandatory process overhead.",
   "author": "Nick Reardon",

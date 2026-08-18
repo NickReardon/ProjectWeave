@@ -1,6 +1,6 @@
 {
   "name": "project-weave",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "A Markdown-first, dependency-aware project workbench for Obsidian.",
   "author": "Nick Reardon",

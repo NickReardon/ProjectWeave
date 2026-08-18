@@ -3,7 +3,7 @@ type: task
 title: Move agent grant creation into a dialog
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-agent-grant-lifecycle]]'
-status: backlog
+status: done
 category: enhancement
 priority: high
 rank: 6200
@@ -69,3 +69,38 @@ confirm cancel creates no grant, and confirm keyboard-only operation reaches
 every field and both the create and cancel actions. Add or extend settings-tab
 DOM coverage for the dialog's open/close and field wiring alongside
 [[Tasks/Add DOM coverage for the settings tab]].
+
+## Resolution
+
+Shipped as `AgentGrantCreationModal` (`src/ui/agent-grant-creation-modal.ts`),
+a plain `Modal` subclass following the same structure and lifecycle as
+`TaskCreationPreviewModal`/`ProjectCreationPreviewModal` — a titled dialog
+built from labeled `Setting` fields in `onOpen`, cleared in `onClose`, with a
+create button whose enabled state and tooltip reflect live validation rather
+than the shared `CreationPreviewModal` base, which is specific to previewing
+and committing note creation and does not fit a settings-owned record.
+
+Both decision points from "Settled decisions this task implements" are
+resolved as built:
+
+- **Label stays, terminology changes, and the field is required.** The field
+  is titled "Which tool is this for", its placeholder example is
+  `Claude Desktop` (client-shaped, not a repository or path), and it is
+  required with no default and no prefill: only the user can answer which
+  tool a grant is for, and a fallback to the project title would let two
+  grants serving different tools on the same project both be named after the
+  project, looking meaningful while carrying none. An empty or
+  whitespace-only name is unresolved and blocks creation the same way an
+  unindexed project or a missing content folder does. This is a UI-level
+  requirement only — `#createAgentGrant`'s existing fallback to the project
+  title in `src/main.ts` still exists and is untouched, tolerating a blank
+  label reaching the application layer by some other path.
+- **Scope is an explicit choice.** A "What this grant can read" dropdown asks
+  Metadata only vs. Metadata and note text; the content-folder field renders
+  only in the second state via `#renderContentRootsField`. At rest, the
+  persisted `AgentGrant.contentRoots` shape is unchanged — an empty array
+  still means metadata-only — so the explicit choice is a UI-level framing
+  over the same compatibility surface, not a schema change.
+
+The settings entry has no multi-field control left in it: it is a heading,
+the existing-grants list, and one "Create grant" button that opens the modal.
