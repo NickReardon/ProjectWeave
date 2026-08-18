@@ -13,61 +13,67 @@ verified, and what is next. Rewrite it rather than appending history.
 
 ## In flight
 
-None.
+A design correction, not an implementation: every Project Weave document
+belongs in the dogfood vault, and the staged migration that already said so
+named the wrong destination for specifications.
+
+[ADR 0029](decisions/0029-hold-every-project-document-in-the-vault.md) records
+it. Living specifications move to `Documents/Specifications/` under a
+project-defined `specification` kind, not to `Documents/Design/`, which
+[ADR 0022](decisions/0022-separate-living-specifications-from-point-in-time-decision-records.md)
+defines as the home of point-in-time proposals. Decision records move to
+`Documents/Decisions/`. The owning specification and
+[[Tasks/Move canonical docs into typed folders]] carry the corrected
+destinations.
+
+The same record drops the dogfood migration Epic's dependency on the typed
+document catalog. That Epic decides whether the plugin recognizes a document's
+kind, not where the document lives, and typed documents are warning-only.
+
+No document has moved yet.
 
 ## Verified
 
-Five changes land together: the documentation link and naming gate, one-surface
-ownership for the workbench and workflow specifications, the MCP client
-configuration documentation, indexed-project and folder suggestion for the agent
-grant fields, and connect-time verification of the companion gateway handshake.
+The agent grant redesign is built and released. Creation happens in a modal
+with labeled fields, the settings entry lists grants and what each permits,
+read scope is an explicit choice rather than an inference from a blank field,
+local resolution gates creation, and the clipboard carries a complete
+`mcpServers` entry with a bracketed placeholder for the companion path. Grants
+remain immutable and the persisted shape is unchanged.
 
-The complete `npm run check` gate passes on the integrated result. The companion
-now carries protocol-level tests that drive it over stdio with fake credentials,
-so its failure modes are covered without a vault, a grant, or a published
-release.
+The documentation link gate now skips git-ignored files. BRAT writes an update
+log of `[[date]]` entries into whatever vault it is installed in, which is tool
+output rather than a project document; it is git-ignored and the gate follows
+git's answer.
 
 ## Next
 
-Prerelease `0.7.0-beta.32068417927` is published from the merged source. Its
-manifest names that version, the companion checksum verifies, and the plugin
-bundle carries the lazy `require("node:net")` rather than the dynamic import
-that failed the previous acceptance. Probing the published companion with fake
-credentials returns the actionable gateway message and never answers
-`initialize`.
+Prerelease `0.6.1-beta.32112484849` is the only published release. The
+mis-numbered `0.7.0-beta` releases are drafted rather than deleted, so BRAT
+resolves the correct build and the action stays reversible.
 
-What remains is the part that needs Obsidian: install the prerelease through
-BRAT into a clean vault and run the companion against a real MCP client.
-Record the result on
-[[Tasks/Accept the BRAT preview and optional companion setup]].
-
-The agent grant redesign is built. Creation happens in a modal with labeled
-fields, the settings entry lists grants and what each permits, read scope is an
-explicit choice rather than an inference from a blank field, local resolution
-gates creation, and the clipboard carries a complete `mcpServers` entry with a
-bracketed placeholder for the companion path. Grants remain immutable and the
-persisted shape is unchanged. The new modal has not been seen at narrow width in
-Obsidian; that is the outstanding check.
+What remains needs Obsidian: install that prerelease through BRAT into a clean
+vault, run the companion against a real MCP client, and record the result on
+[[Tasks/Accept the BRAT preview and optional companion setup]]. The grant
+dialog and grant list have still not been seen at narrow width.
 
 ## Loose ends
 
-- The companion now requires the gateway to be reachable when the client
-  launches it, so Obsidian must be running first. That ordering is undocumented;
-  see [[Tasks/Document the companion launch ordering requirement]].
+- The companion requires the gateway to be reachable when the client launches
+  it, so Obsidian must be running first. That ordering is undocumented; see
+  [[Tasks/Document the companion launch ordering requirement]].
 - The agent gateway socket takes its mode from the process umask, so on Linux
   and macOS another user may be able to open it. See
   [[Tasks/Restrict the agent gateway socket to its owner]].
 - Grant creation still generates a secret from unvalidated paths. The agreed
   flow validates first and keeps creation atomic; see
   [[Tasks/Restructure agent grant creation into validate-then-create]].
-- Whether the grant secret is load-bearing at all is deliberately unsettled; see
-  [[Tasks/Revisit whether the agent grant secret is load-bearing]].
+- Whether the grant secret is load-bearing at all is deliberately unsettled;
+  see [[Tasks/Revisit whether the agent grant secret is load-bearing]].
 - "Backlog" means both a stored status and a condition derived from sprint
   membership. They coincide only because sprints do not exist yet; collapsing
   them is folded into the planning-periods work.
-- `docs/decisions/` contains two records numbered `0025`. Pre-existing, and not
-  caught by the new naming gate, which checks specification filenames only.
-- The public prerelease still contains the broken dynamic Node import; only a
-  new prerelease can prove the fix end to end.
-- Full mobile check 11a through 11g remains outstanding; the current evidence is
-  a workbench and gateway-isolation smoke test in mobile emulation.
+- `docs/decisions/` contains two records numbered `0025` and no `0027`. The
+  naming gate checks specification filenames only.
+- Full mobile check 11a through 11g remains outstanding; the current evidence
+  is a workbench and gateway-isolation smoke test in mobile emulation.

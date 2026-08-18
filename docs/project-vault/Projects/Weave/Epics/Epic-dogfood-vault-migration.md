@@ -9,7 +9,6 @@ milestone: '[[Milestones/v1 release]]'
 rank: 12000
 depends_on:
   - '[[Epics/Epic-project-structure-and-contracts]]'
-  - '[[Epics/Epic-typed-document-catalog]]'
 ---
 
 # Dogfood vault migration
@@ -17,15 +16,23 @@ depends_on:
 ## Summary
 
 Apply the new structure to Project Weave's own vault in staged, reviewable
-steps. Move canonical specs, ADRs, testing/release references, and historical
-material into typed folders; migrate links; retain short routing pointers until
-the old locations are no longer canonical.
+steps. Move canonical specifications, decision records, testing and release
+references, and historical material into typed folders; migrate links; retain
+short routing pointers until the old locations are no longer canonical. When
+this lands, `docs/spec/` and `docs/decisions/` are no longer document
+locations.
+
+The dependency on [[Epics/Epic-typed-document-catalog]] was dropped by
+[ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md).
+That Epic decides whether the plugin recognizes a document's kind, not where
+the document lives, and typed documents are warning-only.
 
 ## Governing documents
 
 - [Note structure and dogfood vault](../../../../spec/note-structure-and-dogfood-vault.md)
 - [Quality and release](../../../../spec/quality-and-release.md)
 - [ADR 0019](../../../../decisions/0019-note-structure-and-typed-documents.md)
+- [ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md)
 
 ## Exit gate
 

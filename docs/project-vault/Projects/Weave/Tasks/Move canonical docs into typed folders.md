@@ -12,15 +12,58 @@ created: 2026-08-09
 
 ## Summary
 
-Move specifications and ADRs into Documents/Design and Documents/Decisions,
-preserving content while adding typed metadata and updating links.
+Move the living specifications and the decision log into the dogfood vault so
+that `docs/spec/` and `docs/decisions/` stop being document locations. Content
+is preserved, typed metadata is added, and links are updated in the same change.
+
+## Destinations
+
+| Source | Destination | `document_kind` |
+| --- | --- | --- |
+| `docs/spec/` | `Documents/Specifications/` | `specification` |
+| `docs/decisions/` | `Documents/Decisions/` | `decision` |
+
+Specifications do **not** go to `Documents/Design/`, which this task said until
+[ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md)
+corrected it. A design document is a proposal; a specification is a living
+contract, and filing one under the other is the ownership inversion
+[ADR 0022](../../../../decisions/0022-separate-living-specifications-from-point-in-time-decision-records.md)
+exists to prevent.
+
+## Inbound paths that move with the files
+
+The content move is small next to the citations pointing at it. Each of these
+resolves to the old tree today:
+
+- Vault notes that escape the vault to cite a specification, in the form
+  `../../../../spec/<name>.md`. These become ordinary vault links, which is the
+  main gain.
+- `scripts/verify-doc-links.mjs`, whose `SPEC_PREFIX` and vault prefix encode
+  the split as two namespaces.
+- The routers: `AGENTS.md`, `docs/AGENTS.md`, and the generated `CLAUDE.md`
+  projections, plus `docs/spec/README.md` and `docs/decisions/README.md`.
+- `README.md` and `docs/ARCHITECTURE.md`.
 
 ## Acceptance criteria
 
-- There is one canonical copy of each specification and ADR.
-- Links and origin references resolve from the new locations.
-- Old locations remain only as short non-authoritative compatibility pointers until retired.
+- There is one canonical copy of each specification and decision record, in the
+  vault.
+- No vault note cites a document by climbing out of the vault.
+- Links and origin references resolve from the new locations, and
+  `npm run docs:links` passes.
+- Old locations remain only as short non-authoritative routing pointers until
+  retired.
+- `npm run diagnostics:check` reports no unexpected diagnostics once the moved
+  documents are inside the scanned vault.
+
+## Notes
+
+Sequencing is settled by ADR 0029: relocating a document does not depend on the
+plugin recognizing its kind, because typed documents are warning-only and
+untyped Markdown is unaffected. The move therefore runs ahead of
+[[Epics/Epic-typed-document-catalog]] rather than behind it.
 
 ## Validation
 
-Check link resolution, duplicate canonical documents, and warning diagnostics after each category.
+Check link resolution, duplicate canonical documents, and warning diagnostics
+after each category.
