@@ -36,14 +36,13 @@ on its own, not about the list existing in the first place.
   and enough to reconstruct a client configuration against it (at minimum the
   grant id, which is already shown).
 
-## Decision point carried over from the dialog task
+## Identity is settled
 
-[[Tasks/Move agent grant creation into a dialog]] raises whether the
-free-text label field survives. If it is dropped, this list is where its
-absence has to be made up for — a grant then needs to be identifiable by
-project, content scope, and creation order (or another stable anchor) alone.
-Do not resolve this independently of that task; land the two together so the
-list's identity story and the dialog's field set agree.
+[[Tasks/Move agent grant creation into a dialog]] settled that a grant keeps a
+short free-text name. The list therefore identifies a grant by that name, and
+does not have to carry the identity burden alone. Scope, project, and creation
+order remain worth showing because they answer what a grant permits, which is a
+different question from which grant this is.
 
 ## Acceptance criteria
 

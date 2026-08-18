@@ -502,8 +502,15 @@ projects, each content root against the vault's file tree — before the create
 action is available. This resolution is local: it is answered from the vault
 and index the plugin already holds, never a round trip through the agent
 gateway, and it succeeds or fails identically whether the gateway is enabled
-or disabled. A content-root list is optional and an empty list always
-resolves, since a grant with no content roots is a valid metadata-only grant.
+or disabled.
+
+A grant's read scope is **chosen, not inferred**. Creation states the two
+levels as an explicit choice: metadata only, or metadata and note text. Content
+roots are collected only for the second, and an empty content-root list in that
+state does not resolve. Metadata-only is unconditionally resolvable and carries
+no content roots. Scope is never derived from whether a field was left blank,
+because the choice between the two levels is what decides how much of the vault
+an external client can read.
 
 Settings presents agent grants through a creation surface separate from the
 list of existing grants, following this plugin's general modal convention for
