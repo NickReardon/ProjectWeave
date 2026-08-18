@@ -30,25 +30,22 @@ and open/close behavior. Gating the create action on local resolution is
 action copies on success is [[Tasks/Copy a complete client configuration on
 grant creation]].
 
-## Decision points to resolve while building this
+## Settled decisions this task implements
 
-- **Does the free-text label field survive?** It exists only so a grant is
-  recognizable later, when deciding whether to revoke it — its current
-  placeholder, `Repository name`, is also the single most misleading string
-  on the row. If the grant list (once it shows project, scope, and creation
-  order) already makes a grant recognizable without a label, the field adds a
-  required decision with no payoff. Recommendation: drop the label field
-  unless building the list first shows it is insufficient without one; if it
-  is dropped, the list's identity needs a different anchor (see
-  [[Tasks/Describe what each agent grant permits in the grant list]]).
-- **Should content scope be an explicit binary choice plus folder list,
-  rather than a bare list?** Today, whether a grant is metadata-only is
-  inferred from whether the content-roots field is empty — the real decision
-  a user is making (metadata only vs. metadata plus note text) is never
-  stated as a choice. Recommendation: make it explicit — a toggle or radio
-  for metadata-only vs. content-readable, revealing the folder list only in
-  the content-readable state — so the field asks the real question instead
-  of inferring it from emptiness.
+- **The label field stays; the terminology does not.** Settled: a grant keeps
+  a short free-text name, because naming the tool a grant serves is how you
+  recognize it later when deciding whether to revoke it. What goes is the
+  `Repository name` framing — a grant has nothing to do with a repository,
+  and that placeholder is the single most misleading string on the row. The
+  field asks which tool the grant is for, and its example should look like a
+  client name rather than a path or a project.
+- **Content scope is an explicit choice.** Settled: the dialog asks which of
+  the two levels applies — metadata only, or metadata and note text — and
+  reveals the folder list only in the second. Scope is no longer inferred from
+  whether the content-roots field happens to be empty. This is the one control
+  that decides how much of the vault an external client can read, so it is
+  posed as a question rather than left as a side effect of a blank field. The
+  rule is owned by [Agent access and MCP](../../../../spec/agent-access-and-mcp.md).
 
 ## Acceptance criteria
 

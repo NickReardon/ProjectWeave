@@ -28,9 +28,10 @@ What this task adds beyond that note: the validate-then-create ordering was
 designed against the settings-row layout and now needs to be built inside the
 dialog surface instead, and it needs to account for the explicit
 metadata-only/content-readable choice from [[Tasks/Move agent grant creation
-into a dialog]]'s second decision point rather than an inferred one — an
-explicit metadata-only choice with no folders entered is unconditionally
-resolvable, the same as today's empty list.
+into a dialog]], which is settled: scope is an explicit choice. Metadata-only
+is unconditionally resolvable and carries no content roots, and an empty folder
+list in the content-readable state does not resolve. The special case for an
+empty list disappears with the inference that required it.
 
 ## Acceptance criteria
 

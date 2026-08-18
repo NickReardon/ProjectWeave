@@ -42,6 +42,13 @@ at the agent grant row at narrow width, since its responsive fix was reasoned
 from the stylesheet rather than observed. Record the result on
 [[Tasks/Accept the BRAT preview and optional companion setup]].
 
+The agent grant redesign is specified rather than built. [[Epics/Epic-agent-grant-lifecycle]]
+carries the dialog surface, the grant list description, resolution gating
+creation, and copying a complete client configuration. Two decisions inside it
+are deliberately unresolved and belong to whoever picks it up: whether the
+free-text grant label survives, and whether content scope becomes an explicit
+choice rather than one inferred from an empty field.
+
 ## Loose ends
 
 - The companion now requires the gateway to be reachable when the client

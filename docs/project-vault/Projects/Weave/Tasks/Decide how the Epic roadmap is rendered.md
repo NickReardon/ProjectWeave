@@ -39,23 +39,41 @@ deliberately; no option is blocked and the tables are correct meanwhile.
 - Reaching for a Base is itself a signal: whatever it would render is a view
   Project Weave does not offer yet.
 
+## Decision
+
+An Obsidian Base renders the roadmap, for now.
+
+It queries the Epic frontmatter that is already authored — `rank`,
+`depends_on`, `milestone` — so the ordering stops being retyped by hand. A
+`.base` file is a view rather than state, so it does not compete with the
+Markdown-is-canonical invariant, and `scripts/diagnostics.mjs` only reads `.md`,
+so it cannot affect the gate.
+
+`minAppVersion: 1.8.0` against Bases needing 1.9+ gates shipping a Base to
+users, not using one in this vault, which is the maintainer's own. That is why
+this is reversible rather than a commitment.
+
+It stays a stopgap on purpose. Reaching for a Base is itself the signal the
+task already names: whatever it renders is a view Project Weave does not offer
+yet. Weave's own Epic roadmap view remains the honest answer, and additional
+dashboard pages can grow from it later. This decision buys that time without
+paying for hand-maintained tables meanwhile — a cost that just came due when
+the roadmap went from twelve Epics to thirteen by hand.
+
 ## Acceptance criteria
 
 - One mechanism is chosen and the hand-maintained tables are removed or
   explicitly kept with a stated reason.
 - If Weave renders it, the Projects and epics spec's Epic view covers roadmap ordering.
 
-## Why this is still deferred
+## What remains
 
-Two reasons, recorded so the deferral is not re-litigated from scratch.
+The decision is made; building it is not. A `.base` file has to exist, query
+Epic `rank`, `depends_on`, and `milestone`, and the hand-maintained roadmap
+table in [[Projects/Weave/Project]] has to be removed once the Base renders the
+same information — otherwise the project note carries two answers to the same
+question, which is the failure this decision was meant to end.
 
-It is a product decision rather than a mechanical one. The Obsidian Base option
-is gated by `manifest.json` setting `minAppVersion: 1.8.0` while Bases needs
-1.9+, so choosing it for this vault is not the same as choosing it for users —
-that trade belongs to the maintainer, not to whoever picks the task up next.
-
-It also cannot be started while another change is writing to
-`docs/decisions/`. Choosing a mechanism ships a decision record, and concurrent
-work claiming the next free number is how
-[[Tasks/Resolve the duplicate 0025 decision record numbers]] happened in the
-first place.
+Note that the Base reads properties the Epic model still cannot; see
+[[Tasks/Add Epic roadmap graph fields]]. That gap is the reason a Base is a
+stopgap rather than the answer, and it does not block one.
