@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import { posix, resolve, sep } from 'node:path';
 import process from 'node:process';
@@ -185,9 +186,47 @@ async function listMarkdownFiles(root, dir) {
   return files;
 }
 
+/**
+ * Drop paths git ignores. Tools installed into the dogfood vault write their
+ * own files there — BRAT keeps an update log of `[[date]]` entries — and those
+ * are tool output rather than project documents. The gate checks the documents
+ * the repository carries, so git's own answer is the right filter.
+ */
+async function withoutIgnoredFiles(root, paths) {
+  if (paths.length === 0) return paths;
+  try {
+    const ignored = await new Promise((resolveList, rejectList) => {
+      const git = spawn('git', ['check-ignore', '--stdin'], { cwd: root });
+      let out = '';
+      git.stdout.on('data', (chunk) => (out += chunk));
+      git.on('error', rejectList);
+      // Exit code 1 means nothing matched, which is success for this purpose.
+      git.on('close', (code) =>
+        code === 0 || code === 1
+          ? resolveList(out)
+          : rejectList(new Error(`git check-ignore exited ${code}`)),
+      );
+      git.stdin.end(`${paths.join('\n')}\n`);
+    });
+    const ignoredSet = new Set(
+      ignored
+        .split('\n')
+        .map((line) => line.trim().replaceAll('\\', '/'))
+        .filter(Boolean),
+    );
+    return paths.filter((path) => !ignoredSet.has(path));
+  } catch {
+    // No git, or no repository. Check everything rather than silently skipping.
+    return paths;
+  }
+}
+
 async function main() {
   const root = resolve(import.meta.dirname, '..');
-  const docFiles = await listMarkdownFiles(root, DOCS_ROOT);
+  const docFiles = await withoutIgnoredFiles(
+    root,
+    await listMarkdownFiles(root, DOCS_ROOT),
+  );
 
   const entries = await Promise.all(
     docFiles.map(async (path) => ({

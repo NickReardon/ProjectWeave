@@ -19,3 +19,8 @@ CLAUDE.md
 .claude/worktrees/
 .mcp.json
 .cursor/mcp.json
+
+# BRAT writes its update log into the vault it is installed in. It is tool
+# output rather than a project document, and its [[date]] entries break the
+# documentation link gate.
+docs/project-vault/BRAT-log.md
