@@ -295,38 +295,52 @@ the companion as a stdio subprocess; and the companion connects back to the
 gateway over a local authenticated pipe/socket. You configure a client to
 start the companion — you never run `project-weave-mcp.cjs` yourself.
 
-On desktop, enable **Read-only agent gateway** in Project Weave settings and
-create a grant for one indexed project. Settings then shows three values:
+On desktop, enable **Read-only agent gateway** in Project Weave settings, then
+use **Create grant** to open the grant dialog. It asks which tool the grant is
+for, which one indexed project it may read, and an explicit choice between
+metadata only and metadata and note text — the folder list appears only for
+the second choice, and it stays empty for a metadata-only grant. The create
+action stays disabled until the chosen project and every chosen folder
+resolve locally against the vault, naming whichever one does not.
 
-- **Endpoint** — the local pipe/socket address the gateway is listening on,
-  shown next to the gateway toggle.
-- **Grant id** — identifies the grant; shown for as long as the grant exists,
-  alongside its label, project, and content roots.
-- **Secret** — copied to the clipboard once, at creation, and never shown or
-  stored again. Capture it immediately. If it is lost, revoke the grant and
-  create a new one; there is no way to recover the original secret.
+A grant is immutable once created: there is no edit operation, so correcting
+a mistake means revoking the grant and creating a replacement. Settings shows
+every existing grant with its label, grant id, project, and scope — metadata
+only, or which content roots additionally expose Markdown bodies — so a
+grant's scope is always readable without opening anything.
 
-Configure the MCP client to launch the companion with Node.js and pass those
-three values through its environment. Client configuration formats vary, but
-most follow the `mcpServers` shape used by Claude Desktop and similar clients.
-On Windows, double every backslash in the path — a single backslash inside a
-JSON string is a silent failure, not an error:
+Pressing **Create grant** both creates the grant and copies a complete,
+ready-to-paste client configuration to the clipboard in one step, once, and
+never shows or stores it again — capture it immediately, since a lost
+configuration means revoking the grant and creating a new one. Like a
+WireGuard peer configuration, it arrives whole rather than as loose values
+you assemble yourself: it is a full `mcpServers` entry, following the shape
+Claude Desktop and similar clients use, with the endpoint, grant id, and
+secret already filled in:
 
 ```json
 {
   "mcpServers": {
     "project-weave": {
       "command": "node",
-      "args": ["C:\\Users\\you\\project-weave-mcp\\project-weave-mcp.cjs"],
+      "args": ["<path to project-weave-mcp.cjs>"],
       "env": {
-        "PROJECT_WEAVE_ENDPOINT": "<endpoint shown in settings>",
-        "PROJECT_WEAVE_GRANT_ID": "<grant id shown in settings>",
-        "PROJECT_WEAVE_GRANT_SECRET": "<secret copied at creation>"
+        "PROJECT_WEAVE_ENDPOINT": "<the gateway endpoint, empty if currently disabled>",
+        "PROJECT_WEAVE_GRANT_ID": "<the new grant's id>",
+        "PROJECT_WEAVE_GRANT_SECRET": "<the new grant's one-time secret>"
       }
     }
   }
 }
 ```
+
+The one thing the plugin cannot know — where you placed
+`project-weave-mcp.cjs` — is left as the unmistakable placeholder
+`<path to project-weave-mcp.cjs>` in `args`, rather than omitted, so it is the
+only thing left to edit and it is obvious where. Replace it with the real
+path and merge the entry into your client's configuration file. On Windows,
+double every backslash in that path — a single backslash inside a JSON string
+is a silent failure, not an error.
 
 The companion exposes only bounded read tools. Entity metadata stays within the
 grant's project; Markdown bodies additionally require an allowed content root.

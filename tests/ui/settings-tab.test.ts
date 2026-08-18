@@ -4,12 +4,12 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ProjectSummary } from '../../src/application/query-api';
 import type ProjectWeavePlugin from '../../src/main';
+import { ProjectWeaveSettingTab } from '../../src/ui/settings-tab';
 import {
   lastListSegment,
   matchingProjects,
-  ProjectWeaveSettingTab,
   replaceLastListSegment,
-} from '../../src/ui/settings-tab';
+} from '../../src/ui/vault-suggest';
 import { installObsidianDom } from '../helpers/obsidian-dom';
 import { createStubApp } from '../helpers/obsidian-stub';
 
@@ -60,20 +60,69 @@ describe('ProjectWeaveSettingTab', () => {
     );
     expect(tab.containerEl.textContent).toContain('Game repository');
     expect(tab.containerEl.textContent).toContain('Projects/Game/Project.md');
+    expect(tab.containerEl.textContent).toContain(
+      'Note text in Projects/Game/Documents',
+    );
     expect(tab.containerEl.textContent).not.toContain('a'.repeat(64));
     const gatewayToggle = [...tab.containerEl.querySelectorAll('input')].find(
       (input) => input.type === 'checkbox',
     );
     expect(gatewayToggle?.checked).toBe(false);
 
-    const grantForm = tab.containerEl.querySelector(
-      '.project-weave-agent-grant-setting',
+    // The multi-field row is gone; only a single "Create grant" button opens
+    // the dialog (see [[Tasks/Move agent grant creation into a dialog]]).
+    expect(tab.containerEl.textContent).toContain('Agent grants');
+    const createGrantButton = [
+      ...tab.containerEl.querySelectorAll('button'),
+    ].find((button) => button.textContent === 'Create grant');
+    expect(createGrantButton).not.toBeUndefined();
+
+    // Revoke names the grant it acts on rather than a generic tooltip.
+    const revokeButton = [...tab.containerEl.querySelectorAll('button')].find(
+      (button) => button.title.includes('Game repository'),
     );
-    expect(grantForm).not.toBeNull();
-    expect(grantForm?.querySelectorAll('input')).toHaveLength(3);
-    expect(grantForm?.querySelector('button')?.textContent).toBe(
-      'Create and copy secret',
-    );
+    expect(revokeButton?.title).toBe('Revoke "Game repository"');
+  });
+
+  it('describes a metadata-only grant without a content-root list', () => {
+    const app = createStubApp();
+    const plugin = {
+      settings: {
+        settingsVersion: 2,
+        projectRoots: ['Projects'],
+        templateScaffoldFolder: 'Templates/Project Weave',
+        diagnosticsLogFolder: '',
+        taskCategories: [],
+        agentGatewayEnabled: false,
+        agentVaultId: 'vault-1',
+        agentGrants: [
+          {
+            id: 'meta-only',
+            label: 'Read-only bot',
+            vaultId: 'vault-1',
+            projectPath: 'Projects/Game/Project.md',
+            contentRoots: [],
+            secretDigest: 'b'.repeat(64),
+            enabled: true,
+          },
+        ],
+      },
+      agentGatewayEndpoint: null,
+      openProjectWorkbench: vi.fn(),
+      updateProjectRoots: vi.fn(),
+      updateTemplateScaffoldFolder: vi.fn(),
+      updateTaskCategories: vi.fn(),
+      updateDiagnosticsLogFolder: vi.fn(),
+      rebuildIndex: vi.fn(),
+      updateAgentGatewayEnabled: vi.fn(),
+      createAgentGrant: vi.fn(),
+      removeAgentGrant: vi.fn(),
+    } as unknown as ProjectWeavePlugin;
+    const tab = new ProjectWeaveSettingTab(app as never, plugin);
+
+    tab.display();
+
+    expect(tab.containerEl.textContent).toContain('Entity metadata only');
   });
 });
 
@@ -134,7 +183,7 @@ describe('replaceLastListSegment', () => {
     ).toBe('Projects/Game/Documents, Projects/Game/Assets');
   });
 
-  it('trims whitespace consistently with how #createAgentGrant parses roots', () => {
+  it('trims whitespace consistently with how the grant dialog parses roots', () => {
     expect(
       replaceLastListSegment(
         '  Projects/Game/Documents ,  ',

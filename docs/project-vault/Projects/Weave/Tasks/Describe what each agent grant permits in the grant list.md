@@ -3,7 +3,7 @@ type: task
 title: Describe what each agent grant permits in the grant list
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-agent-grant-lifecycle]]'
-status: backlog
+status: done
 category: enhancement
 priority: high
 rank: 6400

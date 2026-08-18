@@ -431,14 +431,18 @@ export class AbstractInputSuggest<T> {
   }
 }
 
-export function createStubApp(paths: readonly string[] = []): StubApp {
+export function createStubApp(
+  paths: readonly string[] = [],
+  folderPaths: readonly string[] = [],
+): StubApp {
+  const folders = folderPaths.map((path) => new TFolder(path));
   const vault: StubVault = {
     paths: new Set(paths),
     getFileByPath(path) {
       return vault.paths.has(path) ? { path } : null;
     },
     getAllLoadedFiles() {
-      return [];
+      return folders;
     },
   };
 

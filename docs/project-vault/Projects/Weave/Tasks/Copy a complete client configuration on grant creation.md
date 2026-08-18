@@ -3,7 +3,7 @@ type: task
 title: Copy a complete client configuration on grant creation
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-agent-grant-lifecycle]]'
-status: backlog
+status: done
 category: enhancement
 priority: normal
 rank: 6800
