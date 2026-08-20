@@ -1,5 +1,6 @@
 ---
 type: decision
+id: "0019"
 area: note-structure
 status: accepted
 canonical: false

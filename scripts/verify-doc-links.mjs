@@ -8,23 +8,25 @@ import { pathToFileURL } from 'node:url';
 const DOCS_ROOT = 'docs';
 const ARCHIVE_PREFIX = 'docs/archive/';
 const SPEC_PREFIX = 'docs/spec/';
-const DECISION_PREFIX = 'docs/decisions/';
 const PROJECT_VAULT_PREFIX = 'docs/project-vault/';
 
 const MARKDOWN_LINK = /\[[^\]]*\]\(([^)]+)\)/gu;
 const WIKILINK = /\[\[([^\]]+)\]\]/gu;
 const NUMERIC_SPEC_BASENAME = /^\d+[-_]/u;
-const DECISION_BASENAME = /^(\d+)-[^/]+\.md$/u;
+const NUMERIC_BASENAME_PREFIX = /^(\d+)-/u;
+const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/u;
+const FRONTMATTER_TYPE = /^type:\s*(\S+)\s*$/mu;
+const FRONTMATTER_ID = /^id:\s*['"]?([^'"\s]+)['"]?\s*$/mu;
+const DECISION_HEADING = /^#\s*ADR\s*(\d+)/mu;
 const NUMBERED_CITATION = /\b(?:Spec|Design) \d+\b/gu;
 const QUOTE_CHARS = new Set(['"', "'", '“', '”', '‘', '’']);
 
 /**
- * `docs/decisions/` carries one historical collision: two accepted records
- * numbered 0025. An accepted record is immutable and its number is the
- * identifier other documents cite, so the pair stands as history rather than
- * being renumbered; `../docs/decisions/README.md` owns that rule. The exact
- * pair is grandfathered rather than the number, so a third 0025 is still a
- * violation.
+ * One historical collision survives: two accepted records declare `id: 0025`.
+ * An accepted record is immutable and its id is what other documents cite it
+ * by, so the pair stands as history rather than being renumbered;
+ * `../docs/decisions/README.md` owns that rule. The exact pair is
+ * grandfathered rather than the id, so a third 0025 is still a violation.
  */
 const HISTORICAL_DUPLICATE_DECISIONS = new Map([
   [
@@ -114,42 +116,104 @@ function isQuotedMatch(line, index, length) {
 }
 
 /**
- * A decision record's number is its citation identifier, so two records may
- * never share one. This is a property of the set rather than of a single file,
- * so it is checked across all entries at once.
+ * A decision record is identified by its frontmatter rather than by where it
+ * sits or what it is called. `type: decision` makes a note a record and `id`
+ * is what other documents cite it by, so a record without an id has no
+ * identity. The number in the filename and in the heading are conveniences,
+ * and a convenience may not contradict the identifier.
+ *
+ * Recognizing records by frontmatter rather than by directory keeps the rule
+ * working when the decision log moves into the vault and its filenames stop
+ * carrying numbers. The packaged template is exempt: it declares
+ * `type: decision-template` and carries no identity of its own.
  */
-function findDuplicateDecisionNumbers(entries) {
-  const byNumber = new Map();
+function readDecisionId(source) {
+  const frontmatter = FRONTMATTER.exec(source)?.[1];
+  if (frontmatter === undefined) return null;
+  if (FRONTMATTER_TYPE.exec(frontmatter)?.[1] !== 'decision') return null;
+  return FRONTMATTER_ID.exec(frontmatter)?.[1] ?? null;
+}
 
-  for (const { path } of entries) {
+function basenameOf(path) {
+  return path.slice(path.lastIndexOf('/') + 1);
+}
+
+function findDecisionIdentityViolations(path, source) {
+  const frontmatter = FRONTMATTER.exec(source)?.[1];
+  if (frontmatter === undefined) return [];
+  if (FRONTMATTER_TYPE.exec(frontmatter)?.[1] !== 'decision') return [];
+
+  const id = FRONTMATTER_ID.exec(frontmatter)?.[1];
+  if (id === undefined) {
+    return [
+      {
+        path,
+        line: 1,
+        message:
+          'decision record declares no frontmatter id, which is the identifier it is cited by',
+      },
+    ];
+  }
+
+  const violations = [];
+  const named = NUMERIC_BASENAME_PREFIX.exec(basenameOf(path))?.[1];
+  const heading = DECISION_HEADING.exec(source)?.[1];
+
+  if (named !== undefined && named !== id) {
+    violations.push({
+      path,
+      line: 1,
+      message: `decision record filename number ${named} disagrees with its declared id ${id}`,
+    });
+  }
+
+  if (heading !== undefined && heading !== id) {
+    violations.push({
+      path,
+      line: 1,
+      message: `decision record heading ADR ${heading} disagrees with its declared id ${id}`,
+    });
+  }
+
+  return violations;
+}
+
+/**
+ * A declared id is a citation identifier, so two records may never share one.
+ * This is a property of the set rather than of a single file, so it is checked
+ * across all entries at once.
+ */
+function findDuplicateDecisionIds(entries) {
+  const byId = new Map();
+
+  for (const { path, source } of entries) {
     if (isArchived(path)) continue;
-    if (!path.startsWith(DECISION_PREFIX)) continue;
-    const basename = path.slice(DECISION_PREFIX.length);
-    const match = DECISION_BASENAME.exec(basename);
-    if (match === null) continue;
-    const seen = byNumber.get(match[1]) ?? [];
-    seen.push(basename);
-    byNumber.set(match[1], seen);
+    const id = readDecisionId(source);
+    if (id === null) continue;
+    const seen = byId.get(id) ?? [];
+    seen.push(path);
+    byId.set(id, seen);
   }
 
   const violations = [];
 
-  for (const [number, basenames] of byNumber) {
-    if (basenames.length < 2) continue;
-    const found = [...basenames].sort();
-    const historical = HISTORICAL_DUPLICATE_DECISIONS.get(number);
+  for (const [id, paths] of byId) {
+    if (paths.length < 2) continue;
+    const found = [...paths].sort();
+    const basenames = found.map(basenameOf);
+    const historical = HISTORICAL_DUPLICATE_DECISIONS.get(id);
     if (
       historical !== undefined &&
-      found.length === historical.length &&
-      found.every((basename) => historical.includes(basename))
+      basenames.length === historical.length &&
+      basenames.every((basename) => historical.includes(basename))
     ) {
       continue;
     }
-    for (const basename of found) {
+    for (const path of found) {
       violations.push({
-        path: `${DECISION_PREFIX}${basename}`,
+        path,
         line: 1,
-        message: `duplicate decision record number ${number}: ${found.join(', ')}`,
+        message: `duplicate decision record id ${id}: ${basenames.join(', ')}`,
       });
     }
   }
@@ -174,6 +238,8 @@ export function findDocLinkViolations(entries, options = {}) {
         });
       }
     }
+
+    violations.push(...findDecisionIdentityViolations(path, source));
 
     const lines = source.split(/\r?\n/u);
     const inVault = path.startsWith(PROJECT_VAULT_PREFIX);
@@ -221,7 +287,7 @@ export function findDocLinkViolations(entries, options = {}) {
     }
   }
 
-  violations.push(...findDuplicateDecisionNumbers(entries));
+  violations.push(...findDuplicateDecisionIds(entries));
 
   return violations;
 }

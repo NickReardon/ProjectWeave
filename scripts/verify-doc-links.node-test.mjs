@@ -191,67 +191,141 @@ test('assertDocLinks joins violations as path:line: message lines', () => {
   );
 });
 
-test('accepts the two historical records that share number 0025', () => {
+const decision = (id, body = '') =>
+  `---\ntype: decision\nid: "${id}"\nstatus: accepted\n---\n\n# ADR ${id}: A decision\n${body}`;
+
+test('accepts the two historical records that declare id 0025', () => {
   const entries = [
     {
       path: 'docs/decisions/0025-merge-ready-current-work-and-evergreen-release-docs.md',
-      source: '',
+      source: decision('0025'),
     },
     {
       path: 'docs/decisions/0025-name-specifications-by-subject.md',
-      source: '',
+      source: decision('0025'),
     },
   ];
   assert.deepEqual(findDocLinkViolations(entries), []);
 });
 
-test('rejects a new duplicate decision record number', () => {
+test('rejects a new duplicate decision record id', () => {
   const entries = [
-    { path: 'docs/decisions/0031-one-thing.md', source: '' },
-    { path: 'docs/decisions/0031-another-thing.md', source: '' },
+    { path: 'docs/decisions/0031-one-thing.md', source: decision('0031') },
+    { path: 'docs/decisions/0031-another-thing.md', source: decision('0031') },
   ];
   const violations = findDocLinkViolations(entries);
   assert.equal(violations.length, 2);
-  assert.equal(violations[0].path, 'docs/decisions/0031-another-thing.md');
-  assert.match(violations[0].message, /duplicate decision record number 0031/u);
+  assert.match(violations[0].message, /duplicate decision record id 0031/u);
   assert.match(violations[0].message, /0031-one-thing\.md/u);
   assert.throws(
     () => assertDocLinks(entries),
-    /duplicate decision record number 0031/u,
+    /duplicate decision record id 0031/u,
   );
 });
 
-test('grandfathers the historical pair, not the number it collides on', () => {
+test('grandfathers the historical pair, not the id it collides on', () => {
   const entries = [
     {
       path: 'docs/decisions/0025-merge-ready-current-work-and-evergreen-release-docs.md',
-      source: '',
+      source: decision('0025'),
     },
     {
       path: 'docs/decisions/0025-name-specifications-by-subject.md',
-      source: '',
+      source: decision('0025'),
     },
-    { path: 'docs/decisions/0025-a-third-record.md', source: '' },
+    { path: 'docs/decisions/0025-a-third-record.md', source: decision('0025') },
   ];
   const violations = findDocLinkViolations(entries);
   assert.equal(violations.length, 3);
-  assert.match(violations[0].message, /duplicate decision record number 0025/u);
+  assert.match(violations[0].message, /duplicate decision record id 0025/u);
 });
 
-test('does not read a gap in decision numbers as a defect', () => {
+test('rejects a decision record that declares no id', () => {
   const entries = [
-    { path: 'docs/decisions/0026-one-thing.md', source: '' },
-    { path: 'docs/decisions/0028-another-thing.md', source: '' },
-    { path: 'docs/decisions/README.md', source: '' },
-    { path: 'docs/decisions/0000-template.md', source: '' },
+    {
+      path: 'docs/decisions/0031-one-thing.md',
+      source:
+        '---\ntype: decision\nstatus: accepted\n---\n\n# ADR 0031: A decision\n',
+    },
+  ];
+  const violations = findDocLinkViolations(entries);
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /declares no frontmatter id/u);
+});
+
+test('rejects a filename number that disagrees with the declared id', () => {
+  const entries = [
+    { path: 'docs/decisions/0032-one-thing.md', source: decision('0031') },
+  ];
+  const violations = findDocLinkViolations(entries);
+  assert.equal(violations.length, 1);
+  assert.match(
+    violations[0].message,
+    /filename number 0032 disagrees with its declared id 0031/u,
+  );
+});
+
+test('rejects a heading that disagrees with the declared id', () => {
+  const entries = [
+    {
+      path: 'docs/decisions/0031-one-thing.md',
+      source:
+        '---\ntype: decision\nid: "0031"\n---\n\n# ADR 0030: A decision\n',
+    },
+  ];
+  const violations = findDocLinkViolations(entries);
+  assert.equal(violations.length, 1);
+  assert.match(
+    violations[0].message,
+    /heading ADR 0030 disagrees with its declared id 0031/u,
+  );
+});
+
+test('exempts the packaged decision template, which has no identity', () => {
+  const entries = [
+    {
+      path: 'docs/decisions/0000-template.md',
+      source:
+        '---\ntype: decision-template\nstatus: template\n---\n\n# ADR 0000: Decision title\n',
+    },
   ];
   assert.deepEqual(findDocLinkViolations(entries), []);
 });
 
-test('ignores duplicate decision numbers under the archive', () => {
+test('recognizes a record by frontmatter wherever it lives', () => {
   const entries = [
-    { path: 'docs/archive/decisions/0031-one-thing.md', source: '' },
-    { path: 'docs/archive/decisions/0031-another-thing.md', source: '' },
+    {
+      path: 'docs/project-vault/Documents/Decisions/One thing.md',
+      source: decision('0031'),
+    },
+    {
+      path: 'docs/project-vault/Documents/Decisions/Another thing.md',
+      source: decision('0031'),
+    },
+  ];
+  const violations = findDocLinkViolations(entries, { vaultNotePaths: [] });
+  assert.equal(violations.length, 2);
+  assert.match(violations[0].message, /duplicate decision record id 0031/u);
+});
+
+test('does not read a note of another type as a decision record', () => {
+  const entries = [
+    {
+      path: 'docs/project-vault/Projects/Weave/Tasks/One.md',
+      source: '---\ntype: task\nid: "0025"\n---\n\n# One\n',
+    },
+    {
+      path: 'docs/project-vault/Projects/Weave/Tasks/Two.md',
+      source: '---\ntype: task\nid: "0025"\n---\n\n# Two\n',
+    },
+  ];
+  assert.deepEqual(findDocLinkViolations(entries, { vaultNotePaths: [] }), []);
+});
+
+test('ignores duplicate decision ids under the archive', () => {
+  const entries = [
+    { path: 'docs/archive/decisions/0031-one.md', source: decision('0031') },
+    { path: 'docs/archive/decisions/0031-two.md', source: decision('0031') },
   ];
   assert.deepEqual(findDocLinkViolations(entries), []);
 });

@@ -53,9 +53,12 @@ outside the pair cites either — by filename, not by number. The reason is
 written down in [`decisions/README.md`](../../../../decisions/README.md), which
 owns the numbering rule.
 
-`npm run docs:links` now rejects a new duplicate decision number. The existing
-pair is grandfathered by filename rather than by number, so a third record
-numbered `0025` still fails.
+`npm run docs:links` now enforces record identity from the frontmatter, which
+is what a citation resolves to and what the index will key on: an `id` on every
+`type: decision` note, agreement between that id and the filename number and
+heading, and uniqueness across the set. The existing pair is grandfathered by
+filename, so a third record declaring `0025` still fails. Two accepted records,
+`0017` and `0019`, turned out to declare no `id` at all and now do.
 
 ## Notes
 

@@ -36,9 +36,11 @@ identifiers.
 
 `0025` is accepted as historical rather than corrected: renumbering either
 record would edit an accepted record and break the identifier it is cited by.
-`docs/decisions/README.md` owns numbering — never reassigned, never reused, gaps
-like the missing `0027` not defects — and `npm run docs:links` now rejects a new
-duplicate, grandfathering the pair by filename so a third `0025` still fails.
+`docs/decisions/README.md` owns numbering: the frontmatter `id` is the
+identifier, the filename number and heading are conveniences that must agree
+with it, numbers are never reused, and gaps like `0027` are not defects.
+`npm run docs:links` enforces it, grandfathering the pair so a third `0025`
+fails. `0017` and `0019` declared no `id` at all and now do.
 [[Tasks/Resolve the duplicate 0025 decision record numbers]] is done.
 
 The agent grant redesign is built and released: creation in a modal with
@@ -53,8 +55,9 @@ Relocation is ranked first and is now unblocked in full:
 [[Tasks/Move canonical docs into typed folders]] moves `docs/spec/` and
 `docs/decisions/` into the vault, and
 [[Tasks/Migrate document links and tooling paths]] owns the citation churn that
-follows. The gate's `SPEC_PREFIX` and `DECISION_PREFIX` are two of the tooling
-paths that move with it.
+follows. The gate's `SPEC_PREFIX` is one of the tooling paths that moves with
+it; decision records no longer need one, because the gate now finds them by
+frontmatter rather than by directory.
 
 What still needs Obsidian: install prerelease `0.6.1-beta.32112484849` through
 BRAT into a clean vault, run the companion against a real MCP client, and record
