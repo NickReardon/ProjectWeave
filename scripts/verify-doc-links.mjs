@@ -8,13 +8,33 @@ import { pathToFileURL } from 'node:url';
 const DOCS_ROOT = 'docs';
 const ARCHIVE_PREFIX = 'docs/archive/';
 const SPEC_PREFIX = 'docs/spec/';
+const DECISION_PREFIX = 'docs/decisions/';
 const PROJECT_VAULT_PREFIX = 'docs/project-vault/';
 
 const MARKDOWN_LINK = /\[[^\]]*\]\(([^)]+)\)/gu;
 const WIKILINK = /\[\[([^\]]+)\]\]/gu;
 const NUMERIC_SPEC_BASENAME = /^\d+[-_]/u;
+const DECISION_BASENAME = /^(\d+)-[^/]+\.md$/u;
 const NUMBERED_CITATION = /\b(?:Spec|Design) \d+\b/gu;
 const QUOTE_CHARS = new Set(['"', "'", '“', '”', '‘', '’']);
+
+/**
+ * `docs/decisions/` carries one historical collision: two accepted records
+ * numbered 0025. An accepted record is immutable and its number is the
+ * identifier other documents cite, so the pair stands as history rather than
+ * being renumbered; `../docs/decisions/README.md` owns that rule. The exact
+ * pair is grandfathered rather than the number, so a third 0025 is still a
+ * violation.
+ */
+const HISTORICAL_DUPLICATE_DECISIONS = new Map([
+  [
+    '0025',
+    [
+      '0025-merge-ready-current-work-and-evergreen-release-docs.md',
+      '0025-name-specifications-by-subject.md',
+    ],
+  ],
+]);
 
 function isArchived(path) {
   return path.startsWith(ARCHIVE_PREFIX);
@@ -93,6 +113,50 @@ function isQuotedMatch(line, index, length) {
   return QUOTE_CHARS.has(before) && QUOTE_CHARS.has(after);
 }
 
+/**
+ * A decision record's number is its citation identifier, so two records may
+ * never share one. This is a property of the set rather than of a single file,
+ * so it is checked across all entries at once.
+ */
+function findDuplicateDecisionNumbers(entries) {
+  const byNumber = new Map();
+
+  for (const { path } of entries) {
+    if (isArchived(path)) continue;
+    if (!path.startsWith(DECISION_PREFIX)) continue;
+    const basename = path.slice(DECISION_PREFIX.length);
+    const match = DECISION_BASENAME.exec(basename);
+    if (match === null) continue;
+    const seen = byNumber.get(match[1]) ?? [];
+    seen.push(basename);
+    byNumber.set(match[1], seen);
+  }
+
+  const violations = [];
+
+  for (const [number, basenames] of byNumber) {
+    if (basenames.length < 2) continue;
+    const found = [...basenames].sort();
+    const historical = HISTORICAL_DUPLICATE_DECISIONS.get(number);
+    if (
+      historical !== undefined &&
+      found.length === historical.length &&
+      found.every((basename) => historical.includes(basename))
+    ) {
+      continue;
+    }
+    for (const basename of found) {
+      violations.push({
+        path: `${DECISION_PREFIX}${basename}`,
+        line: 1,
+        message: `duplicate decision record number ${number}: ${found.join(', ')}`,
+      });
+    }
+  }
+
+  return violations;
+}
+
 export function findDocLinkViolations(entries, options = {}) {
   const { fileExists = () => false, vaultNotePaths = [] } = options;
   const violations = [];
@@ -156,6 +220,8 @@ export function findDocLinkViolations(entries, options = {}) {
       }
     }
   }
+
+  violations.push(...findDuplicateDecisionNumbers(entries));
 
   return violations;
 }

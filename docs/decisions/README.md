@@ -53,6 +53,24 @@ superseded_by: '0031' # present only on superseded records
 A behavior change ships as the record, the owning specification update, and one
 commit containing both.
 
+## Numbering
+
+A record's number is its identifier. Other documents cite it and an accepted
+record is immutable, so a number is never reassigned and never reused: take the
+next free one. Gaps are not defects. `0027` was never issued, and nothing is
+missing, because a number names a record rather than counting the log.
+
+One collision survives. `0025` numbers both
+[merge-ready current work](0025-merge-ready-current-work-and-evergreen-release-docs.md)
+and [name specifications by subject](0025-name-specifications-by-subject.md);
+both were accepted before it was noticed. It stands as history rather than being
+corrected, because renumbering either one would edit an accepted record and
+break the identifier it is cited by, which is the edit immutability exists to
+prevent. Cite either of the two by filename rather than by number.
+
+`npm run docs:links` rejects any *new* duplicate. That pair is grandfathered by
+name, so a third record numbered `0025` still fails the gate.
+
 ## Scope test
 
 If removing a paragraph from a record would leave a reader unable to implement

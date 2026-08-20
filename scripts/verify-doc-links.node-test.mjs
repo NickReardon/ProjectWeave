@@ -190,3 +190,68 @@ test('assertDocLinks joins violations as path:line: message lines', () => {
     /- docs\/spec\/task-management\.md:1: broken relative link/u,
   );
 });
+
+test('accepts the two historical records that share number 0025', () => {
+  const entries = [
+    {
+      path: 'docs/decisions/0025-merge-ready-current-work-and-evergreen-release-docs.md',
+      source: '',
+    },
+    {
+      path: 'docs/decisions/0025-name-specifications-by-subject.md',
+      source: '',
+    },
+  ];
+  assert.deepEqual(findDocLinkViolations(entries), []);
+});
+
+test('rejects a new duplicate decision record number', () => {
+  const entries = [
+    { path: 'docs/decisions/0031-one-thing.md', source: '' },
+    { path: 'docs/decisions/0031-another-thing.md', source: '' },
+  ];
+  const violations = findDocLinkViolations(entries);
+  assert.equal(violations.length, 2);
+  assert.equal(violations[0].path, 'docs/decisions/0031-another-thing.md');
+  assert.match(violations[0].message, /duplicate decision record number 0031/u);
+  assert.match(violations[0].message, /0031-one-thing\.md/u);
+  assert.throws(
+    () => assertDocLinks(entries),
+    /duplicate decision record number 0031/u,
+  );
+});
+
+test('grandfathers the historical pair, not the number it collides on', () => {
+  const entries = [
+    {
+      path: 'docs/decisions/0025-merge-ready-current-work-and-evergreen-release-docs.md',
+      source: '',
+    },
+    {
+      path: 'docs/decisions/0025-name-specifications-by-subject.md',
+      source: '',
+    },
+    { path: 'docs/decisions/0025-a-third-record.md', source: '' },
+  ];
+  const violations = findDocLinkViolations(entries);
+  assert.equal(violations.length, 3);
+  assert.match(violations[0].message, /duplicate decision record number 0025/u);
+});
+
+test('does not read a gap in decision numbers as a defect', () => {
+  const entries = [
+    { path: 'docs/decisions/0026-one-thing.md', source: '' },
+    { path: 'docs/decisions/0028-another-thing.md', source: '' },
+    { path: 'docs/decisions/README.md', source: '' },
+    { path: 'docs/decisions/0000-template.md', source: '' },
+  ];
+  assert.deepEqual(findDocLinkViolations(entries), []);
+});
+
+test('ignores duplicate decision numbers under the archive', () => {
+  const entries = [
+    { path: 'docs/archive/decisions/0031-one-thing.md', source: '' },
+    { path: 'docs/archive/decisions/0031-another-thing.md', source: '' },
+  ];
+  assert.deepEqual(findDocLinkViolations(entries), []);
+});

@@ -13,32 +13,33 @@ verified, and what is next. Rewrite it rather than appending history.
 
 ## In flight
 
-A second design has landed, in front of the organization slice in cost terms
-rather than in rank. Note creation is built twice — allocate, propose, preview,
-once for tasks and once for projects — and
+Two designs are landed and unbuilt, and the first piece of one of them has now
+shipped.
+
+[[Epics/Epic-creation-pipeline]] is new, ranked 5500. Note creation is built
+twice — allocate, propose, preview, once per kind — and
 [ADR 0030](decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md)
-settles that it becomes one pipeline with a small declarative spec per kind.
-Commit is already shared; the duplication is entirely upstream of it.
+settles that it becomes one pipeline with a declarative spec per kind. Commit is
+already shared, so the duplication is upstream of it. The Epic pairs that with
+lifting a testable workspace out of `src/main.ts`. Four tasks, led by
+[[Tasks/Extract agent grant minting and containment into a pure module]]
+because it is the one untested security boundary.
+[[Epics/Epic-long-project-org]] now declares this Epic as its prerequisite.
 
-[[Epics/Epic-creation-pipeline]] carries it, ranked 5500, and pairs it with
-lifting a testable workspace out of `src/main.ts` — the two meet because the
-pipeline replaces the entry point's two creation openers. Four tasks:
-[[Tasks/Extract agent grant minting and containment into a pure module]] first
-because it is the one untested security boundary,
-[[Tasks/Lift a testable workspace out of the plugin entry point]],
-[[Tasks/Give template rung resolution one owner]], then
-[[Tasks/Collapse the two creation ladders into one pipeline]].
-
-[[Epics/Epic-long-project-org]] now declares this Epic as its prerequisite and
-states its plan as one spec per kind rather than a ladder per kind, which is
-what made this worth doing before it rather than after.
-
-Organization remains the next goal and is unchanged: relocation
+Organization remains the next goal, and relocation
 ([[Epics/Epic-dogfood-vault-migration]]) leads at 3200, unblocked. No document
-has moved yet, and no code has changed for either design. This is still
-planning.
+has moved yet, but one of its blockers is gone: decision record numbering is
+settled, which moved records need before they can be relocated with unique
+identifiers.
 
 ## Verified
+
+`0025` is accepted as historical rather than corrected: renumbering either
+record would edit an accepted record and break the identifier it is cited by.
+`docs/decisions/README.md` owns numbering — never reassigned, never reused, gaps
+like the missing `0027` not defects — and `npm run docs:links` now rejects a new
+duplicate, grandfathering the pair by filename so a third `0025` still fails.
+[[Tasks/Resolve the duplicate 0025 decision record numbers]] is done.
 
 The agent grant redesign is built and released: creation in a modal with
 labeled fields, a settings entry that lists grants and what each permits, an
@@ -46,14 +47,14 @@ explicit read scope rather than one inferred from a blank field, local
 resolution gating creation, and a complete `mcpServers` entry on the clipboard.
 Grants remain immutable and the persisted shape is unchanged.
 
-The documentation link gate skips git-ignored files.
-[[Tasks/Gate documentation links and naming]] is done.
-
 ## Next
 
-Two designs are now queued ahead of any code, and only one of them is ranked
-first. Decide whether relocation or the grant containment extraction starts,
-then branch.
+Relocation is ranked first and is now unblocked in full:
+[[Tasks/Move canonical docs into typed folders]] moves `docs/spec/` and
+`docs/decisions/` into the vault, and
+[[Tasks/Migrate document links and tooling paths]] owns the citation churn that
+follows. The gate's `SPEC_PREFIX` and `DECISION_PREFIX` are two of the tooling
+paths that move with it.
 
 What still needs Obsidian: install prerelease `0.6.1-beta.32112484849` through
 BRAT into a clean vault, run the companion against a real MCP client, and record
@@ -79,10 +80,7 @@ grant list have still not been seen at narrow width.
   [[Tasks/Revisit declared creation fields after two more kinds]].
 - "Backlog" means both a stored status and a condition derived from sprint
   membership. They coincide only because sprints do not exist yet.
-- `docs/decisions/` contains two records numbered `0025` and no `0027`; see
-  [[Tasks/Resolve the duplicate 0025 decision record numbers]], now part of the
-  relocation Epic since moved decision records need unique identifiers.
 - The roadmap table in [[Projects/Weave/Project]] is still hand-maintained.
   [[Tasks/Decide how the Epic roadmap is rendered]] settled that a Base renders
-  it; building it has not happened, and this Epic's row was typed by hand.
+  it; building it has not happened.
 - Full mobile check 11a through 11g remains outstanding.
