@@ -31,9 +31,10 @@ export interface AgentGrantCreationContext {
 
 /**
  * Create-agent-grant dialog. A grant is immutable once created — see "Grant
- * lifecycle and creation" in `docs/spec/agent-access-and-mcp.md` — so a
- * mistake here can only be corrected by revoking and recreating, which is
- * why the create action stays unavailable until the chosen project and,
+ * lifecycle and creation" in
+ * `docs/project-vault/Projects/Weave/Documents/Specifications/agent-access-and-mcp.md`
+ * — so a mistake here can only be corrected by revoking and recreating, which
+ * is why the create action stays unavailable until the chosen project and,
  * when note text is enabled, every chosen content folder resolve locally
  * against the vault. Resolution re-evaluates on every field change rather
  * than only on submit, and it never asks the gateway — the same local

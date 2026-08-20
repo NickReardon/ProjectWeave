@@ -51,7 +51,7 @@ make the folder rather than the filename carry the project's identity.
   Picking among several configured roots is a UI concern.
 
 The resulting rules are specified in
-[Projects and epics](../spec/projects-and-epics.md).
+[Projects and epics](../Specifications/projects-and-epics.md).
 
 ## Alternatives considered
 

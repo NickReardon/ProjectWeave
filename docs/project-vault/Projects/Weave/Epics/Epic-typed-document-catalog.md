@@ -20,9 +20,9 @@ links remain useful, and ordinary or untyped Markdown remains unaffected.
 
 ## Governing documents
 
-- [Note structure and dogfood vault](../../../../spec/note-structure-and-dogfood-vault.md)
-- [Document provenance](../../../../spec/document-provenance.md)
-- [ADR 0019](../../../../decisions/0019-note-structure-and-typed-documents.md)
+- [[Documents/Specifications/note-structure-and-dogfood-vault|Note structure and dogfood vault]]
+- [[Documents/Specifications/document-provenance|Document provenance]]
+- [[Documents/Decisions/0019-note-structure-and-typed-documents|ADR 0019]]
 
 ## Exit gate
 

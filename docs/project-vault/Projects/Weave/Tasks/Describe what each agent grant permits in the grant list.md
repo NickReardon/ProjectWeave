@@ -19,7 +19,7 @@ The settings entry for agent grants becomes a list of existing grants with
 create and revoke actions, replacing today's row that only ever showed the
 form for creating a new one. Because grants are becoming immutable (see
 [[Tasks/Make the agent grant form explain what it asks for]] and
-[ADR 0028](../../../../decisions/0028-immutable-dialog-based-agent-grants.md)),
+[[Documents/Decisions/0028-immutable-dialog-based-agent-grants|ADR 0028]]),
 this list is the only place a grant's scope is ever visible again after
 creation — there is no editor to open. Each row already shows the label,
 grant id, project, and content roots today (`#renderAgentGrant`'s existing

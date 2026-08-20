@@ -72,7 +72,7 @@ having been delivered. What is delivered is a complete client configuration
 removing the transcription step the current single-value clipboard copy
 leaves behind.
 
-The owning specification is [Agent access and MCP](../spec/agent-access-and-mcp.md),
+The owning specification is [Agent access and MCP](../Specifications/agent-access-and-mcp.md),
 whose "Grant lifecycle and creation" section now states these rules.
 
 ## Alternatives considered

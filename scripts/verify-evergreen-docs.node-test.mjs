@@ -33,7 +33,7 @@ test('rejects concrete checksums in every evergreen file', () => {
   for (const path of [
     'README.md',
     '.env.example',
-    'docs/development/release.md',
+    'docs/project-vault/Projects/Weave/Documents/References/release.md',
   ]) {
     assert.equal(
       findEvergreenDocumentationViolations([{ path, source: 'a'.repeat(64) }])

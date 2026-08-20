@@ -3,7 +3,7 @@ type: task
 title: Migrate document links and tooling paths
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-dogfood-vault-migration]]'
-status: backlog
+status: done
 category: enhancement
 priority: high
 rank: 2800

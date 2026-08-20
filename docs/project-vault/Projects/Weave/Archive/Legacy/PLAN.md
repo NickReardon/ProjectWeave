@@ -7,7 +7,8 @@ canonical: false
 # Project Weave Implementation Plan
 
 > **Archived and non-authoritative.** This document is history. Current
-> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> behavior is defined in
+> [`Documents/Specifications/`](../../Documents/Specifications/README.md); see
 > [the archive index](README.md).
 
 ## 1. Product direction

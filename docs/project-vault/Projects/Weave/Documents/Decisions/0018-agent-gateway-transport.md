@@ -18,7 +18,7 @@ affects: ['agent-access-and-mcp', '0004']
 [ADR 0004](0004-agent-access-as-core-adapter.md) accepted a tool-neutral
 application API with a thin MCP adapter over it, and left one item open: select
 and record the desktop bridge transport and a pinned MCP protocol and SDK before
-implementing the adapter. [Agent access and MCP](../spec/agent-access-and-mcp.md) defers
+implementing the adapter. [Agent access and MCP](../Specifications/agent-access-and-mcp.md) defers
 the same choice, listing what any acceptable transport must do but not which one
 to build.
 

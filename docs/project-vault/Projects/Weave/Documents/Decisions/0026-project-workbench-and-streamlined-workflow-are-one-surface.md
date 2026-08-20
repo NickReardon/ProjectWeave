@@ -18,8 +18,8 @@ is superseded by a new record; see [`README.md`](README.md).
 
 ## Context
 
-[Project workbench](../spec/project-workbench.md) specifies workbench
-perspectives and [Streamlined long-project workflow](../spec/streamlined-long-project-workflow.md)
+[Project workbench](../Specifications/project-workbench.md) specifies workbench
+perspectives and [Streamlined long-project workflow](../Specifications/streamlined-long-project-workflow.md)
 specifies the Plan/Board/My Work workspace. Both documents described ranked
 backlog ordering, priority/due filtering, and the backlog/board boundary,
 each restating rather than owning the fact. This overlap was left alone
@@ -59,7 +59,7 @@ boundary itself was decided by ADR 0002 and is not reopened here.
   ADR 0007's follow-up already commits Plan, Board, and My Work to the same
   persistent-view boundary as the existing workbench perspectives.
 - **Keep both definitions and add a precedence note:** rejected because
-  [`docs/spec/README.md`](../spec/README.md) forbids one specification from
+  [`docs/spec/README.md`](../Specifications/README.md) forbids one specification from
   asserting precedence over another; a precedence claim means two documents
   believe they own the same fact, which is the defect being resolved.
 - **Silently keep the sprint-based Backlog wording:** rejected because it

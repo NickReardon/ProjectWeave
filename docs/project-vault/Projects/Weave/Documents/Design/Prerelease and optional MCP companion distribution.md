@@ -25,9 +25,9 @@ optional asset from the same repository and release.
   compatibility information, and MCP client setup.
 - Weave remains fully useful on desktop and mobile without the companion.
 
-The canonical product contracts are [Quality and release](../../../../../spec/quality-and-release.md)
-and [Agent access and MCP](../../../../../spec/agent-access-and-mcp.md). The rationale is
-recorded in [ADR 0021](../../../../../decisions/0021-distribute-the-mcp-companion-as-an-optional-release-asset.md).
+The canonical product contracts are [[Documents/Specifications/quality-and-release|Quality and release]]
+and [[Documents/Specifications/agent-access-and-mcp|Agent access and MCP]]. The rationale is
+recorded in [[Documents/Decisions/0021-distribute-the-mcp-companion-as-an-optional-release-asset|ADR 0021]].
 
 ## Delivery sequence
 

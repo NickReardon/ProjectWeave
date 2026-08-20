@@ -80,7 +80,7 @@ which point those declarations become redundant rather than load-bearing. The
 outcome is preserved exactly; only the mechanism changes.
 
 The resulting rules are specified in
-[Vault note templates](../spec/vault-note-templates.md).
+[Vault note templates](../Specifications/vault-note-templates.md).
 
 ## Alternatives considered
 

@@ -8,7 +8,7 @@ rank: 2100
 
 # Check 12 - Create-task preview
 
-Procedure: `docs/development/testing.md`, check 12.
+Procedure: [[Documents/References/testing]], check 12.
 
 Passed in two parts. Every branch — preview path and rank, subfolder
 nesting, the collision suggestion, an unusable title, the changed-note

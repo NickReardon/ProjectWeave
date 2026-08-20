@@ -18,7 +18,7 @@ Let a solo developer or small team carry one large project from evolving Markdow
 
 ## Relationship to the Project workbench
 
-This document and the [Project workbench](project-workbench.md) describe one surface, not two: the workbench is the persistent Obsidian view (established in [ADR 0007](../decisions/0007-use-a-persistent-obsidian-workbench-view.md)) that presents the Plan, Board, and My Work destinations specified below. This document owns the workflow model: the task lifecycle, progressive disclosure, ranked backlog ordering, priority/due filtering, and the backlog/board boundary. Project workbench owns the view mechanics that render it — opening, perspective consistency/refresh, empty states, and mobile/accessibility.
+This document and the [Project workbench](project-workbench.md) describe one surface, not two: the workbench is the persistent Obsidian view (established in [ADR 0007](../Decisions/0007-use-a-persistent-obsidian-workbench-view.md)) that presents the Plan, Board, and My Work destinations specified below. This document owns the workflow model: the task lifecycle, progressive disclosure, ranked backlog ordering, priority/due filtering, and the backlog/board boundary. Project workbench owns the view mechanics that render it — opening, perspective consistency/refresh, empty states, and mobile/accessibility.
 
 ## Core mental model
 

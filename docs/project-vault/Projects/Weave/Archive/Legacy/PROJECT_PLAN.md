@@ -9,7 +9,7 @@ canonical: false
 > **Archived and non-authoritative.** This was the repository's bootstrap plan
 > before the product surface, stack, and first slices were selected. Its open
 > questions, checkboxes, backlog, and next checkpoint are not current project
-> status. Current behavior is defined in [`docs/spec/`](../spec/README.md); see
+> status. Current behavior is defined in [`Documents/Specifications/`](../../Documents/Specifications/README.md); see
 > [the archive index](README.md). This document is retained to preserve
 > decision history.
 

@@ -18,8 +18,8 @@ Expand the existing application query boundary before creating new views or agen
 
 ### Governing documents
 
-- [Data model and index](../../../../spec/data-model-and-index.md)
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md)
+- [[Documents/Specifications/data-model-and-index|Data model and index]]
+- [[Documents/Specifications/agent-access-and-mcp|Agent access and MCP]]
 
 ### Exit gate
 

@@ -14,7 +14,7 @@ created: 2026-08-09
 
 Parse Epic `rank`, `depends_on`, and `milestone`, and milestone `rank`, so the
 roadmap order this project already authors becomes queryable and validated.
-Respecified by [ADR 0024](../../../../decisions/0024-order-the-roadmap-by-milestone-and-rank.md):
+Respecified by [[Documents/Decisions/0024-order-the-roadmap-by-milestone-and-rank|ADR 0024]]:
 order comes from the milestone and from rank, never from a note name.
 
 ## Acceptance criteria

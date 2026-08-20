@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 export const EVERGREEN_FILES = [
   'README.md',
   '.env.example',
-  'docs/development/release.md',
+  'docs/project-vault/Projects/Weave/Documents/References/release.md',
 ];
 const GENERATED_BETA_TAG = /\b\d+\.\d+\.\d+-beta\.\d+\b/u;
 const CONCRETE_SHA256 = /\b[a-f0-9]{64}\b/iu;

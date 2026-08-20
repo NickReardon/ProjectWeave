@@ -18,7 +18,7 @@ Specifications were cited two ways at once — "Design NN" in the source comment
 and most references, "specification" in the routing tables — and the number
 itself carried no meaning once the index stopped treating it as precedence.
 Settle on the subject as the name, per
-[ADR 0025](../../../../decisions/0025-name-specifications-by-subject.md).
+[[Documents/Decisions/0025-name-specifications-by-subject|ADR 0025]].
 
 ## Acceptance criteria
 

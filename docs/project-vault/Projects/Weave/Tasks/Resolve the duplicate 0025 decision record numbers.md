@@ -50,7 +50,7 @@ Leaving it means the directory has an ambiguous citation target forever.
 `0025` is accepted as historical. Renumbering either record would edit an
 accepted record and break the identifier it is cited by, and only one document
 outside the pair cites either — by filename, not by number. The reason is
-written down in [`decisions/README.md`](../../../../decisions/README.md), which
+written down in [[Documents/Decisions/README|the decision log index]], which
 owns the numbering rule.
 
 `npm run docs:links` now enforces record identity from the frontmatter, which

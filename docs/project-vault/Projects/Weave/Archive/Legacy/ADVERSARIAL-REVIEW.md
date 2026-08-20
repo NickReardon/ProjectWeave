@@ -7,7 +7,8 @@ canonical: false
 # Project Weave — Adversarial Codebase Review
 
 > **Archived and non-authoritative.** This document is history. Current
-> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> behavior is defined in
+> [`Documents/Specifications/`](../../Documents/Specifications/README.md); see
 > [the archive index](README.md).
 
 An actively-hostile read of the codebase at `D:\ProjectWeave` (HEAD `8dcfcb0`, clean tree,

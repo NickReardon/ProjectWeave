@@ -112,11 +112,12 @@ readiness, lifecycle, membership, or blocking semantics.
 Every Project Weave document lives in the dogfood vault; `docs/spec/` and
 `docs/decisions/` are not document locations. The migration is staged: update
 the canonical contract, normalize the roadmap, configure and repair work-note
-contracts, move living specifications into `Documents/Specifications/` and
-decision records into `Documents/Decisions/`, move testing and release material
-into `Documents/References/`, archive obsolete history, and leave short routing
-pointers at repository entry points until links are migrated. Each category is
-checked for links and diagnostics before its old location is retired.
+contracts, then relocate the documents. Living specifications now sit in
+`Documents/Specifications/`, decision records in `Documents/Decisions/`, and
+testing and release material in `Documents/References/`; obsolete history is
+archived, and short routing pointers remain at the retired locations until
+nothing links through them. Each category is checked for links and diagnostics
+before its old location is retired.
 
 Specifications do not move into `Documents/Design/`. A design document is a
 proposal, so filing a living contract there would place it in a folder defined

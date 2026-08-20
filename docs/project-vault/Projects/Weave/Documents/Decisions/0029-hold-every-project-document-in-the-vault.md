@@ -32,7 +32,7 @@ are ordinary relative paths rather than vault links, so Obsidian cannot follow
 them as it follows every other link in the vault, and the documentation link
 gate has to treat the two trees as separate namespaces to check them at all.
 
-[Note structure and dogfood vault](../spec/note-structure-and-dogfood-vault.md)
+[Note structure and dogfood vault](../Specifications/note-structure-and-dogfood-vault.md)
 already stages a migration that moves specifications and ADRs into typed
 document folders. Two things about that plan are now wrong.
 
@@ -97,6 +97,6 @@ Every Project Weave document lives in the dogfood vault. `docs/spec/` and
   specification path break. Routing pointers at the old locations cover this
   until the links are migrated, as the staged migration already requires.
 - Follow-up work: the specification tree change is owned by
-  [Note structure and dogfood vault](../spec/note-structure-and-dogfood-vault.md);
+  [Note structure and dogfood vault](../Specifications/note-structure-and-dogfood-vault.md);
   `specification` needs a kind and folder definition there, and the
   dogfood migration Epic's tasks name the corrected destination.

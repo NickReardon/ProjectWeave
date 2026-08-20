@@ -24,7 +24,7 @@ created: 2026-08-09
 
 ## Requirements
 
-See the canonical contract in [Note structure and dogfood vault](../../../../../spec/note-structure-and-dogfood-vault.md).
+See the canonical contract in [[Documents/Specifications/note-structure-and-dogfood-vault|Note structure and dogfood vault]].
 The implementation is split across [[../../Epics/Epic-project-structure-and-contracts]],
 [[../../Epics/Epic-typed-document-catalog]], and
 [[../../Epics/Epic-dogfood-vault-migration]].

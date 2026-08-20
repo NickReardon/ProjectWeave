@@ -7,14 +7,15 @@ canonical: false
 # Project Weave Plan Addendum 001
 
 > **Archived and non-authoritative.** This document is history. Current
-> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> behavior is defined in
+> [`Documents/Specifications/`](../../Documents/Specifications/README.md); see
 > [the archive index](README.md).
 
 ## Status
 
 Accepted on 2026-08-02. This addendum is part of the v1 implementation plan and supersedes earlier plan/design statements that leave these capabilities absent or undecided.
 
-The normative behavior is defined in [Scheduling and milestones](../spec/scheduling-and-milestones.md), with rationale in [ADR 0001](../decisions/0001-v1-scheduling-and-milestones.md).
+The normative behavior is defined in [Scheduling and milestones](../../Documents/Specifications/scheduling-and-milestones.md), with rationale in [ADR 0001](../../Documents/Decisions/0001-v1-scheduling-and-milestones.md).
 
 ## Approved v1 additions
 

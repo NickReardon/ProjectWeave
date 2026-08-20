@@ -23,7 +23,7 @@ merge boundary or prevent concrete generated values from returning.
 ## Decision
 
 Adopt the merge-boundary and evergreen-documentation policy described in
-[the release procedure](../development/release.md). Historical task evidence
+[the release procedure](../References/release.md). Historical task evidence
 remains unchanged.
 
 ## Alternatives considered

@@ -4,10 +4,12 @@
 Project Weave arrived at its current shape. They do not define current
 behavior, do not override anything, and are not part of any reading order.
 
-For what should be true today, read [`../spec/`](../spec/README.md). For why a
-choice was made, read [`../decisions/`](../decisions/README.md). For what is
-implemented, read [`../../README.md`](../../README.md). For what is in flight,
-read [`../CURRENT_WORK.md`](../CURRENT_WORK.md).
+For what should be true today, read
+[`Documents/Specifications/`](../../Documents/Specifications/README.md). For why
+a choice was made, read
+[`Documents/Decisions/`](../../Documents/Decisions/README.md). For what is
+implemented, read [`README.md`](../../../../../../README.md). For what is in
+flight, read [`docs/CURRENT_WORK.md`](../../../../../CURRENT_WORK.md).
 
 ## Contents
 
@@ -24,8 +26,9 @@ read [`../CURRENT_WORK.md`](../CURRENT_WORK.md).
 | [AUTOMATED-VERIFICATION-LOG.md](AUTOMATED-VERIFICATION-LOG.md) | The append-only gate log `CURRENT_WORK.md` carried through commit `ef1db32`.            |
 
 Every normative statement these documents once carried now lives in
-[`../spec/`](../spec/README.md). Their internal links have been repointed to
-the relocated documents; nothing else about their content has been changed.
+[`Documents/Specifications/`](../../Documents/Specifications/README.md). Their
+internal links have been repointed to the relocated documents; nothing else
+about their content has been changed.
 
 ## Why they are here
 

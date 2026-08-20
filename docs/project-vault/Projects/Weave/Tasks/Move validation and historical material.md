@@ -3,7 +3,7 @@ type: task
 title: Move validation and historical material
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-dogfood-vault-migration]]'
-status: backlog
+status: done
 priority: normal
 created: 2026-08-09
 ---

@@ -20,7 +20,7 @@ What forces, constraints, and goals make this decision necessary?
 ## Decision
 
 What has been decided? State the decision, not the design — a rule a reader
-must obey belongs in the owning specification under [`../spec/`](../spec/README.md).
+must obey belongs in the owning specification under [`../Specifications/`](../Specifications/README.md).
 
 ## Alternatives considered
 

@@ -27,7 +27,7 @@ export function taskFolderForProjectPath(projectPath: string): string {
 
 /**
  * Rank gap between consecutive new tasks
- * (docs/spec/scheduling-and-milestones.md).
+ * (docs/project-vault/Projects/Weave/Documents/Specifications/scheduling-and-milestones.md).
  */
 export const RANK_GAP = 1000;
 
@@ -154,7 +154,8 @@ export function allocateTaskPath(
 
 /**
  * Choose the backlog rank for a new task: one gap past the project's largest
- * existing rank (docs/spec/scheduling-and-milestones.md).
+ * existing rank
+ * (docs/project-vault/Projects/Weave/Documents/Specifications/scheduling-and-milestones.md).
  *
  * The maximum spans every task in the project rather than only backlog ones.
  * the Scheduling and milestones spec keeps a rank while a task is assigned elsewhere, so a

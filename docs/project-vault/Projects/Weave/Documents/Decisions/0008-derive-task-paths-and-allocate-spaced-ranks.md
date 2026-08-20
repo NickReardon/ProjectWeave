@@ -52,8 +52,8 @@ Allocation stays pure and composes above the proposal service; the service's
 input contract is unchanged.
 
 The resulting rules are specified in
-[Task management](../spec/task-management.md) and
-[Scheduling and milestones](../spec/scheduling-and-milestones.md).
+[Task management](../Specifications/task-management.md) and
+[Scheduling and milestones](../Specifications/scheduling-and-milestones.md).
 
 ## Alternatives considered
 

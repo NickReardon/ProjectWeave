@@ -18,10 +18,10 @@ Project-scoped planning periods (sprints/cycles/periods) as canonical `type: spr
 
 ### Governing documents
 
-- [Dependencies and iterations](../../../../spec/dependencies-and-iterations.md)
-- [Sprints](../../../../spec/sprints.md)
-- [Streamlined long-project workflow](../../../../spec/streamlined-long-project-workflow.md#optional-planning-periods-and-estimates)
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md#agent-slice-c--typed-task-editing)
+- [[Documents/Specifications/dependencies-and-iterations|Dependencies and iterations]]
+- [[Documents/Specifications/sprints|Sprints]]
+- [[Documents/Specifications/streamlined-long-project-workflow#Optional planning periods and estimates|Streamlined long-project workflow]]
+- [[Documents/Specifications/agent-access-and-mcp#Agent Slice C — typed task editing|Agent access and MCP]]
 
 ### Exit gate
 

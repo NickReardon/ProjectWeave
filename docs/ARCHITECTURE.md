@@ -248,4 +248,4 @@ are derived only from the verified dist inventory.
 
 ## Decision records
 
-Material choices should be recorded in `docs/decisions/` using the template in `0000-template.md`. Keep each record concise and preserve superseded decisions for context.
+Material choices should be recorded in `docs/project-vault/Projects/Weave/Documents/Decisions/` using the template in `0000-template.md`. Keep each record concise and preserve superseded decisions for context.

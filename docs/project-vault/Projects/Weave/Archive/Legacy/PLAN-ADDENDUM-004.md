@@ -7,7 +7,8 @@ canonical: false
 # Project Weave Plan Addendum 004
 
 > **Archived and non-authoritative.** This document is history. Current
-> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> behavior is defined in
+> [`Documents/Specifications/`](../../Documents/Specifications/README.md); see
 > [the archive index](README.md).
 
 ## Status
@@ -131,4 +132,4 @@ Start with a local desktop adapter. The MCP transport/bridge is replaceable and 
 
 ## Normative design
 
-Detailed schemas, tool surface, document-write boundary, security model, and tests are defined in [Agent access and MCP](../spec/agent-access-and-mcp.md).
+Detailed schemas, tool surface, document-write boundary, security model, and tests are defined in [Agent access and MCP](../../Documents/Specifications/agent-access-and-mcp.md).

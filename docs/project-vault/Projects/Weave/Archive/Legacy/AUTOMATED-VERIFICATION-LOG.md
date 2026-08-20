@@ -8,7 +8,7 @@ canonical: false
 
 **Nothing in this document is authoritative.** It is the append-only
 automated-verification log that `docs/CURRENT_WORK.md` carried until
-[ADR 0023](../decisions/0023-make-current-work-a-mid-flight-record.md) moved
+[ADR 0023](../../Documents/Decisions/0023-make-current-work-a-mid-flight-record.md) moved
 verification history into the commit log and made current work a mid-flight
 record.
 

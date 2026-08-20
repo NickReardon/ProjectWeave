@@ -2,7 +2,7 @@
 type: epic
 title: Dogfood vault migration
 project: '[[Projects/Weave/Project]]'
-status: planned
+status: active
 origin: '[[Documents/Design/Note structure and dogfood vault]]'
 created: 2026-08-09
 milestone: '[[Milestones/v1 release]]'
@@ -22,7 +22,7 @@ locations.
 
 This Epic has no prerequisites, which is deliberate and recent. The dependency
 on [[Epics/Epic-typed-document-catalog]] was dropped by
-[ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md):
+[[Documents/Decisions/0029-hold-every-project-document-in-the-vault|ADR 0029]]:
 that Epic decides whether the plugin recognizes a document's kind, not where
 the document lives, and typed documents are warning-only. The dependency on
 [[Epics/Epic-project-structure-and-contracts]] went with
@@ -35,10 +35,10 @@ that point at them, and proving the result. None of it waits on a build.
 
 ## Governing documents
 
-- [Note structure and dogfood vault](../../../../spec/note-structure-and-dogfood-vault.md)
-- [Quality and release](../../../../spec/quality-and-release.md)
-- [ADR 0019](../../../../decisions/0019-note-structure-and-typed-documents.md)
-- [ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md)
+- [[Documents/Specifications/note-structure-and-dogfood-vault|Note structure and dogfood vault]]
+- [[Documents/Specifications/quality-and-release|Quality and release]]
+- [[Documents/Decisions/0019-note-structure-and-typed-documents|ADR 0019]]
+- [[Documents/Decisions/0029-hold-every-project-document-in-the-vault|ADR 0029]]
 
 ## Exit gate
 

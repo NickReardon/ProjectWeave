@@ -7,12 +7,13 @@ canonical: false
 # Project Weave Plan Addendum 002
 
 > **Archived and non-authoritative.** This document is history. Current
-> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> behavior is defined in
+> [`Documents/Specifications/`](../../Documents/Specifications/README.md); see
 > [the archive index](README.md).
 
 ## Status
 
-Accepted product-direction clarification. This addendum and [the v1 product brief](../spec/product-brief.md) take precedence over earlier portfolio-first or ceremony-heavy interpretations in `PLAN.md` and feature designs.
+Accepted product-direction clarification. This addendum and [the v1 product brief](../../Documents/Specifications/product-brief.md) take precedence over earlier portfolio-first or ceremony-heavy interpretations in `PLAN.md` and feature designs.
 
 ## Revised v1 center
 
@@ -86,4 +87,4 @@ A lightweight project switcher/home may show project status and counts, but all 
 
 ## Normative interaction design
 
-Detailed behavior and acceptance criteria are in [Streamlined long-project workflow](../spec/streamlined-long-project-workflow.md).
+Detailed behavior and acceptance criteria are in [Streamlined long-project workflow](../../Documents/Specifications/streamlined-long-project-workflow.md).

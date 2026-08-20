@@ -16,8 +16,8 @@ runtime a requirement for the core plugin, and the plugin is fully usable
 without any of them.
 
 Which slices are built is tracked by the Epic notes in
-[`../project-vault/`](../project-vault/), and the resulting capability is
-described in [`../../README.md`](../../README.md). Neither is recorded here.
+[`../../Epics/`](../../Epics/), and the resulting capability is
+described in [`README.md`](../../../../../../README.md). Neither is recorded here.
 
 ## Goal
 

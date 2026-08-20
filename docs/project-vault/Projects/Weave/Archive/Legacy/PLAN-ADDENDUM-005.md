@@ -7,7 +7,8 @@ canonical: false
 # Project Weave Plan Addendum 005
 
 > **Archived and non-authoritative.** This document is history. Current
-> behavior is defined in [`docs/spec/`](../spec/README.md); see
+> behavior is defined in
+> [`Documents/Specifications/`](../../Documents/Specifications/README.md); see
 > [the archive index](README.md).
 
 ## Status
@@ -110,4 +111,4 @@ Supported date/time placeholders should align where practical with Obsidian's fa
 
 ## Normative design
 
-Detailed rendering rules, schemas, variables, safety behavior, agent contracts, and tests are defined in [Vault note templates](../spec/vault-note-templates.md).
+Detailed rendering rules, schemas, variables, safety behavior, agent contracts, and tests are defined in [Vault note templates](../../Documents/Specifications/vault-note-templates.md).

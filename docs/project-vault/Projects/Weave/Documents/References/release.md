@@ -12,9 +12,9 @@ canonical: false
 This operational plan covers local branch testing, BRAT previews, stable
 GitHub releases, and Obsidian Community Plugins publication. It does not claim
 that Project Weave is ready to release. Release readiness remains governed by
-[Quality and release](../spec/quality-and-release.md), the automated-verification
-evidence in [CURRENT_WORK.md](../CURRENT_WORK.md), and the outstanding manual
-checks tracked in [docs/project-vault/](../project-vault/).
+[Quality and release](../Specifications/quality-and-release.md), the automated-verification
+evidence in [CURRENT_WORK.md](../../../../../CURRENT_WORK.md), and the outstanding manual
+checks tracked in [docs/project-vault/](../../../../).
 
 ## Merge-ready documentation state
 
@@ -46,7 +46,7 @@ took. Before 1.0 the minor position carries feature weight:
   refactoring, documentation, tests, and interim work within a slice all land
   here.
 - **minor** (`0.3.0` → `0.4.0`) — a numbered slice Epic in the
-  [dogfood project roadmap](../project-vault/Projects/Weave/Project.md#implementation-roadmap-v1)
+  [dogfood project roadmap](../../Project.md#implementation-roadmap-v1)
   passing its exit gate,
   or a change to a compatibility surface: product terms, frontmatter fields,
   controlled values, diagnostic codes, or persisted workspace state. Crossing a
@@ -60,7 +60,7 @@ took. Before 1.0 the minor position carries feature weight:
 one.** A version identifies an installed build, so two builds that behave
 differently must never share a number — that is what makes "passed against the
 installed 0.5.0 build" on a manual-check task in
-[docs/project-vault/](../project-vault/) mean anything.
+[docs/project-vault/](../../../../) mean anything.
 Re-running `npm run export` or `npm run test-vault:update` over an unchanged
 tree reinstalls the same build and needs no bump; changing source and
 reinstalling does.
@@ -179,7 +179,7 @@ Reload Obsidian afterward.
 
 ## Dogfood vault
 
-[ADR 0016](../decisions/0016-dogfood-vault-location.md) tracks Project
+[ADR 0016](../Decisions/0016-dogfood-vault-location.md) tracks Project
 Weave's own outstanding work in `docs/project-vault/`, a vault committed to
 this repository. Unlike the disposable test vault, its content is not seeded
 or reset — only the plugin's runtime files are installed into it.
