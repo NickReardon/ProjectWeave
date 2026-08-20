@@ -4,8 +4,8 @@
 lives in one tree inside it at `project-vault/Projects/Weave/`: canonical
 specifications, decision history, and development procedure under
 `Documents/`, superseded material under `Archive/Legacy/`, beside the project
-state and task notes they describe. Only `ARCHITECTURE.md`, `CURRENT_WORK.md`,
-and `IMPLEMENTATION_ORDER.md` sit outside the vault.
+state and task notes they describe. Only `ARCHITECTURE.md` and
+`CURRENT_WORK.md` sit outside the vault.
 
 ## AUTHORITY
 

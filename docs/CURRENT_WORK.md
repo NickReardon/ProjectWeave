@@ -52,14 +52,17 @@ at a retired path; no record body was reworded.
 `npm run check` passes. Vault diagnostics report zero findings across 175
 notes, up from 108 now that the documents sit inside the scanned vault.
 
+The routing pointers are gone too. GitHub traffic showed one visit to the
+repository root and none to any document path, and the two earlier relocations
+in this repository left no pointers either, so nothing was depending on them.
+`docs/IMPLEMENTATION_ORDER.md` went with them: it declared itself a temporary
+pointer held "while other documents are ported", and they are.
+
 ## Next
 
-Two tasks close the Epic. [[Tasks/Retire the old document directories]] removes
-the routing pointers left at `docs/spec/` and `docs/decisions/`, kept separate
-on purpose so the pointers outlive the move that created them.
-[[Tasks/Run dogfood migration acceptance gate]] is the manual half: browsing
-the relocated documents in Obsidian, origin navigation, live refresh, and
-workspace restoration against the migrated vault.
+[[Tasks/Run dogfood migration acceptance gate]] is what is left of the Epic and
+it is manual: browsing the relocated documents in Obsidian, origin navigation,
+live refresh, and workspace restoration against the migrated vault.
 
 What still needs Obsidian: install prerelease `0.6.1-beta.32112484849` through
 BRAT into a clean vault, run the companion against a real MCP client, and record
@@ -68,9 +71,9 @@ The grant dialog and grant list have still not been seen at narrow width.
 
 ## Loose ends
 
-- `docs/IMPLEMENTATION_ORDER.md` is archived material still outside the vault.
-  It survives as a compatibility pointer, so it belongs with
-  [[Tasks/Retire the old document directories]], not with the move.
+- Six documentation-discipline tasks are `done` but carry no `epic` and no
+  `milestone`, so the work they completed is attributed nowhere. There is no
+  Epic that owns this project's own documentation practice.
 - Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
   retired path as link text. Immutable bodies; every target resolves.
 - The companion requires the gateway to be reachable when the client launches
