@@ -67,7 +67,7 @@ immutable decision records, one owner per fact — is described in
 ## Implementation roadmap (v1)
 
 Project Weave v1 is one milestone, [[Milestones/v1 release]], containing
-thirteen Epics.
+fourteen Epics.
 
 Order is data, not naming. The milestone's `rank` places it among milestones;
 each Epic's `rank` places it within the milestone; `depends_on` states genuine
@@ -91,7 +91,8 @@ itself. Each Epic's own `status` is the single record of how far it has got.
 | 3600 | [[Epics/Epic-typed-document-catalog]] | [[Epics/Epic-project-structure-and-contracts]] |
 | 4000 | [[Epics/Epic-task-execution]] | |
 | 5000 | [[Epics/Epic-design-to-task]] | |
-| 6000 | [[Epics/Epic-long-project-org]] | |
+| 5500 | [[Epics/Epic-creation-pipeline]] | [[Epics/Epic-template-catalog]] |
+| 6000 | [[Epics/Epic-long-project-org]] | [[Epics/Epic-creation-pipeline]] |
 | 7000 | [[Epics/Epic-planning-periods]] | |
 | 8000 | [[Epics/Epic-controlled-documents]] | |
 | 9000 | [[Epics/Epic-stabilize-and-shipping]] | |
@@ -106,6 +107,13 @@ Relocation leads because it is unblocked. [ADR 0029](../../../decisions/0029-hol
 settled that moving a document does not wait on the plugin recognizing it, so
 [[Epics/Epic-dogfood-vault-migration]] carries no prerequisite and can start
 while the active Epics finish.
+
+**[[Epics/Epic-creation-pipeline]] ranks in front of what needs it.** Note
+creation is built twice, once per kind, and [[Epics/Epic-long-project-org]]
+plans three more kinds on that shape. Collapsing the ladders first, per
+[ADR 0030](../../../decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md),
+is what makes those kinds cheap, so it is that Epic's prerequisite rather than
+a cleanup queued behind it.
 
 The three are briefed in
 [[Documents/Design/Note structure and dogfood vault]]. Release and distribution
