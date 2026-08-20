@@ -3,7 +3,7 @@ type: spec
 area: note-structure
 status: current
 canonical: true
-related_decisions: ["0019"]
+related_decisions: ["0019", "0029"]
 ---
 
 # Note Structure and Dogfood Vault
@@ -89,7 +89,9 @@ created: 2026-08-09
 ```
 
 Built-in kinds are `general`, `design`, `decision`, `reference`, `research`,
-and `meeting`. Project-defined kinds must be safe lowercase keys with matching
+and `meeting`. `specification` is a project-defined kind used by the Project
+Weave vault for its own living contracts, with a matching
+`Documents/Specifications/` folder. Project-defined kinds must be safe lowercase keys with matching
 folder and template configuration. Project scope requires one project link;
 shared scope may have an optional unique `projects` list. Metadata, section,
 and path issues are warnings only. Untyped Markdown receives no document-schema
@@ -107,12 +109,20 @@ readiness, lifecycle, membership, or blocking semantics.
 
 ## Migration and acceptance
 
-The dogfood migration is staged: update the canonical contract, normalize the
-roadmap, configure and repair work-note contracts, move specifications and ADRs
-into typed document folders, move testing/release material into References,
-archive obsolete history, and leave short routing pointers at repository entry
-points until links are migrated. Each category is checked for links and
-diagnostics before its old location is retired.
+Every Project Weave document lives in the dogfood vault; `docs/spec/` and
+`docs/decisions/` are not document locations. The migration is staged: update
+the canonical contract, normalize the roadmap, configure and repair work-note
+contracts, move living specifications into `Documents/Specifications/` and
+decision records into `Documents/Decisions/`, move testing and release material
+into `Documents/References/`, archive obsolete history, and leave short routing
+pointers at repository entry points until links are migrated. Each category is
+checked for links and diagnostics before its old location is retired.
+
+Specifications do not move into `Documents/Design/`. A design document is a
+proposal, so filing a living contract there would place it in a folder defined
+by the opposite lifecycle. Relocating a document does not depend on the plugin
+recognizing its kind: typed documents are warning-only and untyped Markdown is
+unaffected, so the files move independently of the typed document catalog.
 
 The slice is accepted when parser/path/graph/document/proposal tests pass,
 untyped Markdown is unaffected, the dogfood vault has no unexpected

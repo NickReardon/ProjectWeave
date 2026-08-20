@@ -2,7 +2,7 @@
 type: task
 title: Gate documentation links and naming
 project: '[[Projects/Weave/Project]]'
-status: backlog
+status: done
 category: chore
 priority: high
 rank: 700

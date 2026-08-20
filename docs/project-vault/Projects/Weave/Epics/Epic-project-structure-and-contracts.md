@@ -6,7 +6,7 @@ status: planned
 origin: '[[Documents/Design/Note structure and dogfood vault]]'
 created: 2026-08-09
 milestone: '[[Milestones/v1 release]]'
-rank: 10000
+rank: 3400
 depends_on: '[[Epics/Epic-template-catalog]]'
 ---
 

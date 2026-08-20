@@ -53,6 +53,33 @@ superseded_by: '0031' # present only on superseded records
 A behavior change ships as the record, the owning specification update, and one
 commit containing both.
 
+## Numbering
+
+**`id` in the frontmatter is the identifier.** It is what other documents cite
+and what the index will key on, so every record declares one. The number in the
+filename and the number in the `# ADR NNNN` heading are conveniences for a
+reader scanning a directory listing; they must agree with the declared `id`,
+and when the log moves into the vault the filename may stop carrying a number
+at all. A record without an `id` has no identity, whatever it is called.
+
+A number is never reassigned and never reused: take the next free one, read
+from the records rather than counted from the directory. Gaps are not defects.
+`0027` was never issued and nothing is missing, because a number names a record
+rather than counting the log.
+
+One collision survives. `0025` is declared by both
+[merge-ready current work](0025-merge-ready-current-work-and-evergreen-release-docs.md)
+and [name specifications by subject](0025-name-specifications-by-subject.md);
+both were accepted before it was noticed. It stands as history rather than being
+corrected, because renumbering either one would edit an accepted record and
+break the identifier it is cited by, which is the edit immutability exists to
+prevent. Cite either of the two by filename rather than by number.
+
+`npm run docs:links` enforces all of this: an `id` on every `type: decision`
+note, agreement with the filename number and the heading, and uniqueness across
+the set. The historical pair is grandfathered by filename, so a third record
+declaring `0025` still fails.
+
 ## Scope test
 
 If removing a paragraph from a record would leave a reader unable to implement

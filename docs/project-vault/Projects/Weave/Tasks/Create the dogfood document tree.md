@@ -2,7 +2,7 @@
 type: task
 title: Create the dogfood document tree
 project: '[[Projects/Weave/Project]]'
-epic: '[[Epics/Epic-dogfood-vault-migration]]'
+epic: '[[Epics/Epic-project-structure-and-contracts]]'
 status: backlog
 priority: high
 created: 2026-08-09

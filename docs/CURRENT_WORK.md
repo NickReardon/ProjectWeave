@@ -17,57 +17,70 @@ None.
 
 ## Verified
 
-Five changes land together: the documentation link and naming gate, one-surface
-ownership for the workbench and workflow specifications, the MCP client
-configuration documentation, indexed-project and folder suggestion for the agent
-grant fields, and connect-time verification of the companion gateway handshake.
+Six commits land together, all documentation and tooling; no product behavior
+changes.
 
-The complete `npm run check` gate passes on the integrated result. The companion
-now carries protocol-level tests that drive it over stdio with fake credentials,
-so its failure modes are covered without a vault, a grant, or a published
-release.
+Two designs are landed and unbuilt. [ADR 0029](decisions/0029-hold-every-project-document-in-the-vault.md)
+settles where every project document lives and drops relocation's dependency on
+the plugin recognizing document kinds, and the organization Epics move from
+10000 through 12000 to 3200 through 3600, in front of the features that would be
+authored against them. [ADR 0030](decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md)
+settles that note creation becomes one pipeline with a declarative spec per kind
+rather than the ladder it currently builds twice;
+[[Epics/Epic-creation-pipeline]] carries it at rank 5500 with four tasks, and
+[[Epics/Epic-long-project-org]] now declares it a prerequisite instead of
+planning to build that ladder three more times.
+
+The documentation gate gained three rules. It skips git-ignored files, so tool
+output written into the dogfood vault is not judged as a project document. It
+enforces decision record identity from the frontmatter: `type: decision` makes a
+note a record, its `id` is the identifier, and the filename number and heading
+are conveniences that must agree with it. Records are found by frontmatter
+rather than by directory, which keeps the rule working once the log moves into
+the vault. Two accepted records, `0017` and `0019`, declared no `id` at all and
+now do, and `docs/decisions/README.md` owns numbering.
+
+`0025` is accepted as historical rather than corrected: renumbering either
+record would edit an accepted record and break the identifier it is cited by.
+The pair is grandfathered, so a third record declaring `0025` still fails.
+
+`npm run check` passes. Node script tests went 77 to 87 and vault diagnostics
+report zero findings.
 
 ## Next
 
-Prerelease `0.7.0-beta.32068417927` is published from the merged source. Its
-manifest names that version, the companion checksum verifies, and the plugin
-bundle carries the lazy `require("node:net")` rather than the dynamic import
-that failed the previous acceptance. Probing the published companion with fake
-credentials returns the actionable gateway message and never answers
-`initialize`.
+Relocation is next and unblocked: [[Epics/Epic-dogfood-vault-migration]] at rank
+3200, six open tasks, none of which waits on a build.
+[[Tasks/Move canonical docs into typed folders]] leads, then
+[[Tasks/Move validation and historical material]],
+[[Tasks/Migrate document links and tooling paths]] for the citation churn,
+[[Tasks/Retire the old document directories]], and
+[[Tasks/Run dogfood migration acceptance gate]]. The gate's `SPEC_PREFIX` is one
+of the tooling paths that moves with it; decision records no longer need one.
 
-What remains is the part that needs Obsidian: install the prerelease through
-BRAT into a clean vault and run the companion against a real MCP client.
-Record the result on
-[[Tasks/Accept the BRAT preview and optional companion setup]].
-
-The agent grant redesign is built. Creation happens in a modal with labeled
-fields, the settings entry lists grants and what each permits, read scope is an
-explicit choice rather than an inference from a blank field, local resolution
-gates creation, and the clipboard carries a complete `mcpServers` entry with a
-bracketed placeholder for the companion path. Grants remain immutable and the
-persisted shape is unchanged. The new modal has not been seen at narrow width in
-Obsidian; that is the outstanding check.
+What still needs Obsidian: install prerelease `0.6.1-beta.32112484849` through
+BRAT into a clean vault, run the companion against a real MCP client, and record
+the result on [[Tasks/Accept the BRAT preview and optional companion setup]].
+The mis-numbered `0.7.0-beta` releases stay drafted rather than deleted, so BRAT
+resolves the correct build and the action stays reversible. The grant dialog and
+grant list have still not been seen at narrow width.
 
 ## Loose ends
 
-- The companion now requires the gateway to be reachable when the client
-  launches it, so Obsidian must be running first. That ordering is undocumented;
-  see [[Tasks/Document the companion launch ordering requirement]].
+- The companion requires the gateway to be reachable when the client launches
+  it, so Obsidian must be running first. That ordering is undocumented; see
+  [[Tasks/Document the companion launch ordering requirement]].
 - The agent gateway socket takes its mode from the process umask, so on Linux
   and macOS another user may be able to open it. See
   [[Tasks/Restrict the agent gateway socket to its owner]].
-- Grant creation still generates a secret from unvalidated paths. The agreed
-  flow validates first and keeps creation atomic; see
+- Grant creation still generates a secret from unvalidated paths; see
   [[Tasks/Restructure agent grant creation into validate-then-create]].
-- Whether the grant secret is load-bearing at all is deliberately unsettled; see
-  [[Tasks/Revisit whether the agent grant secret is load-bearing]].
-- "Backlog" means both a stored status and a condition derived from sprint
-  membership. They coincide only because sprints do not exist yet; collapsing
-  them is folded into the planning-periods work.
-- `docs/decisions/` contains two records numbered `0025`. Pre-existing, and not
-  caught by the new naming gate, which checks specification filenames only.
-- The public prerelease still contains the broken dynamic Node import; only a
-  new prerelease can prove the fix end to end.
-- Full mobile check 11a through 11g remains outstanding; the current evidence is
-  a workbench and gateway-isolation smoke test in mobile emulation.
+- Whether the grant secret is load-bearing at all is deliberately unsettled;
+  see [[Tasks/Revisit whether the agent grant secret is load-bearing]].
+- Whether creation form fields are declared alongside the kind spec is
+  deliberately unsettled until two more kinds exist; see
+  [[Tasks/Revisit declared creation fields after two more kinds]].
+- [[Epics/Epic-agent-grant-lifecycle]] is still `planned` though five of its
+  seven tasks are done and its work shipped; the status looks stale.
+- `0017` is the only accepted record carrying no `area`.
+- Full mobile check 11a through 11g remains outstanding.

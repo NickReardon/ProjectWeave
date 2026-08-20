@@ -2,7 +2,8 @@
 type: task
 title: Resolve the duplicate 0025 decision record numbers
 project: '[[Projects/Weave/Project]]'
-status: backlog
+epic: '[[Epics/Epic-dogfood-vault-migration]]'
+status: done
 category: chore
 priority: normal
 rank: 5400
@@ -43,6 +44,21 @@ Leaving it means the directory has an ambiguous citation target forever.
 - If accepted, the reason is written down so the next reader does not re-open it.
 - The gate rejects a *new* duplicate decision number either way, so the
   situation cannot recur.
+
+## Outcome
+
+`0025` is accepted as historical. Renumbering either record would edit an
+accepted record and break the identifier it is cited by, and only one document
+outside the pair cites either — by filename, not by number. The reason is
+written down in [`decisions/README.md`](../../../../decisions/README.md), which
+owns the numbering rule.
+
+`npm run docs:links` now enforces record identity from the frontmatter, which
+is what a citation resolves to and what the index will key on: an `id` on every
+`type: decision` note, agreement between that id and the filename number and
+heading, and uniqueness across the set. The existing pair is grandfathered by
+filename, so a third record declaring `0025` still fails. Two accepted records,
+`0017` and `0019`, turned out to declare no `id` at all and now do.
 
 ## Notes
 

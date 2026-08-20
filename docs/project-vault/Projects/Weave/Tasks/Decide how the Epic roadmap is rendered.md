@@ -2,6 +2,7 @@
 type: task
 title: Decide how the Epic roadmap is rendered
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-project-structure-and-contracts]]'
 status: backlog
 category: loose-end
 priority: normal
