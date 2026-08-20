@@ -2,6 +2,7 @@
 type: task
 title: Lift normative behavior out of decision records
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-documentation-authority]]'
 status: done
 category: chore
 priority: critical

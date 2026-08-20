@@ -2,6 +2,7 @@
 type: task
 title: Name specifications by subject
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-documentation-authority]]'
 status: done
 category: chore
 priority: critical

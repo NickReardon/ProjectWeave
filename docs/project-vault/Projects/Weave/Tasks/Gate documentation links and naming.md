@@ -2,6 +2,7 @@
 type: task
 title: Gate documentation links and naming
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-documentation-authority]]'
 status: done
 category: chore
 priority: high

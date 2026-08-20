@@ -67,7 +67,7 @@ immutable decision records, one owner per fact — is described in
 ## Implementation roadmap (v1)
 
 Project Weave v1 is one milestone, [[Milestones/v1 release]], containing
-fourteen Epics.
+fifteen Epics.
 
 Order is data, not naming. The milestone's `rank` places it among milestones;
 each Epic's `rank` places it within the milestone; `depends_on` states genuine
@@ -86,6 +86,7 @@ itself. Each Epic's own `status` is the single record of how far it has got.
 | 2000 | [[Epics/Epic-shared-reads-agent]] | |
 | 2500 | [[Epics/Epic-agent-grant-lifecycle]] | [[Epics/Epic-shared-reads-agent]] |
 | 3000 | [[Epics/Epic-mutation-kernel]] | |
+| 3100 | [[Epics/Epic-documentation-authority]] | |
 | 3200 | [[Epics/Epic-dogfood-vault-migration]] | |
 | 3400 | [[Epics/Epic-project-structure-and-contracts]] | [[Epics/Epic-template-catalog]] |
 | 3600 | [[Epics/Epic-typed-document-catalog]] | [[Epics/Epic-project-structure-and-contracts]] |
@@ -103,10 +104,17 @@ folders and contracts, and a plugin that recognizes the documents in them. They
 ranked last until now, which put Project Weave's own structure behind every
 feature that would be authored against it.
 
-Relocation leads because it is unblocked. [[Documents/Decisions/0029-hold-every-project-document-in-the-vault|ADR 0029]]
+[[Epics/Epic-documentation-authority]] sits at 3100, in front of all three. It
+decided the model the others apply, and it is nearly finished;
+[[Documents/Decisions/0031-give-the-documentation-system-an-owning-epic|ADR 0031]]
+records why work already completed still needed an Epic to be readable as
+progress.
+
+Relocation is done. [[Documents/Decisions/0029-hold-every-project-document-in-the-vault|ADR 0029]]
 settled that moving a document does not wait on the plugin recognizing it, so
-[[Epics/Epic-dogfood-vault-migration]] carries no prerequisite and can start
-while the active Epics finish.
+[[Epics/Epic-dogfood-vault-migration]] carried no prerequisite. Every project
+document now lives in the vault and only that Epic's manual acceptance check
+remains.
 
 **[[Epics/Epic-creation-pipeline]] ranks in front of what needs it.** Note
 creation is built twice, once per kind, and [[Epics/Epic-long-project-org]]

@@ -2,6 +2,7 @@
 type: task
 title: Make current work a mid-flight record
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-documentation-authority]]'
 status: done
 category: chore
 priority: critical

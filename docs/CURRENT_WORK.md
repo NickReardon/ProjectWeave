@@ -29,11 +29,8 @@ settled. Four directories stopped being document locations:
 | `docs/development/` | `Documents/References/`     |
 | `docs/archive/`     | `Archive/Legacy/`           |
 
-[[Tasks/Move canonical docs into typed folders]],
-[[Tasks/Move validation and historical material]], and
-[[Tasks/Migrate document links and tooling paths]] are done.
-[[Epics/Epic-dogfood-vault-migration]] is `active` rather than complete because
-two of its tasks remain.
+Four of [[Epics/Epic-dogfood-vault-migration]]'s tasks are done and only its
+manual acceptance check remains.
 
 No vault note reaches a document by climbing out of the vault any more; those
 citations are ordinary wikilinks Obsidian resolves. Frontmatter was deliberately
@@ -43,20 +40,25 @@ kind, and the link gate identifies a record by `type: decision`, so retyping
 would have silently disabled the decision identity rule. Typing the documents
 belongs to [[Epics/Epic-typed-document-catalog]].
 
-The gate moved with the files. `verify-doc-links.mjs` now holds one tree rather
-than two namespaces, and skips wikilinks quoted as code, which specifications
-use to show a reader what a link looks like. `verify-evergreen-docs.mjs`
-follows `release.md`. Accepted records changed only where a link target pointed
-at a retired path; no record body was reworded.
+The gate moved with the files: one tree rather than two namespaces, and a
+wikilink quoted as code is no longer read as a link. Accepted records changed
+only where a link target pointed at a retired path.
 
 `npm run check` passes. Vault diagnostics report zero findings across 175
 notes, up from 108 now that the documents sit inside the scanned vault.
 
-The routing pointers are gone too. GitHub traffic showed one visit to the
-repository root and none to any document path, and the two earlier relocations
-in this repository left no pointers either, so nothing was depending on them.
-`docs/IMPLEMENTATION_ORDER.md` went with them: it declared itself a temporary
-pointer held "while other documents are ported", and they are.
+The routing pointers are gone too, along with `docs/IMPLEMENTATION_ORDER.md`.
+Nothing depended on them: repository traffic shows no visit to any document
+path, and the two earlier relocations here left no pointers either.
+
+The documentation work also gained the owner it never had.
+[[Epics/Epic-documentation-authority]] at rank 3100 adopts six finished tasks
+that carried the living-specification and immutable-record model with no `epic`
+at all, plus the deferred question of merging specifications into fewer
+subsystem documents.
+[ADR 0031](project-vault/Projects/Weave/Documents/Decisions/0031-give-the-documentation-system-an-owning-epic.md)
+records why a completed slice still needs an Epic: the Epic note is how a slice
+is read, so one that does not exist reports as no work at all.
 
 ## Next
 
@@ -71,9 +73,6 @@ The grant dialog and grant list have still not been seen at narrow width.
 
 ## Loose ends
 
-- Six documentation-discipline tasks are `done` but carry no `epic` and no
-  `milestone`, so the work they completed is attributed nowhere. There is no
-  Epic that owns this project's own documentation practice.
 - Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
   retired path as link text. Immutable bodies; every target resolves.
 - The companion requires the gateway to be reachable when the client launches
