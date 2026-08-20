@@ -13,51 +13,50 @@ verified, and what is next. Rewrite it rather than appending history.
 
 ## In flight
 
-Two designs are landed and unbuilt, and the first piece of one of them has now
-shipped.
-
-[[Epics/Epic-creation-pipeline]] is new, ranked 5500. Note creation is built
-twice — allocate, propose, preview, once per kind — and
-[ADR 0030](decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md)
-settles that it becomes one pipeline with a declarative spec per kind. Commit is
-already shared, so the duplication is upstream of it. The Epic pairs that with
-lifting a testable workspace out of `src/main.ts`. Four tasks, led by
-[[Tasks/Extract agent grant minting and containment into a pure module]]
-because it is the one untested security boundary.
-[[Epics/Epic-long-project-org]] now declares this Epic as its prerequisite.
-
-Organization remains the next goal, and relocation
-([[Epics/Epic-dogfood-vault-migration]]) leads at 3200, unblocked. No document
-has moved yet, but one of its blockers is gone: decision record numbering is
-settled, which moved records need before they can be relocated with unique
-identifiers.
+None.
 
 ## Verified
 
+Six commits land together, all documentation and tooling; no product behavior
+changes.
+
+Two designs are landed and unbuilt. [ADR 0029](decisions/0029-hold-every-project-document-in-the-vault.md)
+settles where every project document lives and drops relocation's dependency on
+the plugin recognizing document kinds, and the organization Epics move from
+10000 through 12000 to 3200 through 3600, in front of the features that would be
+authored against them. [ADR 0030](decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md)
+settles that note creation becomes one pipeline with a declarative spec per kind
+rather than the ladder it currently builds twice;
+[[Epics/Epic-creation-pipeline]] carries it at rank 5500 with four tasks, and
+[[Epics/Epic-long-project-org]] now declares it a prerequisite instead of
+planning to build that ladder three more times.
+
+The documentation gate gained three rules. It skips git-ignored files, so tool
+output written into the dogfood vault is not judged as a project document. It
+enforces decision record identity from the frontmatter: `type: decision` makes a
+note a record, its `id` is the identifier, and the filename number and heading
+are conveniences that must agree with it. Records are found by frontmatter
+rather than by directory, which keeps the rule working once the log moves into
+the vault. Two accepted records, `0017` and `0019`, declared no `id` at all and
+now do, and `docs/decisions/README.md` owns numbering.
+
 `0025` is accepted as historical rather than corrected: renumbering either
 record would edit an accepted record and break the identifier it is cited by.
-`docs/decisions/README.md` owns numbering: the frontmatter `id` is the
-identifier, the filename number and heading are conveniences that must agree
-with it, numbers are never reused, and gaps like `0027` are not defects.
-`npm run docs:links` enforces it, grandfathering the pair so a third `0025`
-fails. `0017` and `0019` declared no `id` at all and now do.
-[[Tasks/Resolve the duplicate 0025 decision record numbers]] is done.
+The pair is grandfathered, so a third record declaring `0025` still fails.
 
-The agent grant redesign is built and released: creation in a modal with
-labeled fields, a settings entry that lists grants and what each permits, an
-explicit read scope rather than one inferred from a blank field, local
-resolution gating creation, and a complete `mcpServers` entry on the clipboard.
-Grants remain immutable and the persisted shape is unchanged.
+`npm run check` passes. Node script tests went 77 to 87 and vault diagnostics
+report zero findings.
 
 ## Next
 
-Relocation is ranked first and is now unblocked in full:
-[[Tasks/Move canonical docs into typed folders]] moves `docs/spec/` and
-`docs/decisions/` into the vault, and
-[[Tasks/Migrate document links and tooling paths]] owns the citation churn that
-follows. The gate's `SPEC_PREFIX` is one of the tooling paths that moves with
-it; decision records no longer need one, because the gate now finds them by
-frontmatter rather than by directory.
+Relocation is next and unblocked: [[Epics/Epic-dogfood-vault-migration]] at rank
+3200, six open tasks, none of which waits on a build.
+[[Tasks/Move canonical docs into typed folders]] leads, then
+[[Tasks/Move validation and historical material]],
+[[Tasks/Migrate document links and tooling paths]] for the citation churn,
+[[Tasks/Retire the old document directories]], and
+[[Tasks/Run dogfood migration acceptance gate]]. The gate's `SPEC_PREFIX` is one
+of the tooling paths that moves with it; decision records no longer need one.
 
 What still needs Obsidian: install prerelease `0.6.1-beta.32112484849` through
 BRAT into a clean vault, run the companion against a real MCP client, and record
@@ -81,9 +80,7 @@ grant list have still not been seen at narrow width.
 - Whether creation form fields are declared alongside the kind spec is
   deliberately unsettled until two more kinds exist; see
   [[Tasks/Revisit declared creation fields after two more kinds]].
-- "Backlog" means both a stored status and a condition derived from sprint
-  membership. They coincide only because sprints do not exist yet.
-- The roadmap table in [[Projects/Weave/Project]] is still hand-maintained.
-  [[Tasks/Decide how the Epic roadmap is rendered]] settled that a Base renders
-  it; building it has not happened.
+- [[Epics/Epic-agent-grant-lifecycle]] is still `planned` though five of its
+  seven tasks are done and its work shipped; the status looks stale.
+- `0017` is the only accepted record carrying no `area`.
 - Full mobile check 11a through 11g remains outstanding.
