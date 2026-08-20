@@ -13,7 +13,7 @@ This file is the always-loaded router; conditional detail lives beside its owner
 ├── tests/                # automated behavior coverage
 ├── scripts/              # tooling and release automation (AGENTS.md)
 ├── templates/default/    # packaged Markdown templates
-├── docs/                 # specifications and project records (AGENTS.md)
+├── docs/                 # project documents and dogfood vault (AGENTS.md)
 ├── agents / agents.cmd   # cross-platform task entry points
 └── manifest.json         # Obsidian compatibility metadata
 ```
@@ -23,20 +23,20 @@ Edit the `AGENTS.md` source and run `./agents link` or `.\agents.cmd link`.
 
 ## WHERE TO LOOK
 
-| Need                               | Location                      |
-| ---------------------------------- | ----------------------------- |
-| Current authority map              | `CURRENT-DESIGN.md`           |
-| Implemented behavior and setup     | `README.md`                   |
-| Recent work                        | `git log --oneline -20`       |
-| Product behavior                   | `docs/spec/`                  |
-| Architecture boundaries            | `docs/ARCHITECTURE.md`        |
-| Decision rationale                 | `docs/decisions/`             |
-| Outstanding work and manual checks | `docs/project-vault/`         |
-| Work in flight on this checkout    | `docs/CURRENT_WORK.md`        |
-| Verification history               | `git log`                     |
-| Agent tooling                      | `docs/development/agents.md`  |
-| Testing procedure                  | `docs/development/testing.md` |
-| Release procedure                  | `docs/development/release.md` |
+| Need                               | Location                                                            |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| Current authority map              | `CURRENT-DESIGN.md`                                                 |
+| Implemented behavior and setup     | `README.md`                                                         |
+| Recent work                        | `git log --oneline -20`                                             |
+| Product behavior                   | `docs/project-vault/Projects/Weave/Documents/Specifications/`       |
+| Architecture boundaries            | `docs/ARCHITECTURE.md`                                              |
+| Decision rationale                 | `docs/project-vault/Projects/Weave/Documents/Decisions/`            |
+| Outstanding work and manual checks | `docs/project-vault/`                                               |
+| Work in flight on this checkout    | `docs/CURRENT_WORK.md`                                              |
+| Verification history               | `git log`                                                           |
+| Agent tooling                      | `docs/project-vault/Projects/Weave/Documents/References/agents.md`  |
+| Testing procedure                  | `docs/project-vault/Projects/Weave/Documents/References/testing.md` |
+| Release procedure                  | `docs/project-vault/Projects/Weave/Documents/References/release.md` |
 
 Subtree `AGENTS.md` files provide local conventions when that subtree is touched.
 

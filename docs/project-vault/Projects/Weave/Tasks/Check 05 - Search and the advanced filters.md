@@ -8,7 +8,7 @@ rank: 1400
 
 # Check 05 - Search and the advanced filters
 
-Procedure: `docs/development/testing.md`, check 5.
+Procedure: [[Documents/References/testing]], check 5.
 
 Passed in a session against the installed 0.4.1 build for search plus all
 four due-date states (past due, due today, future, undated) and the category

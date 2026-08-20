@@ -34,7 +34,7 @@ a history that is added to rather than rewritten.
   which cannot drift from the commits it describes.
 
 The rationale, and what was rejected, is recorded in
-[ADR 0022](../../../../../decisions/0022-separate-living-specifications-from-point-in-time-decision-records.md).
+[[Documents/Decisions/0022-separate-living-specifications-from-point-in-time-decision-records|ADR 0022]].
 
 ## Why not the alternatives
 

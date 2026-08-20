@@ -18,9 +18,9 @@ Accept the creation flow end-to-end and complete the template catalog. New-proje
 
 ### Governing documents
 
-- [Vault note templates](../../../../spec/vault-note-templates.md)
-- [ADR 0013 — Layered Note-Template Catalog](../../../../decisions/0013-resolve-templates-from-a-vault-template-folder.md)
-- [Manual Checks](../../../../development/testing.md)
+- [[Documents/Specifications/vault-note-templates|Vault note templates]]
+- [[Documents/Decisions/0013-resolve-templates-from-a-vault-template-folder|ADR 0013 — Layered Note-Template Catalog]]
+- [[Documents/References/testing|Manual Checks]]
 
 ### Exit gate
 

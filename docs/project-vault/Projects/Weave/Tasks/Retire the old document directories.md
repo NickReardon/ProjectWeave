@@ -3,7 +3,7 @@ type: task
 title: Retire the old document directories
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-dogfood-vault-migration]]'
-status: backlog
+status: done
 category: loose-end
 priority: normal
 rank: 2900

@@ -20,7 +20,7 @@ Two structural changes to the layers every future note kind passes through.
 ladder built twice. Collapse them into one pipeline with a small declarative
 spec per kind, so the next kind costs a spec rather than another eight hundred
 lines. Decided in
-[ADR 0030](../../../../decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md).
+[[Documents/Decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind|ADR 0030]].
 
 **A testable workspace.** `src/main.ts` is the highest-churn file in the
 repository, has no test file, and has accumulated rules that are not wiring —
@@ -45,9 +45,9 @@ one spec per kind and names this one as its prerequisite.
 
 ## Governing documents
 
-- [ADR 0030](../../../../decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md)
-- [ADR 0009](../../../../decisions/0009-create-only-write-boundary.md)
-- [ADR 0013](../../../../decisions/0013-resolve-templates-from-a-vault-template-folder.md)
+- [[Documents/Decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind|ADR 0030]]
+- [[Documents/Decisions/0009-create-only-write-boundary|ADR 0009]]
+- [[Documents/Decisions/0013-resolve-templates-from-a-vault-template-folder|ADR 0013]]
 - [Architecture](../../../../ARCHITECTURE.md)
 
 ## Scope

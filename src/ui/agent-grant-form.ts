@@ -7,10 +7,11 @@
  * or the dialog's DOM.
  *
  * See "Grant lifecycle and creation" in
- * `docs/spec/agent-access-and-mcp.md` for the rules this implements: scope
- * is an explicit choice rather than inferred from an empty field,
- * metadata-only is unconditionally resolvable and carries no content roots,
- * and an empty folder list in the content-readable state does not resolve.
+ * `docs/project-vault/Projects/Weave/Documents/Specifications/agent-access-and-mcp.md`
+ * for the rules this implements: scope is an explicit choice rather than
+ * inferred from an empty field, metadata-only is unconditionally resolvable
+ * and carries no content roots, and an empty folder list in the
+ * content-readable state does not resolve.
  *
  * The grant name is required at this dialog, with no default and no
  * prefill: a fallback to the project title would let two grants serving

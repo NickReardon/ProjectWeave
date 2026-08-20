@@ -18,9 +18,9 @@ One shared document patch engine for previewed ordinary-Markdown operations. New
 
 ### Governing documents
 
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md#agent-slice-d--controlled-document-writes)
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md#initial-security-profile)
-- [Vault note templates](../../../../spec/vault-note-templates.md)
+- [[Documents/Specifications/agent-access-and-mcp#Agent Slice D — controlled document writes|Agent access and MCP]]
+- [[Documents/Specifications/agent-access-and-mcp#Initial security profile|Agent access and MCP]]
+- [[Documents/Specifications/vault-note-templates|Vault note templates]]
 
 ### Exit gate
 

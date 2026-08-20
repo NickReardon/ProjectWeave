@@ -25,8 +25,8 @@ configuration instead of a bare secret.
 
 ### Governing documents
 
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md)
-- [ADR 0028](../../../../decisions/0028-immutable-dialog-based-agent-grants.md)
+- [[Documents/Specifications/agent-access-and-mcp|Agent access and MCP]]
+- [[Documents/Decisions/0028-immutable-dialog-based-agent-grants|ADR 0028]]
 - [[Tasks/Make the agent grant form explain what it asks for]]
 - [[Tasks/Restructure agent grant creation into validate-then-create]]
 

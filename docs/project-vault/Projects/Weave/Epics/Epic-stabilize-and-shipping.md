@@ -18,11 +18,11 @@ Freeze and version all compatibility surfaces: application DTO schemas, cursors,
 
 ### Governing documents
 
-- [Plugin experience](../../../../spec/plugin-experience.md)
-- [Quality and release](../../../../spec/quality-and-release.md)
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md#project-weave-skill)
-- [Manual Checks](../../../../development/testing.md)
-- [Plugin Release and Testing](../../../../development/release.md)
+- [[Documents/Specifications/plugin-experience|Plugin experience]]
+- [[Documents/Specifications/quality-and-release|Quality and release]]
+- [[Documents/Specifications/agent-access-and-mcp#Project Weave skill|Agent access and MCP]]
+- [[Documents/References/testing|Manual Checks]]
+- [[Documents/References/release|Plugin Release and Testing]]
 
 ### Exit gate
 

@@ -17,7 +17,7 @@ created: 2026-08-19
 
 Allocate, propose, preview is built twice — once for tasks and once for
 projects — and the two ladders agree only because someone diffed them.
-[ADR 0030](../../../../decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md)
+[[Documents/Decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind|ADR 0030]]
 settles that note creation is one pipeline with a declarative spec per kind.
 This task is that change.
 
@@ -62,7 +62,7 @@ varying half, feeding the commit service that already exists. `byteLength` and
   covering its allocation, read set, and postcondition.
 - `ProjectCreationProposalService`, the largest of the six files, currently has
   no test of its own — its behavior is covered directly once the pipeline lands.
-- [ADR 0009](../../../../decisions/0009-create-only-write-boundary.md) still
+- [[Documents/Decisions/0009-create-only-write-boundary|ADR 0009]] still
   holds: the pipeline cannot write, and the commit service remains `NoteWriter`'s
   only caller.
 

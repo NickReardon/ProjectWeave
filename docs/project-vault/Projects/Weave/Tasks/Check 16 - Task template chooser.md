@@ -10,7 +10,7 @@ milestone: '[[Milestones/v1 release]]'
 
 # Check 16 - Task template chooser
 
-Procedure: `docs/development/testing.md`, check 16.
+Procedure: [[Documents/References/testing]], check 16.
 
 Accepted in Obsidian after the 0.5.4 template-library merge. The always-visible
 chooser, stronger disabled state, friendly **Built-in default** label,

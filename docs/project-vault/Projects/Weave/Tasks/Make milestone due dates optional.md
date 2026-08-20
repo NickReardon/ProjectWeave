@@ -26,7 +26,7 @@ Update parser, query, fixture, and workbench tests for dated and undated milesto
 
 ## Outcome
 
-Settled by [ADR 0024](../../../../decisions/0024-order-the-roadmap-by-milestone-and-rank.md).
+Settled by [[Documents/Decisions/0024-order-the-roadmap-by-milestone-and-rank|ADR 0024]].
 Milestone `rank` carries roadmap ordering, so `due_date` is no longer
 structurally required. Specs 02, 15, and 19 disagreed on this and now agree that
 it is optional and informational.

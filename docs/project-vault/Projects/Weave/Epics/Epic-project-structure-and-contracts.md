@@ -21,9 +21,9 @@ usable with warnings.
 
 ## Governing documents
 
-- [Note structure and dogfood vault](../../../../spec/note-structure-and-dogfood-vault.md)
-- [Vault note templates](../../../../spec/vault-note-templates.md)
-- [ADR 0019](../../../../decisions/0019-note-structure-and-typed-documents.md)
+- [[Documents/Specifications/note-structure-and-dogfood-vault|Note structure and dogfood vault]]
+- [[Documents/Specifications/vault-note-templates|Vault note templates]]
+- [[Documents/Decisions/0019-note-structure-and-typed-documents|ADR 0019]]
 
 ## Exit gate
 

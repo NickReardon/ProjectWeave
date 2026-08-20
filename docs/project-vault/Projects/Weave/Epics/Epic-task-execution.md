@@ -18,12 +18,12 @@ Build all task mutations through the kernel. Preview-first task editor editing t
 
 ### Governing documents
 
-- [Product Brief v1](../../../../spec/product-brief.md)
-- [Task management](../../../../spec/task-management.md)
-- [Dependencies and iterations](../../../../spec/dependencies-and-iterations.md)
-- [Project workbench](../../../../spec/project-workbench.md)
-- [Scheduling and milestones](../../../../spec/scheduling-and-milestones.md)
-- [Streamlined long-project workflow](../../../../spec/streamlined-long-project-workflow.md)
+- [[Documents/Specifications/product-brief|Product Brief v1]]
+- [[Documents/Specifications/task-management|Task management]]
+- [[Documents/Specifications/dependencies-and-iterations|Dependencies and iterations]]
+- [[Documents/Specifications/project-workbench|Project workbench]]
+- [[Documents/Specifications/scheduling-and-milestones|Scheduling and milestones]]
+- [[Documents/Specifications/streamlined-long-project-workflow|Streamlined long-project workflow]]
 
 ### Exit gate
 

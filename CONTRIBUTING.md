@@ -1,8 +1,9 @@
 # Contributing to Project Weave
 
 Project Weave is an Obsidian community plugin whose canonical behavior is
-documented in `docs/spec/`. Keep changes small, preserve unrelated work, and
-update the owning specification when behavior changes.
+documented in `docs/project-vault/Projects/Weave/Documents/Specifications/`.
+Keep changes small, preserve unrelated work, and update the owning
+specification when behavior changes.
 
 ## Before opening a pull request
 

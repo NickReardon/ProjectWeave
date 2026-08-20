@@ -3,7 +3,7 @@ type: task
 title: Move canonical docs into typed folders
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-dogfood-vault-migration]]'
-status: backlog
+status: done
 priority: high
 created: 2026-08-09
 ---
@@ -24,10 +24,10 @@ is preserved, typed metadata is added, and links are updated in the same change.
 | `docs/decisions/` | `Documents/Decisions/` | `decision` |
 
 Specifications do **not** go to `Documents/Design/`, which this task said until
-[ADR 0029](../../../../decisions/0029-hold-every-project-document-in-the-vault.md)
+[[Documents/Decisions/0029-hold-every-project-document-in-the-vault|ADR 0029]]
 corrected it. A design document is a proposal; a specification is a living
 contract, and filing one under the other is the ownership inversion
-[ADR 0022](../../../../decisions/0022-separate-living-specifications-from-point-in-time-decision-records.md)
+[[Documents/Decisions/0022-separate-living-specifications-from-point-in-time-decision-records|ADR 0022]]
 exists to prevent.
 
 ## Inbound paths that move with the files

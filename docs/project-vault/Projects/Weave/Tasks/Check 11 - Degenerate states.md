@@ -8,7 +8,7 @@ rank: 2000
 
 # Check 11 - Degenerate states
 
-Procedure: `docs/development/testing.md`, check 11.
+Procedure: [[Documents/References/testing]], check 11.
 
 11a (multiple projects) has passed.
 
