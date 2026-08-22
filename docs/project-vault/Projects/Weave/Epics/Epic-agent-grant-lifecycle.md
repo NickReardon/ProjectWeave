@@ -2,7 +2,7 @@
 type: epic
 title: Give agent grants a dialog, a readable list, and an immutable lifecycle
 project: '[[Projects/Weave/Project]]'
-status: planned
+status: active
 owner: ''
 origin: '[[Tasks/Make the agent grant form explain what it asks for]]'
 created: 2026-08-17
