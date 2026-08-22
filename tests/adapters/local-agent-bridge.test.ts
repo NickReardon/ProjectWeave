@@ -60,17 +60,26 @@ describe('LocalAgentBridge', () => {
         fileSystem,
         network,
       });
-      const umaskBefore = process.umask();
+      // Force a permissive umask first. Without this the assertion can pass
+      // by inheriting a restrictive one: under an ambient 0o077 the socket
+      // would be 0600 whether or not start() hardened anything, so the test
+      // would keep passing if the hardening were deleted.
+      const ambientUmask = process.umask(0o000);
 
-      await bridge.start();
       try {
-        const stats = await fileSystem.stat(endpoint);
-        expect(stats.mode & 0o777).toBe(0o600);
-        // The tightened umask used to bind owner-only must not leak past
-        // start(): it is restored as soon as the listen call settles.
-        expect(process.umask()).toBe(umaskBefore);
+        await bridge.start();
+        try {
+          const stats = await fileSystem.stat(endpoint);
+          expect(stats.mode & 0o777).toBe(0o600);
+          // The tightened umask must not leak past start(): it is restored
+          // before the listen result is awaited, so what is observable here
+          // is the permissive mask this test installed, not 0o177.
+          expect(process.umask()).toBe(0o000);
+        } finally {
+          await bridge.stop();
+        }
       } finally {
-        await bridge.stop();
+        process.umask(ambientUmask);
       }
     },
   );
