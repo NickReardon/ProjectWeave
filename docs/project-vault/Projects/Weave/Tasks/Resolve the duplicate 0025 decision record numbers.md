@@ -47,18 +47,20 @@ Leaving it means the directory has an ambiguous citation target forever.
 
 ## Outcome
 
-`0025` is accepted as historical. Renumbering either record would edit an
-accepted record and break the identifier it is cited by, and only one document
-outside the pair cites either — by filename, not by number. The reason is
-written down in [`decisions/README.md`](../../../../decisions/README.md), which
-owns the numbering rule.
-
 `npm run docs:links` now enforces record identity from the frontmatter, which
 is what a citation resolves to and what the index will key on: an `id` on every
 `type: decision` note, agreement between that id and the filename number and
-heading, and uniqueness across the set. The existing pair is grandfathered by
-filename, so a third record declaring `0025` still fails. Two accepted records,
-`0017` and `0019`, turned out to declare no `id` at all and now do.
+heading, and uniqueness across the set, with no exceptions. Two accepted
+records, `0017` and `0019`, turned out to declare no `id` at all and now do.
+
+The collision itself was corrected, not grandfathered: `0025-name-specifications-by-subject.md`
+is cited by number from other documents and kept its id;
+`0025-merge-ready-current-work-and-evergreen-release-docs.md` had no external
+citation and was renumbered to `0032`, the next free id, with its decision text
+untouched. [[Documents/Decisions/README|the decision log index]] now permits
+this one narrow edit to an accepted record — correcting a colliding `id`, never
+its content, and only when nothing else cites it by number — which is why the
+gate itself needs no hardcoded exception for this pair or any other.
 
 ## Notes
 

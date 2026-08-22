@@ -7,8 +7,9 @@ clear Ready Now sequence without requiring sprints, estimates, owners, or
 other process features a project does not use.
 
 This file records what is implemented. What Project Weave is specified to do is
-in [docs/spec/](docs/spec/README.md); [CURRENT-DESIGN.md](CURRENT-DESIGN.md) is
-a one-page map of where each kind of truth lives.
+in [the specifications](docs/project-vault/Projects/Weave/Documents/Specifications/README.md);
+[CURRENT-DESIGN.md](CURRENT-DESIGN.md) is a one-page map of where each kind of
+truth lives.
 
 Project support is provided through the
 [GitHub issue tracker](https://github.com/NickReardon/ProjectWeave/issues).
@@ -120,7 +121,7 @@ Implemented today:
   failure, and reports written and unwritten paths exactly. No user workflow
   produces a multi-file proposal yet.
 - **Templates** — a vault template library and merged catalog per
-  [ADR 0013](docs/decisions/0013-resolve-templates-from-a-vault-template-folder.md),
+  [ADR 0013](docs/project-vault/Projects/Weave/Documents/Decisions/0013-resolve-templates-from-a-vault-template-folder.md),
   with per-key precedence and a composite reader that reaches templates outside
   the indexed project folders without widening what indexing sees.
 - **Tests** — fixture-backed parser, index, query, dashboard projection,
@@ -155,7 +156,7 @@ New task notes are placed in a `Tasks` folder beside the project note, so
 subfolder beneath it for organization. Titles become filenames with
 path-hostile and link-hostile characters replaced; a colliding name gets a
 numeric suffix as a visible suggestion, never as a silent overwrite.
-[ADR 0008](docs/decisions/0008-derive-task-paths-and-allocate-spaced-ranks.md)
+[ADR 0008](docs/project-vault/Projects/Weave/Documents/Decisions/0008-derive-task-paths-and-allocate-spaced-ranks.md)
 records these rules.
 
 A created project takes a folder of its own inside an indexed project folder:
@@ -163,8 +164,8 @@ A created project takes a folder of its own inside an indexed project folder:
 its tasks land in `Projects/Travel Planner/Tasks/` under the rule above, and a
 folder already in use yields a numbered folder rather than a shared one — two
 projects in one folder would mingle their tasks.
-[ADR 0012](docs/decisions/0012-give-each-project-its-own-folder.md) records
-that decision.
+[ADR 0012](docs/project-vault/Projects/Weave/Documents/Decisions/0012-give-each-project-its-own-folder.md)
+records that decision.
 
 With nothing indexed yet, the workbench's empty state offers **New project**,
 so a fresh vault does not have to be bootstrapped by hand.
@@ -185,7 +186,7 @@ The vocabulary is vault-wide rather than per project, because Obsidian's own
 property suggestions are vault-wide; two lists would contradict each other in
 adjacent editors. A `task/bug.md` template that declares `category: bug` is how
 choosing a template assigns one.
-[ADR 0014](docs/decisions/0014-group-tasks-with-a-vault-wide-category.md)
+[ADR 0014](docs/project-vault/Projects/Weave/Documents/Decisions/0014-group-tasks-with-a-vault-wide-category.md)
 records the decision, including why a `bug` entity type was rejected.
 
 ## Note templates
@@ -241,7 +242,7 @@ its caller supplies.
 
 Template metadata keys, frontmatter and body placeholder syntax, the
 `{{#if}}` construct, and the date and time formats are specified in
-[Vault note templates](docs/spec/vault-note-templates.md).
+[Vault note templates](docs/project-vault/Projects/Weave/Documents/Specifications/vault-note-templates.md).
 
 ## Development
 
@@ -283,9 +284,9 @@ only in a disposable development vault.
 
 Manual checks against Obsidian — the procedure, the disposable test vault, and
 the recorded results — are in
-[docs/development/testing.md](docs/development/testing.md). Release channels and
-the version-sizing rule are in
-[docs/development/release.md](docs/development/release.md).
+[Project Weave Manual Checks](docs/project-vault/Projects/Weave/Documents/References/testing.md).
+Release channels and the version-sizing rule are in
+[Plugin Release and Testing Plan](docs/project-vault/Projects/Weave/Documents/References/release.md).
 
 ## Read-only agent access
 
@@ -393,7 +394,8 @@ project, it is selected automatically. Ready Now and All Tasks open exact
 existing task notes in another tab, leaving the workbench open. All Tasks
 starts with the non-terminal statuses and can be filtered by status, priority,
 epic, milestone, owner, category, due state, and text across titles and paths;
-[Project workbench](docs/spec/project-workbench.md) specifies the behavior in full.
+[Project workbench](docs/project-vault/Projects/Weave/Documents/Specifications/project-workbench.md)
+specifies the behavior in full.
 
 ## Versioning and exports
 
@@ -418,10 +420,10 @@ position carries feature weight:
 - **major** — reserved for the first stable release against the full
   specification.
 
-[docs/development/release.md](docs/development/release.md) holds the full rule,
-including when to bump relative to an export and how to resolve genuine
-ambiguity, along with the operational channel, BRAT preview, stable release,
-and Community directory steps.
+[Plugin Release and Testing Plan](docs/project-vault/Projects/Weave/Documents/References/release.md)
+holds the full rule, including when to bump relative to an export and how to
+resolve genuine ambiguity, along with the operational channel, BRAT preview,
+stable release, and Community directory steps.
 
 Run `./agents export` to build and verify the plugin, then generate:
 
@@ -433,4 +435,5 @@ Run `./agents export` to build and verify the plugin, then generate:
 The entire `export/` directory is Git-ignored. `./agents release` runs the
 complete validation gate and then produces the same export artifacts and
 configured test-vault update. Setting up a disposable vault and installing into
-it are covered in [docs/development/testing.md](docs/development/testing.md).
+it are covered in
+[Project Weave Manual Checks](docs/project-vault/Projects/Weave/Documents/References/testing.md).

@@ -18,11 +18,11 @@ Document and proposal capabilities that complete the primary product loop. Plan 
 
 ### Governing documents
 
-- [Document provenance](../../../../spec/document-provenance.md)
-- [Validation and safe writes](../../../../spec/validation-and-safe-writes.md)
-- [Streamlined long-project workflow](../../../../spec/streamlined-long-project-workflow.md#plan-view)
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md#agent-slice-b--propose-tasks-from-a-document)
-- [Vault note templates](../../../../spec/vault-note-templates.md)
+- [[Documents/Specifications/document-provenance|Document provenance]]
+- [[Documents/Specifications/validation-and-safe-writes|Validation and safe writes]]
+- [[Documents/Specifications/streamlined-long-project-workflow#Plan view|Streamlined long-project workflow]]
+- [[Documents/Specifications/agent-access-and-mcp#Agent Slice B — propose tasks from a document|Agent access and MCP]]
+- [[Documents/Specifications/vault-note-templates|Vault note templates]]
 
 ### Exit gate
 

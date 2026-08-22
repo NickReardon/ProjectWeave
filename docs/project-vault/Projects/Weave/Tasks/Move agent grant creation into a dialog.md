@@ -45,7 +45,7 @@ grant creation]].
   whether the content-roots field happens to be empty. This is the one control
   that decides how much of the vault an external client can read, so it is
   posed as a question rather than left as a side effect of a blank field. The
-  rule is owned by [Agent access and MCP](../../../../spec/agent-access-and-mcp.md).
+  rule is owned by [[Documents/Specifications/agent-access-and-mcp|Agent access and MCP]].
 
 ## Acceptance criteria
 

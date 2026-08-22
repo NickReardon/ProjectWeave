@@ -18,10 +18,10 @@ The shared foundation for every existing-note and multi-file operation. Source-p
 
 ### Governing documents
 
-- [Validation and safe writes](../../../../spec/validation-and-safe-writes.md)
-- [Task management](../../../../spec/task-management.md)
-- [ADR 0009 — Create-Only Write Boundary](../../../../decisions/0009-create-only-write-boundary.md)
-- [Agent access and MCP](../../../../spec/agent-access-and-mcp.md#proposal-lifecycle)
+- [[Documents/Specifications/validation-and-safe-writes|Validation and safe writes]]
+- [[Documents/Specifications/task-management|Task management]]
+- [[Documents/Decisions/0009-create-only-write-boundary|ADR 0009 — Create-Only Write Boundary]]
+- [[Documents/Specifications/agent-access-and-mcp#Proposal lifecycle|Agent access and MCP]]
 
 ### Exit gate
 

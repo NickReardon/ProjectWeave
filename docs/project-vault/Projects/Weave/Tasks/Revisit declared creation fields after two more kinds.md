@@ -15,7 +15,7 @@ created: 2026-08-19
 
 ## Summary
 
-[ADR 0030](../../../../decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind.md)
+[[Documents/Decisions/0030-one-creation-pipeline-with-a-spec-per-note-kind|ADR 0030]]
 collapses the creation ladders below the modal but deliberately leaves the two
 creation forms alone. Declaring their fields was rejected for now, not rejected:
 the two existing forms are not uniform, so a generic field renderer would need

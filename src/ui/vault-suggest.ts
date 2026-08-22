@@ -125,9 +125,10 @@ export function replaceLastListSegment(
 /**
  * Vault folder paths currently loaded, as a set for local resolution checks
  * (see "Grant lifecycle and creation" in
- * `docs/spec/agent-access-and-mcp.md`). Shares the same folder listing as
- * {@link VaultFolderSuggest} and {@link VaultFolderListSuggest} so a folder
- * that is suggested is exactly a folder that resolves.
+ * `docs/project-vault/Projects/Weave/Documents/Specifications/agent-access-and-mcp.md`).
+ * Shares the same folder listing as {@link VaultFolderSuggest} and
+ * {@link VaultFolderListSuggest} so a folder that is suggested is exactly a
+ * folder that resolves.
  */
 export function vaultFolderPaths(app: App): ReadonlySet<string> {
   return new Set(

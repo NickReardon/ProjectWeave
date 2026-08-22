@@ -66,10 +66,12 @@ export type NoteCreationCommitResult =
  * Commits one previously confirmed create-only proposal, of any kind.
  *
  * This is the only path to a project-content write. It implements the safe
- * write sequence in docs/spec/validation-and-safe-writes.md: re-check the
- * complete read set and every target, validate every output in memory, then
- * write in the proposal's deterministic order. A multi-file failure stops the
- * sequence and reports exactly what was and was not written.
+ * write sequence in
+ * docs/project-vault/Projects/Weave/Documents/Specifications/validation-and-safe-writes.md:
+ * re-check the complete read set and every target, validate every output in
+ * memory, then write in the proposal's deterministic order. A multi-file
+ * failure stops the sequence and reports exactly what was and was not
+ * written.
  *
  * The bytes written are the proposal's bytes — the ones the user actually
  * saw. If any input has changed since, the commit aborts rather than silently

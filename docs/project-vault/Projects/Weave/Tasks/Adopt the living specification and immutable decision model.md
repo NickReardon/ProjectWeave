@@ -2,6 +2,7 @@
 type: task
 title: Adopt the living specification and immutable decision model
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-documentation-authority]]'
 status: done
 category: chore
 priority: critical

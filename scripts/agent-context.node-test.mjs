@@ -48,10 +48,10 @@ test('counts YAML block-scalar descriptions in full', () => {
 });
 
 test('extracts path-shaped pointers only from WHERE TO LOOK', () => {
-  const markdown = `# Guide\n\n## WHERE TO LOOK\n\n| Need | Location |\n| --- | --- |\n| Docs | \`docs/README.md\` |\n| Specs | \`docs/spec/\` |\n| Log | \`git log --oneline -20\` |\n\n## COMMANDS\n\n\`missing.md\`\n`;
+  const markdown = `# Guide\n\n## WHERE TO LOOK\n\n| Need | Location |\n| --- | --- |\n| Docs | \`docs/README.md\` |\n| Specs | \`docs/project-vault/Projects/Weave/Documents/Specifications/\` |\n| Log | \`git log --oneline -20\` |\n\n## COMMANDS\n\n\`missing.md\`\n`;
   assert.deepEqual(extractWhereToLookPointers(markdown), [
     'docs/README.md',
-    'docs/spec',
+    'docs/project-vault/Projects/Weave/Documents/Specifications',
   ]);
 });
 

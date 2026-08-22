@@ -18,7 +18,7 @@ plugin ships a stable v1.
 
 This milestone is undated by choice. `due_date` is optional and informational,
 and ordering comes from `rank`, so no release date is implied or required. See
-[ADR 0024](../../../../decisions/0024-order-the-roadmap-by-milestone-and-rank.md).
+[[Documents/Decisions/0024-order-the-roadmap-by-milestone-and-rank|ADR 0024]].
 
 ## Success conditions
 

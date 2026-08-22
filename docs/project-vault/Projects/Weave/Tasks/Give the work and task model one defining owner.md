@@ -2,6 +2,7 @@
 type: task
 title: Give the work and task model one defining owner
 project: '[[Projects/Weave/Project]]'
+epic: '[[Epics/Epic-documentation-authority]]'
 status: done
 category: chore
 priority: critical

@@ -5,14 +5,14 @@ indexing, application, port, adapter, settings, and UI layers.
 
 ## WHERE TO LOOK
 
-| Change                          | Owner                                        |
-| ------------------------------- | -------------------------------------------- |
-| Dependency direction            | `../docs/ARCHITECTURE.md`                    |
-| Lifecycle and persistence       | `../docs/spec/lifecycle-and-persistence.md`  |
-| Data model and indexing         | `../docs/spec/data-model-and-index.md`       |
-| Validation and writes           | `../docs/spec/validation-and-safe-writes.md` |
-| Plugin experience               | `../docs/spec/plugin-experience.md`          |
-| Quality and release constraints | `../docs/spec/quality-and-release.md`        |
+| Change                          | Owner                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| Dependency direction            | `../docs/ARCHITECTURE.md`                                                                     |
+| Lifecycle and persistence       | `../docs/project-vault/Projects/Weave/Documents/Specifications/lifecycle-and-persistence.md`  |
+| Data model and indexing         | `../docs/project-vault/Projects/Weave/Documents/Specifications/data-model-and-index.md`       |
+| Validation and writes           | `../docs/project-vault/Projects/Weave/Documents/Specifications/validation-and-safe-writes.md` |
+| Plugin experience               | `../docs/project-vault/Projects/Weave/Documents/Specifications/plugin-experience.md`          |
+| Quality and release constraints | `../docs/project-vault/Projects/Weave/Documents/Specifications/quality-and-release.md`        |
 
 Read the owning specification, nearby source, tests, and fixtures for the
 behavior being changed.

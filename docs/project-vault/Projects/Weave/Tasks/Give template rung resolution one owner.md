@@ -15,7 +15,7 @@ created: 2026-08-19
 
 ## Summary
 
-[ADR 0013](../../../../decisions/0013-resolve-templates-from-a-vault-template-folder.md)
+[[Documents/Decisions/0013-resolve-templates-from-a-vault-template-folder|ADR 0013]]
 defines a rung ladder for resolving a template from the vault template folder.
 It is implemented twice: once in `TaskTemplateResolver`, and again privately in
 `ProjectCreationProposalService.#selectTemplate`, whose own doc comment concedes
