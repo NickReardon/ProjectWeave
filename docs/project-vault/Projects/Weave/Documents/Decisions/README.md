@@ -24,8 +24,11 @@ is not edited.
   record keeps `status: accepted` and gains no `superseded_by`, because most of
   it still holds. The new record names precisely which part it replaces and
   which parts stand. `superseded_by` means the whole decision was replaced.
-- The only permitted edits to an accepted record are typography and broken
-  links.
+- The only permitted edits to an accepted record are typography, broken links,
+  and — once, to resolve a genuine numbering collision — the `id` itself,
+  never the decision it names. That edit is permitted only when no other
+  document cites the record by number; a record any other document cites
+  numerically keeps its `id` and the colliding one is renumbered instead.
 - A record whose rationale still holds but whose behavior has since been
   refined is not updated; the specification is.
 
@@ -67,18 +70,19 @@ from the records rather than counted from the directory. Gaps are not defects.
 `0027` was never issued and nothing is missing, because a number names a record
 rather than counting the log.
 
-One collision survives. `0025` is declared by both
-[merge-ready current work](0025-merge-ready-current-work-and-evergreen-release-docs.md)
-and [name specifications by subject](0025-name-specifications-by-subject.md);
-both were accepted before it was noticed. It stands as history rather than being
-corrected, because renumbering either one would edit an accepted record and
-break the identifier it is cited by, which is the edit immutability exists to
-prevent. Cite either of the two by filename rather than by number.
+One collision happened. Two records were both accepted declaring `id: 0025`
+before it was noticed: [name specifications by
+subject](0025-name-specifications-by-subject.md), already cited by number from
+other documents, and [merge-ready current
+work](0032-merge-ready-current-work-and-evergreen-release-docs.md), cited by
+nothing outside this directory. Nothing needed to change for the first record;
+the second was renumbered to the next free id, `0032`, under the id-correction
+rule above. Its decision, context, and text are untouched — only its `id`,
+filename, and heading number moved.
 
 `npm run docs:links` enforces all of this: an `id` on every `type: decision`
 note, agreement with the filename number and the heading, and uniqueness across
-the set. The historical pair is grandfathered by filename, so a third record
-declaring `0025` still fails.
+the set, with no exceptions.
 
 ## Scope test
 

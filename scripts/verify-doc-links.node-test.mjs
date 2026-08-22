@@ -402,20 +402,6 @@ test('assertDocLinks joins violations as path:line: message lines', () => {
 const decision = (id, body = '') =>
   `---\ntype: decision\nid: "${id}"\nstatus: accepted\n---\n\n# ADR ${id}: A decision\n${body}`;
 
-test('accepts the two historical records that declare id 0025', () => {
-  const entries = [
-    {
-      path: 'docs/project-vault/Projects/Weave/Documents/Decisions/0025-merge-ready-current-work-and-evergreen-release-docs.md',
-      source: decision('0025'),
-    },
-    {
-      path: 'docs/project-vault/Projects/Weave/Documents/Decisions/0025-name-specifications-by-subject.md',
-      source: decision('0025'),
-    },
-  ];
-  assert.deepEqual(findDocLinkViolations(entries), []);
-});
-
 test('rejects a new duplicate decision record id', () => {
   const entries = [
     {
@@ -437,7 +423,7 @@ test('rejects a new duplicate decision record id', () => {
   );
 });
 
-test('grandfathers the historical pair, not the id it collides on', () => {
+test('rejects the historical 0025 pair too: uniqueness has no exceptions', () => {
   const entries = [
     {
       path: 'docs/project-vault/Projects/Weave/Documents/Decisions/0025-merge-ready-current-work-and-evergreen-release-docs.md',
@@ -447,13 +433,9 @@ test('grandfathers the historical pair, not the id it collides on', () => {
       path: 'docs/project-vault/Projects/Weave/Documents/Decisions/0025-name-specifications-by-subject.md',
       source: decision('0025'),
     },
-    {
-      path: 'docs/project-vault/Projects/Weave/Documents/Decisions/0025-a-third-record.md',
-      source: decision('0025'),
-    },
   ];
   const violations = findDocLinkViolations(entries);
-  assert.equal(violations.length, 3);
+  assert.equal(violations.length, 2);
   assert.match(violations[0].message, /duplicate decision record id 0025/u);
 });
 

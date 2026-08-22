@@ -25,24 +25,6 @@ const CODE_FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/u;
 const BACKTICK_RUN = /`+/gu;
 
 /**
- * One historical collision survives: two accepted records declare `id: 0025`.
- * An accepted record is immutable and its id is what other documents cite it
- * by, so the pair stands as history rather than being renumbered;
- * `../docs/project-vault/Projects/Weave/Documents/Decisions/README.md` owns
- * that rule. The exact pair is grandfathered rather than the id, so a third
- * 0025 is still a violation.
- */
-const HISTORICAL_DUPLICATE_DECISIONS = new Map([
-  [
-    '0025',
-    [
-      '0025-merge-ready-current-work-and-evergreen-release-docs.md',
-      '0025-name-specifications-by-subject.md',
-    ],
-  ],
-]);
-
-/**
  * Archived material is superseded history: its links, citations, and decision
  * ids describe a world that no longer exists, so no rule here applies to it.
  * The archive now sits *inside* the dogfood vault, so this test has to be
@@ -295,14 +277,6 @@ function findDuplicateDecisionIds(entries) {
     if (paths.length < 2) continue;
     const found = [...paths].sort();
     const basenames = found.map(basenameOf);
-    const historical = HISTORICAL_DUPLICATE_DECISIONS.get(id);
-    if (
-      historical !== undefined &&
-      basenames.length === historical.length &&
-      basenames.every((basename) => historical.includes(basename))
-    ) {
-      continue;
-    }
     for (const path of found) {
       violations.push({
         path,

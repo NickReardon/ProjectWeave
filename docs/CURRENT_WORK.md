@@ -17,6 +17,17 @@ None.
 
 ## Verified
 
+The duplicate `0025` decision-record id is corrected rather than grandfathered.
+The record cited by number elsewhere kept `0025`; the uncited one — [ADR 0032,
+formerly
+0025](project-vault/Projects/Weave/Documents/Decisions/0032-merge-ready-current-work-and-evergreen-release-docs.md) —
+was renumbered, its decision text untouched.
+`Documents/Decisions/README.md` now permits that one narrow edit — a colliding
+`id`, never a record's content, only when nothing cites it numerically — and
+`scripts/verify-doc-links.mjs` dropped the hardcoded two-file exception it used
+to carry: decision-id uniqueness now has no exceptions at all. [[Tasks/Resolve
+the duplicate 0025 decision record numbers]] records the corrected outcome.
+
 The document reorganization landed, so every Project Weave document now lives
 in the dogfood vault as
 [ADR 0029](project-vault/Projects/Weave/Documents/Decisions/0029-hold-every-project-document-in-the-vault.md)

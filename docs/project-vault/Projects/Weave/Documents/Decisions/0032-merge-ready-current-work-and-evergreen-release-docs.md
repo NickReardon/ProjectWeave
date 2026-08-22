@@ -1,13 +1,13 @@
 ---
 type: decision
-id: '0025'
+id: '0032'
 area: development
 status: accepted
 canonical: false
 affects: ['quality-and-release', 'development-procedures', 'current-work']
 ---
 
-# ADR 0025: Require a clean handoff record at merge boundaries
+# ADR 0032: Require a clean handoff record at merge boundaries
 
 - Status: accepted
 - Date: 2026-08-17
