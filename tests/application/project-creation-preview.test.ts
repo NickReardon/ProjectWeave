@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { NoteCreationCommitService } from '../../src/application/note-creation-commit';
 import { ProjectCreationPreviewService } from '../../src/application/project-creation-preview';
 import { ProjectCreationProposalService } from '../../src/application/project-creation-proposal';
+import { TemplateResolver } from '../../src/application/template-resolver';
 import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
@@ -82,9 +83,11 @@ function build(
       new ProjectCreationProposalService(
         getSnapshot,
         vault,
-        libraryFolder === null
-          ? null
-          : new VaultTemplateLibrary(vault, libraryFolder),
+        new TemplateResolver(
+          libraryFolder === null
+            ? null
+            : new VaultTemplateLibrary(vault, libraryFolder),
+        ),
       ),
     ),
     vault,

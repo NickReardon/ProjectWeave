@@ -7,7 +7,7 @@ import {
 } from '../../src/application/note-creation-commit';
 import { TaskCreationProposalService } from '../../src/application/task-creation-proposal';
 import type { TaskCreationProposal } from '../../src/application/task-creation-proposal';
-import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { TemplateResolver } from '../../src/application/template-resolver';
 import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
@@ -114,7 +114,7 @@ async function buildProposal(
   const proposals = new TaskCreationProposalService(
     () => snapshot,
     vault,
-    new TaskTemplateResolver(),
+    new TemplateResolver(),
   );
   const proposal = await proposals.propose({
     operationId: 'op-1',
@@ -381,7 +381,7 @@ describe('NoteCreationCommitService', () => {
     const proposal = await new TaskCreationProposalService(
       () => snapshot,
       vault,
-      new TaskTemplateResolver(
+      new TemplateResolver(
         new VaultTemplateLibrary(vault, 'Templates/Project Weave'),
       ),
     ).propose({

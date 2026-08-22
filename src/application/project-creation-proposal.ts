@@ -7,32 +7,14 @@ import type {
   IndexFreshness,
   ProjectStatus,
 } from '../domain/model';
-import {
-  PACKAGED_MINIMAL_PROJECT_TEMPLATE,
-  PACKAGED_MINIMAL_TEMPLATE_ID,
-  PACKAGED_STARTER_TEMPLATES,
-} from '../domain/templates/packaged-templates';
 import { renderProjectTemplate } from '../domain/templates/project-template';
-import { hasError } from '../domain/templates/model';
-import { parseTemplateDocument } from '../domain/templates/template-parser';
-import type { VaultTemplateLibrary } from './vault-template-library';
-import {
-  mergeTemplateCatalog,
-  variantsForKind,
-  type TemplateCatalogCandidate,
-} from './template-catalog';
-import type { TemplateClock, TemplateSource } from '../domain/templates/model';
+import type { TemplateClock } from '../domain/templates/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { VaultReader } from '../ports/vault-reader';
+import { TemplateResolver } from './template-resolver';
 
-/**
- * Fingerprint of the packaged project template. It ships inside the plugin
- * build, so it cannot drift while the plugin is loaded; the commit service
- * skips re-reading packaged templates for that reason.
- */
-const PACKAGED_PROJECT_FINGERPRINT = 'builtin:minimal/project@schema-1';
+/** The `template_for` kind this service resolves and creates. */
 const PROJECT_TEMPLATE_KIND = 'project';
-const PROJECT_DEFAULT_VARIANT = 'default';
 
 export interface ProjectCreationProposalInput {
   readonly operationId: string;
@@ -101,24 +83,26 @@ export type ProjectCreationProposalResult =
  * one: it can read the target for collision detection, has no write
  * capability, and produces the exact bytes a commit would write.
  *
+ * Template selection is delegated to the shared `TemplateResolver`, so a
+ * project resolves `project/default` across the same ADR 0013 rung ladder a
+ * task variant does: the vault template library, then the packaged default.
  * A project has no project to belong to, so there is no entity to fingerprint
- * and no template map to consult. The template is the packaged one: a
- * project-specific template configuration would live in the project note, and the project
- * note is what this creates.
+ * and no project-owned mapping to consult — that rung is deferred for every
+ * kind, not only this one.
  */
 export class ProjectCreationProposalService {
   readonly #getSnapshot: () => IndexSnapshot;
   readonly #vault: VaultReader;
-  readonly #library: VaultTemplateLibrary | null;
+  readonly #templates: TemplateResolver;
 
   public constructor(
     getSnapshot: () => IndexSnapshot,
     vault: VaultReader,
-    library: VaultTemplateLibrary | null = null,
+    templates: TemplateResolver = new TemplateResolver(),
   ) {
     this.#getSnapshot = getSnapshot;
     this.#vault = vault;
-    this.#library = library;
+    this.#templates = templates;
   }
 
   public async propose(
@@ -149,10 +133,14 @@ export class ProjectCreationProposalService {
       ]);
     }
 
-    const selected = await this.#selectTemplate();
-    if (!selected.ok) {
-      return failure(snapshot, operationId, selected.diagnostics);
+    const resolution = await this.#templates.resolve(
+      PROJECT_TEMPLATE_KIND,
+      input.targetPath,
+    );
+    if (!resolution.ok || resolution.selected === null) {
+      return failure(snapshot, operationId, resolution.diagnostics);
     }
+    const selected = resolution.selected;
 
     const rendered = renderProjectTemplate({
       template: selected.template,
@@ -166,7 +154,7 @@ export class ProjectCreationProposalService {
         ? {}
         : { inputs: input.templateInputs }),
     });
-    const diagnostics = [...rendered.diagnostics];
+    const diagnostics = [...resolution.diagnostics, ...rendered.diagnostics];
     if (!rendered.ok || rendered.note === null) {
       return failure(snapshot, operationId, diagnostics);
     }
@@ -203,17 +191,13 @@ export class ProjectCreationProposalService {
       return failure(snapshot, operationId, diagnostics);
     }
 
-    const reference =
-      selected.source === 'packaged'
-        ? PACKAGED_MINIMAL_TEMPLATE_ID
-        : selected.template.path;
     return {
       ok: true,
       operation_id: operationId,
       action: 'Create project',
       index_revision: snapshot.revision,
       index_freshness: snapshot.freshness,
-      diff_summary: `Create project "${input.title}" at ${rendered.note.targetPath} using ${reference}.`,
+      diff_summary: `Create project "${input.title}" at ${rendered.note.targetPath} using ${selected.reference}.`,
       frontmatter_changes: [
         {
           path: rendered.note.targetPath,
@@ -224,8 +208,8 @@ export class ProjectCreationProposalService {
       template: {
         kind: 'project',
         source: selected.source,
-        variant: 'default',
-        reference,
+        variant: selected.variant,
+        reference: selected.reference,
         path: selected.template.path,
         fingerprint: selected.fingerprint,
       },
@@ -250,155 +234,6 @@ export class ProjectCreationProposalService {
       diagnostics,
     };
   }
-
-  /**
-   * The vault library's `project/default.md`, or the packaged template.
-   *
-   * A vault template that cannot be used refuses the creation rather than
-   * falling back, on the same grounds as a task variant: the user configured
-   * that template, and quietly writing different bytes is worse than not
-   * writing.
-   */
-  async #selectTemplate(): Promise<
-    SelectedProjectTemplate | RejectedProjectTemplate
-  > {
-    const candidates: TemplateCatalogCandidate[] =
-      PACKAGED_STARTER_TEMPLATES.filter(
-        (entry) => entry.kind === PROJECT_TEMPLATE_KIND,
-      ).map((entry) => ({
-        kind: entry.kind,
-        variant: entry.variant,
-        source: 'plugin',
-        reference:
-          entry.variant === PROJECT_DEFAULT_VARIANT
-            ? PACKAGED_MINIMAL_TEMPLATE_ID
-            : entry.source.path,
-        path: entry.source.path,
-      }));
-    let listingDiagnostics: readonly Diagnostic[] = [];
-
-    if (this.#library !== null) {
-      const listing = await this.#library.list();
-      listingDiagnostics = listing.diagnostics;
-      for (const entry of listing.entries) {
-        if (entry.kind !== PROJECT_TEMPLATE_KIND) {
-          continue;
-        }
-        candidates.push({
-          kind: entry.kind,
-          variant: entry.variant,
-          source: 'vault',
-          reference: entry.path,
-          path: entry.path,
-        });
-      }
-      for (const entry of listing.ambiguous) {
-        if (entry.kind !== PROJECT_TEMPLATE_KIND) {
-          continue;
-        }
-        candidates.push({
-          kind: entry.kind,
-          variant: entry.variant,
-          source: 'vault',
-          reference: entry.path,
-          path: entry.path,
-          broken: true,
-        });
-      }
-    }
-
-    const selected = variantsForKind(
-      mergeTemplateCatalog(candidates),
-      PROJECT_TEMPLATE_KIND,
-    ).find((entry) => entry.variant === PROJECT_DEFAULT_VARIANT);
-    if (selected === undefined || selected.selected.source === 'plugin') {
-      return {
-        ok: true,
-        source: 'packaged',
-        template: PACKAGED_MINIMAL_PROJECT_TEMPLATE,
-        fingerprint: PACKAGED_PROJECT_FINGERPRINT,
-      };
-    }
-
-    if (!selected.usable) {
-      const diagnostics = listingDiagnostics.filter((issue) =>
-        issue.relatedPaths?.includes(selected.selected.path),
-      );
-      return {
-        ok: false,
-        diagnostics:
-          diagnostics.length > 0
-            ? diagnostics
-            : [
-                diagnostic(
-                  selected.selected.path,
-                  'template.library.ambiguous',
-                  'More than one vault template claims `project/default`.',
-                  'variant',
-                  'Rename or remove all but one project default template, including names that differ only by case.',
-                ),
-              ],
-      };
-    }
-
-    const source = await this.#vault.readMarkdownNote(selected.selected.path);
-    if (source === null) {
-      return {
-        ok: false,
-        diagnostics: [
-          diagnostic(
-            selected.selected.path,
-            'template.reference.changed',
-            `Vault template ${selected.selected.path} is no longer readable.`,
-            'template',
-            'Refresh the template catalog and preview the project again.',
-          ),
-        ],
-      };
-    }
-    const loaded = {
-      template: { path: source.path, content: source.content },
-      fingerprint: source.fingerprint,
-    };
-
-    const document = parseTemplateDocument(loaded.template);
-    const diagnostics: Diagnostic[] = [...document.diagnostics];
-    if (
-      document.metadata.templateFor !== null &&
-      document.metadata.templateFor !== 'project'
-    ) {
-      diagnostics.push(
-        diagnostic(
-          loaded.template.path,
-          'template.kind_mismatch',
-          `The template declares ${document.metadata.templateFor}, not project.`,
-          'template_for',
-          'Move the template to the folder for its own kind, or correct its template_for value.',
-        ),
-      );
-    }
-    if (hasError(diagnostics)) {
-      return { ok: false, diagnostics };
-    }
-    return {
-      ok: true,
-      source: 'vault',
-      template: loaded.template,
-      fingerprint: loaded.fingerprint,
-    };
-  }
-}
-
-interface SelectedProjectTemplate {
-  readonly ok: true;
-  readonly source: 'packaged' | 'vault';
-  readonly template: TemplateSource;
-  readonly fingerprint: string;
-}
-
-interface RejectedProjectTemplate {
-  readonly ok: false;
-  readonly diagnostics: readonly Diagnostic[];
 }
 
 function failure(

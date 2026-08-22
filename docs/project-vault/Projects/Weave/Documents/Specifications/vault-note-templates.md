@@ -347,6 +347,12 @@ Agents receive the same disabled action/reason and cannot select fallback unless
 
 ### Failure scoping
 
+One resolver implements this ladder for every creatable kind, so the rule
+below is not something each creation path has to get right on its own: a
+task variant and a project default fail closed on the same terms because they
+share the same resolution code, not because two implementations happen to
+agree.
+
 Failure is scoped and closed per catalog key:
 
 - a malformed or wrong-kind vault template blocks that variant without poisoning
@@ -369,6 +375,10 @@ exists, otherwise the packaged project template. The resulting project note is
 previewed and validated before creation. Collision prevents overwrite and
 requires a different location. No template directory or project-note template
 configuration is created as a side effect.
+
+Selection follows the same rung ladder and failure-scoping rules as a task
+variant: a broken or case-colliding vault `project/default` refuses creation
+with a diagnostic rather than silently using the packaged template.
 
 ## Replacing and editing templates
 

@@ -3,7 +3,7 @@ type: task
 title: Give template rung resolution one owner
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-creation-pipeline]]'
-status: backlog
+status: done
 category: enhancement
 priority: high
 rank: 6500
@@ -43,3 +43,35 @@ of it: doing it first keeps that change from carrying two unrelated arguments.
 `byteLength` and `lineCount` move in the same spirit but belong with
 [[Tasks/Collapse the two creation ladders into one pipeline]], which is where a
 shared home for them appears.
+
+## Outcome
+
+`TaskTemplateResolver` generalized into `src/application/template-resolver.ts`
+as `TemplateResolver`, taking a `kind` and a diagnostic path instead of
+assuming task. `TaskCreationProposalService` and
+`ProjectCreationProposalService` both construct and call it;
+`ProjectCreationProposalService.#selectTemplate` and its private
+candidate-merging are gone.
+
+The premise above named the wrong side. Reading both implementations closely,
+and confirming it by running each against a case-colliding vault default,
+showed the opposite: `ProjectCreationProposalService` already ran its
+candidates through `mergeTemplateCatalog`/`variantsForKind` and failed closed
+on a collision. `TaskTemplateResolver` read the library through
+`VaultTemplateLibrary.load()` directly, which omits a colliding key from
+`list().entries` and reports it in `.ambiguous` instead — so `load()` returned
+null, and the `default` branch read that as "nothing configured" and silently
+returned the packaged template with no diagnostic. That is exactly the silent
+fall-through ADR 0013 forbids, and it was the task path skipping it, not
+project's. Unifying on the catalog-based approach carries project's stricter
+check into the one resolver, so a colliding `task/default` and a colliding
+`project/default` now fail the same way: `template.library.ambiguous`, no
+selection, no packaged fallback.
+
+`tests/application/template-resolver.test.ts` (renamed from
+`task-template-resolver.test.ts`) keeps every prior task-path assertion,
+adjusted only for the new `(kind, path, variant?)` signature, and adds
+matching ambiguous-default cases for both `task` and `project`. The existing
+`tests/application/project-creation-preview.test.ts` collision test still
+passes unchanged. `docs/ARCHITECTURE.md` and the Vault note templates spec
+were updated to describe one resolver rather than two.

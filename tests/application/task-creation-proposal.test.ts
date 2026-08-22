@@ -4,7 +4,7 @@ import {
   TaskCreationProposalService,
   type TaskCreationProposalInput,
 } from '../../src/application/task-creation-proposal';
-import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { TemplateResolver } from '../../src/application/template-resolver';
 import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
@@ -110,7 +110,7 @@ function harness(
     service: new TaskCreationProposalService(
       () => snapshot,
       vault,
-      new TaskTemplateResolver(
+      new TemplateResolver(
         libraryFolder === undefined
           ? null
           : new VaultTemplateLibrary(vault, libraryFolder),
