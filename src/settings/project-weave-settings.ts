@@ -1,4 +1,4 @@
-import type { AgentGrant } from '../application/read-only-agent-gateway';
+import type { AgentGrant } from '../application/agent-grants';
 
 export interface ProjectWeaveSettings {
   readonly settingsVersion: 2;

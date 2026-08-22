@@ -1,4 +1,12 @@
+import {
+  isWithinContentRoot,
+  projectContentRoot,
+  type AgentGrant,
+  type SecretDigester,
+} from './agent-grants';
 import type { ProjectWeaveQueryApi } from './query-api';
+
+export type { AgentGrant, SecretDigester } from './agent-grants';
 
 export const READ_ONLY_AGENT_OPERATIONS = [
   'projects_list',
@@ -15,16 +23,6 @@ export const READ_ONLY_AGENT_OPERATIONS = [
 
 export type ReadOnlyAgentOperation =
   (typeof READ_ONLY_AGENT_OPERATIONS)[number];
-
-export interface AgentGrant {
-  readonly id: string;
-  readonly label: string;
-  readonly vaultId: string;
-  readonly projectPath: string;
-  readonly contentRoots: readonly string[];
-  readonly secretDigest: string;
-  readonly enabled: boolean;
-}
 
 export interface AgentGatewayRequest {
   readonly requestId: string;
@@ -49,8 +47,6 @@ export type AgentGatewayResponse =
         readonly message: string;
       };
     };
-
-export type SecretDigester = (secret: string) => Promise<string>;
 
 /**
  * Grant-scoped adapter over the same application API the UI consumes.
@@ -125,7 +121,7 @@ export class ReadOnlyAgentGateway {
       const input = request.input ?? {};
       const projectPath = grant.projectPath;
       const contentRoots = grant.contentRoots.filter((root) =>
-        isWithin(root, projectContentRoot(projectPath)),
+        isWithinContentRoot(root, projectContentRoot(projectPath)),
       );
       const api = this.#queryApi();
       let result: unknown;
@@ -246,16 +242,4 @@ function denied(
   message: string,
 ): AgentGatewayResponse {
   return { requestId, ok: false, error: { code, message } };
-}
-
-function projectContentRoot(projectPath: string): string {
-  const normalized = projectPath.replaceAll('\\', '/');
-  if (normalized.toLowerCase().endsWith('/project.md')) {
-    return normalized.slice(0, -'/Project.md'.length);
-  }
-  return normalized.replace(/\.md$/iu, '');
-}
-
-function isWithin(path: string, root: string): boolean {
-  return path === root || path.startsWith(root + '/');
 }
