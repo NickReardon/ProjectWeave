@@ -147,10 +147,12 @@ import Obsidian, Node, Electron, views, or future MCP code.
   vault-wide templates under the configured library folder — one folder per
   `template_for` value, one file per variant — through the read-only
   `VaultReader`, reporting unusable names and case-colliding keys rather than
-  guessing. src/application/template-catalog merges plugin, vault, and project
-  candidates per key, so a project may override one variant without displacing
-  another, and a broken winner leaves its key unusable rather than falling
-  through to different bytes. TemplateResolver is the only caller of this
+  guessing. src/application/template-catalog merges plugin and vault
+  candidates per key, so a broken winner leaves its key unusable rather than
+  falling through to different bytes. A project-owned rung — the one that
+  would let a project override a single variant without displacing another —
+  is deferred and not modeled: the catalog's source rungs are `plugin` and
+  `vault` only. TemplateResolver is the only caller of this
   merge: it builds the per-kind candidate list and resolves the winner, so
   every kind gets the merge's fail-closed guarantee rather than each creation
   service re-implementing it. ADR 0013 records the decision. The index reader

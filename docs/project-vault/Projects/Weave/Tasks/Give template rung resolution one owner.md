@@ -33,6 +33,12 @@ of it: doing it first keeps that change from carrying two unrelated arguments.
 
 ## Acceptance criteria
 
+> **Superseded by the Outcome.** The second and third criteria below rest on a
+> premise that turned out to be backwards: project creation already failed
+> closed, and task creation was the deficient path. They are left as written
+> because they are what the work was scoped from; the Outcome records what was
+> actually true and what shipped.
+
 - One implementation of the rung ladder resolves templates for every kind.
 - The fail-closed behavior ADR 0013 specifies applies to project creation, and
   a test proves the rung that project creation previously skipped.
