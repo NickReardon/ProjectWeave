@@ -6,7 +6,7 @@ epic: '[[Epics/Epic-documentation-authority]]'
 status: backlog
 category: chore
 priority: normal
-rank: 6600
+rank: 6650
 milestone: '[[Milestones/v1 release]]'
 created: 2026-08-22
 ---
