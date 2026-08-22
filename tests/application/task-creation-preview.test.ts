@@ -7,7 +7,7 @@ import {
   previewOperationId,
   TaskCreationPreviewService,
 } from '../../src/application/task-creation-preview';
-import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { TemplateResolver } from '../../src/application/template-resolver';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import type { IndexSnapshot } from '../../src/indexing/index-snapshot';
@@ -63,7 +63,7 @@ function build(notes: readonly SourceNote[]): {
   const proposals = new TaskCreationProposalService(
     getSnapshot,
     vault,
-    new TaskTemplateResolver(),
+    new TemplateResolver(),
   );
   return {
     service: new TaskCreationPreviewService(getSnapshot, vault, proposals),
@@ -261,7 +261,7 @@ describe('TaskCreationPreviewService', () => {
       new TaskCreationProposalService(
         getSnapshot,
         vault,
-        new TaskTemplateResolver(),
+        new TemplateResolver(),
       ),
     );
 

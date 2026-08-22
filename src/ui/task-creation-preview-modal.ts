@@ -8,6 +8,7 @@ import type {
   TaskCreationPreviewResult,
 } from '../application/task-creation-preview';
 import type { TaskCreationProposal } from '../application/task-creation-proposal';
+import type { TemplateVariantOption } from '../application/template-resolver';
 import { CreationPreviewModal } from './creation-preview-modal';
 
 /** Runs one preview against the current index publication. */
@@ -32,7 +33,7 @@ export interface TaskCreationPreviewContext {
    * before the modal opens, since a chooser cannot wait for a preview it is
    * meant to control.
    */
-  readonly templateVariants?: readonly string[];
+  readonly templateVariants?: readonly TemplateVariantOption[];
 }
 
 /** Selects the packaged template explicitly, whatever else is configured. */
@@ -101,8 +102,17 @@ export class TaskCreationPreviewModal extends CreationPreviewModal<TaskCreationP
         });
       });
 
-    const variants = this.#context.templateVariants ?? ['default'];
-    const hasTemplateChoice = variants.length > 1;
+    const variants: readonly TemplateVariantOption[] = this.#context
+      .templateVariants ?? [
+      { variant: 'default', usable: true, source: 'plugin' },
+    ];
+    // The escape hatch is offered whenever there is a genuine choice to make,
+    // or whenever an offered variant is broken and needs a way around it — not
+    // merely when the list happens to have more than one name in it. Inferring
+    // this from array length alone is exactly what stranded a colliding
+    // `default` with no in-UI recovery.
+    const hasBrokenVariant = variants.some((option) => !option.usable);
+    const hasTemplateChoice = variants.length > 1 || hasBrokenVariant;
     const taskFolder = taskFolderForProjectPath(this.#context.projectPath);
     new Setting(container)
       .setName('Template')
@@ -112,8 +122,8 @@ export class TaskCreationPreviewModal extends CreationPreviewModal<TaskCreationP
           : `You can create new tasks in ${taskFolder}.`,
       )
       .addDropdown((dropdown) => {
-        for (const variant of variants) {
-          dropdown.addOption(variant, variant);
+        for (const option of variants) {
+          dropdown.addOption(option.variant, option.variant);
         }
         if (hasTemplateChoice) {
           dropdown.addOption(PACKAGED_TEMPLATE_VARIANT, 'Built-in default');

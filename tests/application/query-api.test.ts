@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ProjectWeaveQueryApi } from '../../src/application/query-api';
-import { TaskTemplateResolver } from '../../src/application/task-template-resolver';
+import { TemplateResolver } from '../../src/application/template-resolver';
 import { IndexBuilder } from '../../src/indexing/index-builder';
 import type { SourceNote } from '../../src/domain/model';
 import type { VaultReader } from '../../src/ports/vault-reader';
@@ -198,7 +198,7 @@ describe('ProjectWeaveQueryApi', () => {
       resolver: new PathLinkResolver(notes.map((note) => note.path)),
     });
     const api = new ProjectWeaveQueryApi(() => snapshot, {
-      taskTemplates: () => new TaskTemplateResolver(),
+      taskTemplates: () => new TemplateResolver(),
     });
     const related = await api.getRelatedWork({
       projectPath: 'Projects/Game.md',

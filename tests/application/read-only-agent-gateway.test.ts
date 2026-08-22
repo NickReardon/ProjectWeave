@@ -122,10 +122,100 @@ describe('ReadOnlyAgentGateway', () => {
     expect(result.ok).toBe(false);
     expect(result.diagnostics?.[0]?.code).toBe('query.read.out_of_scope');
   });
+
+  /**
+   * The request-time boundary, not the helper. A persisted grant is the one
+   * input the gateway cannot re-validate on the way in: it was minted by an
+   * earlier build, or edited in `data.json` by hand.
+   * `Projects/Game/../Other` is the shape that defeats prefix matching, since
+   * it starts with `Projects/Game/` while naming a sibling project, so the
+   * filter must drop it rather than resolve it.
+   */
+  describe.each([
+    ['upward traversal into a sibling', 'Projects/Game/../Other'],
+    [
+      'traversal behind a current-directory segment',
+      'Projects/Game/./../Other',
+    ],
+  ])('a stored grant root using %s', (_label, contentRoot) => {
+    const grant: AgentGrant = { ...GRANT, contentRoots: [contentRoot] };
+
+    it('starts with the project root, so prefix matching alone would admit it', () => {
+      expect(contentRoot.startsWith('Projects/Game/')).toBe(true);
+    });
+
+    it.each(['search', 'read_note'] as const)(
+      'never forwards the root to %s',
+      async (operation) => {
+        expect(
+          await forwardedContentRoots(grant, operation, {
+            path: 'Projects/Other/Tasks/Other.md',
+            query: '',
+          }),
+        ).toEqual([]);
+      },
+    );
+
+    it('cannot read the sibling project through read_note', async () => {
+      const response = await createGateway(() => true, grant).handle({
+        ...request('read_note'),
+        input: { path: 'Projects/Other/Tasks/Other.md' },
+      });
+
+      expect(response.ok).toBe(true);
+      if (!response.ok) throw new Error('Expected gateway response');
+      const result = response.result as {
+        readonly ok: boolean;
+        readonly diagnostics?: readonly { readonly code: string }[];
+      };
+      expect(result.ok).toBe(false);
+      expect(result.diagnostics?.[0]?.code).toBe('query.read.out_of_scope');
+    });
+
+    it('cannot reach the sibling project through search', async () => {
+      const response = await createGateway(() => true, grant).handle({
+        ...request('search'),
+        input: { query: '' },
+      });
+
+      expect(response.ok).toBe(true);
+      if (!response.ok) throw new Error('Expected gateway response');
+      const result = response.result as {
+        readonly items: readonly { readonly path: string }[];
+      };
+      expect(result.items.map((item) => item.path)).not.toContain(
+        'Projects/Other/Tasks/Other.md',
+      );
+    });
+  });
+
+  // The control for the assertions above: an empty forwarded list only means
+  // something if a legitimate root does survive the same filter.
+  it('still forwards a content root that is genuinely inside the project', async () => {
+    expect(await forwardedContentRoots(GRANT, 'search', { query: '' })).toEqual(
+      ['Projects/Game/Documents'],
+    );
+  });
 });
 
-function createGateway(enabled: () => boolean): ReadOnlyAgentGateway {
-  const snapshot = new IndexBuilder().build(
+function createGateway(
+  enabled: () => boolean,
+  grant: AgentGrant = GRANT,
+  queryApi: () => ProjectWeaveQueryApi = () =>
+    new ProjectWeaveQueryApi(() => buildSnapshot()),
+): ReadOnlyAgentGateway {
+  return new ReadOnlyAgentGateway({
+    enabled,
+    vaultId: () => 'vault-1',
+    grants: () => [grant],
+    pluginVersion: () => '0.7.0-beta.1',
+    queryApi,
+    digestSecret: async (secret) => `digest:${secret}`,
+  });
+}
+
+function buildSnapshot(): ReturnType<IndexBuilder['build']> {
+  return new IndexBuilder().build(
     [
       sourceNote('Projects/Game/Project.md', 'type: project'),
       sourceNote('Projects/Other/Project.md', 'type: project'),
@@ -140,14 +230,43 @@ function createGateway(enabled: () => boolean): ReadOnlyAgentGateway {
     ],
     { revision: 7 },
   );
-  return new ReadOnlyAgentGateway({
-    enabled,
-    vaultId: () => 'vault-1',
-    grants: () => [GRANT],
-    pluginVersion: () => '0.7.0-beta.1',
-    queryApi: () => new ProjectWeaveQueryApi(() => snapshot),
-    digestSecret: async (secret) => `digest:${secret}`,
-  });
+}
+
+/**
+ * The content roots the gateway actually forwards for one operation.
+ *
+ * This is the observable that pins the containment guard. Asserting only that
+ * a sibling note stays unreadable passes either way: a traversal root that
+ * survives the filter still fails the downstream scope check, because
+ * `Projects/Other/Tasks/Other.md` does not literally start with
+ * `Projects/Game/../Other`. What must be true is narrower - the root never
+ * leaves the boundary at all.
+ */
+async function forwardedContentRoots(
+  grant: AgentGrant,
+  operation: 'search' | 'read_note',
+  input: Readonly<Record<string, unknown>>,
+): Promise<readonly string[] | undefined> {
+  let seen: readonly string[] | undefined;
+  const real = new ProjectWeaveQueryApi(() => buildSnapshot());
+  const recording = {
+    search: async (value: { readonly contentRoots?: readonly string[] }) => {
+      seen = value.contentRoots;
+      return await real.search(value as Parameters<typeof real.search>[0]);
+    },
+    readNote: async (value: { readonly contentRoots?: readonly string[] }) => {
+      seen = value.contentRoots;
+      return await real.readNote(value as Parameters<typeof real.readNote>[0]);
+    },
+  } as unknown as ProjectWeaveQueryApi;
+
+  const response = await createGateway(
+    () => true,
+    grant,
+    () => recording,
+  ).handle({ ...request(operation), input });
+  if (!response.ok) throw new Error('Expected gateway response');
+  return seen;
 }
 
 function request(operation: (typeof READ_ONLY_AGENT_OPERATIONS)[number]): {

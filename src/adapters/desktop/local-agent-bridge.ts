@@ -51,14 +51,33 @@ export class LocalAgentBridge {
     if (this.#server !== null) return;
     const runtime = this.#nodeRuntime ?? loadNodeRuntime();
     this.#nodeRuntime = runtime;
-    if (process.platform !== 'win32') {
+    const isUnixSocket = process.platform !== 'win32';
+    if (isUnixSocket) {
       await runtime.fileSystem.rm(this.#endpoint, { force: true });
     }
     const server = runtime.network.createServer((socket) =>
       this.#accept(socket),
     );
     this.#server = server;
-    await new Promise<void>((resolve, reject) => {
+    // A Unix-domain socket file is created with a mode derived from the
+    // process umask at the moment libuv binds it, and Node exposes that
+    // bind only as the later async 'listening'/'error' events. Waiting for
+    // those in order to chmod the file leaves it briefly reachable by any
+    // local user first - the classic TOCTOU race for this kind of fix.
+    // A pipe path needs no name resolution, so the bind happens
+    // synchronously inside server.listen(), and a Promise executor runs
+    // synchronously too. Tightening the umask across only that synchronous
+    // span therefore creates the file owner-only (0600) from the instant it
+    // exists, with no window to lose. Keeping the span synchronous is
+    // load-bearing rather than tidiness: umask is process-global, so
+    // holding it across an await would also apply it to unrelated files
+    // Obsidian happened to create while this promise was pending. No JS can
+    // interleave during a synchronous span, so nothing else can be caught
+    // by it. A throwing executor rejects the promise rather than throwing,
+    // so the restore below always runs. Windows named pipes have no mode
+    // bits, so this is skipped there and behavior is unchanged.
+    const previousUmask = isUnixSocket ? process.umask(0o177) : null;
+    const listening = new Promise<void>((resolve, reject) => {
       const onError = (error: Error): void => {
         server.off('listening', onListening);
         this.#server = null;
@@ -72,6 +91,8 @@ export class LocalAgentBridge {
       server.once('listening', onListening);
       server.listen(this.#endpoint);
     });
+    if (previousUmask !== null) process.umask(previousUmask);
+    await listening;
   }
 
   public async stop(): Promise<void> {

@@ -2,7 +2,7 @@ import { Modal, Notice, Setting } from 'obsidian';
 import type { App, ButtonComponent } from 'obsidian';
 
 import type { ProjectSummary } from '../application/query-api';
-import type { AgentGrant } from '../application/read-only-agent-gateway';
+import type { AgentGrant } from '../application/agent-grants';
 import {
   agentClientConfigurationJson,
   resolveAgentGrantForm,

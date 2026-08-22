@@ -15,9 +15,13 @@ import {
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { VaultReader } from '../ports/vault-reader';
 import type {
-  TaskTemplateResolver,
-  TaskTemplateSelection,
-} from './task-template-resolver';
+  TemplateResolver,
+  TemplateSelection,
+  TemplateVariantOption,
+} from './template-resolver';
+
+/** The `template_for` kind this service resolves and creates. */
+const TASK_TEMPLATE_KIND = 'task';
 
 export type TaskCreationFields = Omit<
   TaskTemplateContext,
@@ -55,7 +59,7 @@ export interface TaskCreationProposal {
   }[];
   readonly template: {
     readonly kind: 'task';
-    readonly source: TaskTemplateSelection['source'];
+    readonly source: TemplateSelection['source'];
     readonly variant: string;
     readonly reference: string;
     readonly path: string;
@@ -104,12 +108,12 @@ export type TaskCreationProposalResult =
 export class TaskCreationProposalService {
   readonly #getSnapshot: () => IndexSnapshot;
   readonly #vault: VaultReader;
-  readonly #templates: TaskTemplateResolver;
+  readonly #templates: TemplateResolver;
 
   public constructor(
     getSnapshot: () => IndexSnapshot,
     vault: VaultReader,
-    templates: TaskTemplateResolver,
+    templates: TemplateResolver,
   ) {
     this.#getSnapshot = getSnapshot;
     this.#vault = vault;
@@ -117,8 +121,10 @@ export class TaskCreationProposalService {
   }
 
   /** Variants the shared catalog can select, `default` first. */
-  public async listTemplateVariants(): Promise<readonly string[]> {
-    return await this.#templates.listVariants();
+  public async listTemplateVariants(): Promise<
+    readonly TemplateVariantOption[]
+  > {
+    return await this.#templates.listVariants(TASK_TEMPLATE_KIND);
   }
 
   public async propose(
@@ -186,7 +192,8 @@ export class TaskCreationProposalService {
     }
 
     const resolution = await this.#templates.resolve(
-      project,
+      TASK_TEMPLATE_KIND,
+      project.path,
       input.templateVariant,
     );
     if (!resolution.ok || resolution.selected === null) {

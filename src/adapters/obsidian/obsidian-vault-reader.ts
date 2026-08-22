@@ -14,14 +14,10 @@ import {
 
 export class ObsidianVaultReader implements VaultReader {
   readonly #vault: Vault;
-  #projectRoots: readonly string[];
+  readonly #projectRoots: readonly string[];
 
   public constructor(vault: Vault, projectRoots: readonly string[]) {
     this.#vault = vault;
-    this.#projectRoots = normalizeProjectRoots(projectRoots);
-  }
-
-  public setProjectRoots(projectRoots: readonly string[]): void {
     this.#projectRoots = normalizeProjectRoots(projectRoots);
   }
 

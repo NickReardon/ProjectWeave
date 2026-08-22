@@ -12,6 +12,7 @@ import type {
   TaskCreationProposal,
   TaskCreationProposalService,
 } from './task-creation-proposal';
+import type { TemplateVariantOption } from './template-resolver';
 
 export interface TaskCreationPreviewRequest {
   readonly projectPath: string;
@@ -88,12 +89,12 @@ export class TaskCreationPreviewService {
    */
   public async listTemplateVariants(
     projectPath: string,
-  ): Promise<readonly string[]> {
+  ): Promise<readonly TemplateVariantOption[]> {
     const entity = this.#getSnapshot().getEntity(
       normalizeVaultPath(projectPath),
     );
     if (entity?.kind !== 'project') {
-      return ['default'];
+      return [{ variant: 'default', usable: true, source: 'plugin' }];
     }
     return await this.#proposals.listTemplateVariants();
   }

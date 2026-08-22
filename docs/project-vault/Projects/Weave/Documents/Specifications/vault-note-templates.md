@@ -341,11 +341,26 @@ Packaged minimal templates exist for every supported kind. They are immutable pl
 
 A broken, ambiguous, malformed, or incompatible vault template does not
 silently fall back. Creation is disabled with a diagnostic and offers the
-explicit **Built-in default** choice where allowed.
+explicit **Built-in default** choice.
+
+"Where allowed" used to leave that offer undefined, which is how a chooser
+came to hide it exactly when it was needed. The rule is: a chooser offers the
+explicit choice whenever more than one variant exists **or** any offered
+variant is unusable. A broken key is therefore listed as unusable rather than
+omitted — omitting it makes an unusable variant indistinguishable from one
+that was never configured, and leaves a refusal with no way past it. The
+choice stays hidden only when a single usable variant makes it a second name
+for the same bytes.
 
 Agents receive the same disabled action/reason and cannot select fallback unless the proposal explicitly names it.
 
 ### Failure scoping
+
+One resolver implements this ladder for every creatable kind, so the rule
+below is not something each creation path has to get right on its own: a
+task variant and a project default fail closed on the same terms because they
+share the same resolution code, not because two implementations happen to
+agree.
 
 Failure is scoped and closed per catalog key:
 
@@ -369,6 +384,10 @@ exists, otherwise the packaged project template. The resulting project note is
 previewed and validated before creation. Collision prevents overwrite and
 requires a different location. No template directory or project-note template
 configuration is created as a side effect.
+
+Selection follows the same rung ladder and failure-scoping rules as a task
+variant: a broken or case-colliding vault `project/default` refuses creation
+with a diagnostic rather than silently using the packaged template.
 
 ## Replacing and editing templates
 

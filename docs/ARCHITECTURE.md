@@ -119,15 +119,18 @@ import Obsidian, Node, Electron, views, or future MCP code.
   exact read-only
   navigation. Unassigned diagnostics cover malformed entities and unresolved
   ownership without guessing from folder layout.
-- **Creation proposals:** TaskTemplateResolver resolves a task template per
-  variant across the three ADR 0013 rungs — the project's own mapping, the
-  vault template library, then the packaged default — through the existing
-  read-only ports. It fails closed on a broken candidate rather than falling
-  through to another rung, and lists the merged variants so a chooser can be
-  populated before any preview exists.
-  TaskCreationProposalService renders one exact create proposal with
-  fingerprints, target-absence and index-freshness preconditions, exact
-  frontmatter/content, and expected postconditions. Neither service can write.
+- **Creation proposals:** TemplateResolver resolves a template of any
+  `template_for` kind per variant across the ADR 0013 rung ladder — the vault
+  template library, then the packaged default; project-owned mappings are the
+  first rung and remain deferred for every kind — through the existing
+  read-only ports. It is the one implementation of the ladder: a broken or
+  case-colliding candidate fails closed rather than falling through to
+  another rung, for a task variant and a project default alike, and it lists
+  the merged variants so a chooser can be populated before any preview
+  exists. TaskCreationProposalService and ProjectCreationProposalService each
+  inject it and render one exact create proposal with fingerprints,
+  target-absence and index-freshness preconditions, exact frontmatter/content,
+  and expected postconditions. Neither service can write.
 - **Creation allocation:** src/application/task-creation-allocator derives a
   task's target path from the folder holding its project note, honors an
   optional subfolder, sanitizes the title into a filename, and suggests the
@@ -144,16 +147,21 @@ import Obsidian, Node, Electron, views, or future MCP code.
   vault-wide templates under the configured library folder — one folder per
   `template_for` value, one file per variant — through the read-only
   `VaultReader`, reporting unusable names and case-colliding keys rather than
-  guessing. src/application/template-catalog merges plugin, vault, and project
-  candidates per key, so a project may override one variant without displacing
-  another, and a broken winner leaves its key unusable rather than falling
-  through to different bytes. ADR 0013 records the decision. The index reader
+  guessing. src/application/template-catalog merges plugin and vault
+  candidates per key, so a broken winner leaves its key unusable rather than
+  falling through to different bytes. A project-owned rung — the one that
+  would let a project override a single variant without displacing another —
+  is deferred and not modeled: the catalog's source rungs are `plugin` and
+  `vault` only. TemplateResolver is the only caller of this
+  merge: it builds the per-kind candidate list and resolves the winner, so
+  every kind gets the merge's fail-closed guarantee rather than each creation
+  service re-implementing it. ADR 0013 records the decision. The index reader
   stays scoped to the project roots; `CompositeVaultReader` in src/ports lets
   creation re-read a template outside them without widening what indexing sees.
-  Both creation flows compose the two readers at the composition root: task
-  creation resolves a variant across all three rungs, and project creation
-  selects `project/default` through the same per-key merged catalog before
-  loading the exact vault path or falling back to the packaged template.
+  Both creation flows compose the two readers at the composition root and pass
+  the library reader to one shared `TemplateResolver`: task creation resolves
+  a requested variant of `task`, and project creation resolves `default` of
+  `project`, through the same catalog and rung ladder.
 - **Task search:** the workbench projection matches search text through the
   `TaskSearchMatcher` contract in src/application/task-search, defaulting to
   the literal case-insensitive substring behavior. A caller may inject another

@@ -13,7 +13,7 @@ import type {
 import { isTerminalTaskStatus } from '../domain/model';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { VaultReader } from '../ports/vault-reader';
-import type { TaskTemplateResolver } from './task-template-resolver';
+import type { TemplateResolver } from './template-resolver';
 import {
   DEFAULT_TASK_SEARCH_MODE,
   isTaskSearchMode,
@@ -29,7 +29,7 @@ const MAX_READ_BYTES = 65_536;
 
 export interface ProjectWeaveQueryDependencies {
   readonly vault?: VaultReader;
-  readonly taskTemplates?: () => TaskTemplateResolver;
+  readonly taskTemplates?: () => TemplateResolver;
 }
 
 export interface EntityRef {
@@ -698,7 +698,11 @@ export class ProjectWeaveQueryApi {
     if (project === null) return projectFailure(snapshot, input.projectPath);
     const templates = this.#dependencies.taskTemplates;
     const variants =
-      templates === undefined ? ['default'] : await templates().listVariants();
+      templates === undefined
+        ? ['default']
+        : (await templates().listVariants('task')).map(
+            (option) => option.variant,
+          );
     return {
       ok: true,
       ...envelope(snapshot),

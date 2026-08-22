@@ -18,11 +18,12 @@ import { ProjectCreationProposalService } from './application/project-creation-p
 import { TaskCreationPreviewService } from './application/task-creation-preview';
 import { VaultTemplateLibrary } from './application/vault-template-library';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
-import { TaskTemplateResolver } from './application/task-template-resolver';
 import {
-  ReadOnlyAgentGateway,
-  type AgentGrant,
-} from './application/read-only-agent-gateway';
+  TemplateResolver,
+  type TemplateVariantOption,
+} from './application/template-resolver';
+import { ReadOnlyAgentGateway } from './application/read-only-agent-gateway';
+import { mintAgentGrant, type AgentGrant } from './application/agent-grants';
 import type { ProjectSummary } from './application/query-api';
 import { isInTemplateLibrary } from './application/template-note-diagnostics';
 import { templateClockFromLocalDate } from './domain/templates/model';
@@ -291,35 +292,23 @@ export default class ProjectWeavePlugin extends Plugin {
     const contentRoots = normalizeProjectRoots(
       input.contentRoots.map(normalizeVaultFolderPath),
     );
-    const projectRoot = projectContentRoot(projectPath);
-    if (
-      contentRoots.some(
-        (root) => root !== projectRoot && !root.startsWith(projectRoot + '/'),
-      )
-    ) {
-      throw new Error(
-        'Grant content folders must stay inside the selected project.',
-      );
-    }
-    const id = randomIdentifier();
-    const secret = `${randomIdentifier()}.${randomIdentifier()}`;
-    const grant: AgentGrant = {
-      id,
-      label:
-        input.label.trim().length === 0 ? entity.title : input.label.trim(),
-      vaultId: this.settings.agentVaultId,
-      projectPath,
-      contentRoots,
-      secretDigest: await digestSecret(secret),
-      enabled: true,
-    };
+    const result = await mintAgentGrant(
+      {
+        label: input.label,
+        fallbackLabel: entity.title,
+        vaultId: this.settings.agentVaultId,
+        projectPath,
+        contentRoots,
+      },
+      { nextIdentifier: randomIdentifier, digestSecret },
+    );
     const nextSettings = {
       ...this.settings,
-      agentGrants: [...this.settings.agentGrants, grant],
+      agentGrants: [...this.settings.agentGrants, result.grant],
     };
     await this.saveData(nextSettings);
     this.settings = nextSettings;
-    return { grant, secret };
+    return result;
   }
 
   /**
@@ -394,11 +383,9 @@ export default class ProjectWeavePlugin extends Plugin {
       vault: runtime.reader,
       taskTemplates: () => {
         const folder = this.settings.templateScaffoldFolder;
-        if (folder.trim().length === 0) return new TaskTemplateResolver();
+        if (folder.trim().length === 0) return new TemplateResolver();
         const reader = new ObsidianVaultReader(this.app.vault, [folder]);
-        return new TaskTemplateResolver(
-          new VaultTemplateLibrary(reader, folder),
-        );
+        return new TemplateResolver(new VaultTemplateLibrary(reader, folder));
       },
     });
   }
@@ -650,7 +637,7 @@ export default class ProjectWeavePlugin extends Plugin {
       new TaskCreationProposalService(
         () => this.#readSource.current.snapshot,
         reader,
-        new TaskTemplateResolver(library),
+        new TemplateResolver(library),
       ),
     );
 
@@ -666,7 +653,9 @@ export default class ProjectWeavePlugin extends Plugin {
       .listTemplateVariants(project.path)
       .catch((error: unknown) => {
         console.error('Project Weave could not list task templates', error);
-        return ['default'] as readonly string[];
+        return [
+          { variant: 'default', usable: true, source: 'plugin' },
+        ] as readonly TemplateVariantOption[];
       })
       .then((templateVariants) => {
         new TaskCreationPreviewModal(this.app, {
@@ -716,7 +705,7 @@ export default class ProjectWeavePlugin extends Plugin {
       new ProjectCreationProposalService(
         () => this.#readSource.current.snapshot,
         reader,
-        library,
+        new TemplateResolver(library),
       ),
     );
     const commits = new NoteCreationCommitService(
@@ -832,13 +821,6 @@ export default class ProjectWeavePlugin extends Plugin {
 
 function isMarkdownFile(file: unknown): file is TFile {
   return file instanceof TFile && file.extension === 'md';
-}
-
-function projectContentRoot(projectPath: string): string {
-  if (projectPath.toLowerCase().endsWith('/project.md')) {
-    return projectPath.slice(0, -'/Project.md'.length);
-  }
-  return projectPath.replace(/\.md$/iu, '');
 }
 
 function randomIdentifier(): string {
