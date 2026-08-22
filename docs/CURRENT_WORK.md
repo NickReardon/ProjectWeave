@@ -17,50 +17,72 @@ None.
 
 ## Verified
 
-The duplicate `0025` decision-record id is corrected rather than grandfathered.
-The record cited by number elsewhere kept `0025`; the uncited one — [ADR 0032,
-formerly 0025](project-vault/Projects/Weave/Documents/Decisions/0032-merge-ready-current-work-and-evergreen-release-docs.md)
-— was renumbered, its decision text untouched. `Documents/Decisions/README.md`
-now permits that one narrow edit — a colliding `id`, never a record's content,
-only when nothing cites it numerically — so `scripts/verify-doc-links.mjs`
-could drop the hardcoded two-file exception it used to carry: decision-id
-uniqueness now has no exceptions at all. [[Tasks/Resolve the duplicate 0025
-decision record numbers]] records the corrected outcome.
+Four backlog items landed together on a branch off `main`, each recorded on
+its own task note.
 
-The document reorganization landed as
-[ADR 0029](project-vault/Projects/Weave/Documents/Decisions/0029-hold-every-project-document-in-the-vault.md):
-every Project Weave document lives in the dogfood vault, `docs/spec/`,
-`docs/decisions/`, `docs/development/`, and `docs/archive/` are gone, and
-[[Epics/Epic-dogfood-vault-migration]] is done except its manual acceptance
-check (see Next). [[Epics/Epic-documentation-authority]] now owns the
-documentation work under
-[ADR 0031](project-vault/Projects/Weave/Documents/Decisions/0031-give-the-documentation-system-an-owning-epic.md).
+The agent grant containment rule moved out of the plugin class into a pure
+`src/application/agent-grants.ts`, and the gateway's near-duplicate copy was
+deleted so mint-time and request-time containment cannot drift. Lifting it
+exposed a hole both former copies shared: prefix matching cannot see through
+traversal, so `Projects/Game/../Other` starts with `Projects/Game/` and was
+accepted as contained. `isWithinContentRoot` now refuses any `.` or `..`
+segment rather than resolving it. Nothing reachable changes, because
+`normalizeVaultFolderPath` rejects those segments first; the guard is what
+keeps the rule true for a caller that skips normalization.
 
-`npm run check` passes. Vault diagnostics report zero findings across 177 notes.
+The agent gateway's Unix-domain socket is now bound owner-only, by tightening
+`process.umask` across the synchronous span that binds it. The span has to
+stay synchronous: umask is process-global, so holding it across an await
+would apply it to unrelated files Obsidian wrote while the promise was
+pending. Windows named pipes are unaffected.
+
+Template rung resolution has one owner. `TemplateResolver` is generalized
+over a kind and `ProjectCreationProposalService`'s private reimplementation
+is gone. This reversed the premise it was scoped from: project creation
+already failed closed, while **task** creation read an ambiguous key through
+`VaultTemplateLibrary.load()`, which reports a case-collision as absent
+rather than broken, and silently returned the packaged template. Both kinds
+now fail closed identically.
+
+`ObsidianVaultReader.setProjectRoots` was removed as unreachable.
+[[Tasks/Give templateClockFromLocalDate a caller]] closed without a change —
+`src/main.ts` had already grown two call sites. `Epic-agent-grant-lifecycle`
+is `active` rather than `planned`.
+
+`npm run check` passes on the combined batch: 438 tests and 99 script tests,
+one skipped. The skip is the new socket-mode assertion, which needs POSIX
+mode bits and runs in CI on `ubuntu-latest` rather than on this machine.
 
 ## Next
 
-[[Tasks/Run dogfood migration acceptance gate]] is what is left of the Epic and
-it is manual: browsing the relocated documents in Obsidian, origin navigation,
-live refresh, and workspace restoration against the migrated vault.
+The agent grant redesign is the coherent next slice, and its three tasks are
+meant to land as one change rather than three passes over the same control:
+[[Tasks/Make the agent grant form explain what it asks for]] owns it, with
+[[Tasks/Restructure agent grant creation into validate-then-create]] and the
+already-done suggester work underneath it.
 
-What still needs Obsidian: install prerelease `0.6.1-beta.32112484849` through
-BRAT into a clean vault, run the companion against a real MCP client, and record
-the result on [[Tasks/Accept the BRAT preview and optional companion setup]].
-The grant dialog and grant list have still not been seen at narrow width.
+[[Tasks/Run dogfood migration acceptance gate]] is what is left of the
+dogfood Epic and it is manual: browsing the relocated documents in Obsidian,
+origin navigation, live refresh, and workspace restoration.
+
+What still needs Obsidian: install prerelease `0.6.1-beta.32112484849`
+through BRAT into a clean vault, run the companion against a real MCP client,
+and record the result on
+[[Tasks/Accept the BRAT preview and optional companion setup]]. The grant
+dialog and grant list have still not been seen at narrow width.
 
 ## Loose ends
 
+- ADR 0030 asserts that only the task path implemented ADR 0013's
+  fail-closed rule fully. The opposite was true. The record is accepted and
+  so immutable; see
+  [[Tasks/Supersede the ADR 0030 claim about which path skipped the rung]].
 - Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
   retired path as link text. Immutable bodies; every target resolves.
 - The companion requires the gateway to be reachable when the client launches
   it, so Obsidian must be running first; see
   [[Tasks/Document the companion launch ordering requirement]].
-- The agent gateway socket takes its mode from the process umask; see
-  [[Tasks/Restrict the agent gateway socket to its owner]].
 - Grant creation still generates a secret from unvalidated paths; see
   [[Tasks/Restructure agent grant creation into validate-then-create]].
-- [[Epics/Epic-agent-grant-lifecycle]] is still `planned` though its work
-  shipped; the status looks stale.
 - `0017` is the only accepted record carrying no `area`.
 - Full mobile check 11a through 11g remains outstanding.
