@@ -377,7 +377,12 @@ Remote HTTP access is deferred. If introduced, it requires a separate authentica
 The transport is a stdio MCP companion connected to a bridge inside the plugin over authenticated local IPC: a named pipe on Windows, a Unix domain socket elsewhere. ADR 0018 records the choice and its rationale. Requirements:
 
 - bind only locally, and open no TCP port;
-- authenticate every companion connection to one vault grant, because the pipe or socket is reachable by other local processes and is not itself authentication;
+- bind the Unix-domain socket file owner-only (mode 0600) so only the user
+  running Obsidian can open it; a named pipe on Windows has no mode bits and
+  is unaffected;
+- authenticate every companion connection to one vault grant, because the
+  pipe or socket is reachable by other local processes run by that same
+  user and is not itself authentication;
 - expose the application API, not filesystem primitives;
 - execute writes inside Obsidian;
 - close/revoke on plugin unload or grant disable;
