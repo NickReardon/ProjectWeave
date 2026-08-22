@@ -17,41 +17,42 @@ None.
 
 ## Verified
 
-Four backlog items landed together on a branch off `main`, each recorded on
-its own task note.
+Four backlog items landed on a branch off `main`, then a review round, each
+recorded on its own task note.
 
-The agent grant containment rule moved out of the plugin class into a pure
-`src/application/agent-grants.ts`, and the gateway's near-duplicate copy was
-deleted so mint-time and request-time containment cannot drift. Lifting it
-exposed a hole both former copies shared: prefix matching cannot see through
-traversal, so `Projects/Game/../Other` starts with `Projects/Game/` and was
-accepted as contained. `isWithinContentRoot` now refuses any `.` or `..`
-segment rather than resolving it. Nothing reachable changes, because
-`normalizeVaultFolderPath` rejects those segments first; the guard is what
-keeps the rule true for a caller that skips normalization.
+Agent grant containment moved into a pure `src/application/agent-grants.ts`
+and the gateway's near-duplicate copy is gone, so the two cannot drift. Lifting it exposed a hole both copies shared: prefix matching
+cannot see through traversal, so `Projects/Game/../Other` starts with
+`Projects/Game/` and read as contained. Any `.` or `..` segment is now
+refused rather than resolved, so the rule no longer depends on its caller.
 
-The agent gateway's Unix-domain socket is now bound owner-only, by tightening
-`process.umask` across the synchronous span that binds it. The span has to
-stay synchronous: umask is process-global, so holding it across an await
-would apply it to unrelated files Obsidian wrote while the promise was
-pending. Windows named pipes are unaffected.
+The gateway's Unix-domain socket binds owner-only, by tightening
+`process.umask` across the synchronous span that binds it. The span must stay
+synchronous: umask is process-global, so holding it across an await would
+apply it to unrelated files. Windows named pipes are unaffected.
 
-Template rung resolution has one owner. `TemplateResolver` is generalized
-over a kind and `ProjectCreationProposalService`'s private reimplementation
-is gone. This reversed the premise it was scoped from: project creation
-already failed closed, while **task** creation read an ambiguous key through
-`VaultTemplateLibrary.load()`, which reports a case-collision as absent
-rather than broken, and silently returned the packaged template. Both kinds
-now fail closed identically.
+Template rung resolution has one owner, generalized over a kind. This
+reversed the premise it was scoped from: project creation already failed
+closed, while **task** creation read an ambiguous key through
+`VaultTemplateLibrary.load()` — which reports a collision as absent rather
+than broken — and silently returned the packaged template.
 
-`ObsidianVaultReader.setProjectRoots` was removed as unreachable.
-[[Tasks/Give templateClockFromLocalDate a caller]] closed without a change —
-`src/main.ts` had already grown two call sites. `Epic-agent-grant-lifecycle`
-is `active` rather than `planned`.
+Failing closed then stranded the user, which review caught: a colliding
+`task/default` vanished from the variant list, so the modal never offered the
+**Built-in default** escape hatch the specification requires. `listVariants`
+now returns `{variant, usable, source}`. Two security tests also passed
+whether or not the code they covered existed, and now fail without it: the
+socket test installs a permissive umask rather than inheriting one, and the
+gateway asserts the content roots it forwards, not merely that a sibling
+stays unreadable.
 
-`npm run check` passes on the combined batch: 438 tests and 99 script tests,
-one skipped. The skip is the new socket-mode assertion, which needs POSIX
-mode bits and runs in CI on `ubuntu-latest` rather than on this machine.
+`ObsidianVaultReader.setProjectRoots` was removed as unreachable,
+[[Tasks/Give templateClockFromLocalDate a caller]] closed without a change,
+and `Epic-agent-grant-lifecycle` is `active` rather than `planned`.
+
+`npm run check` passes: 452 tests and 99 script tests, one skipped. The skip
+is the socket-mode assertion, which needs POSIX mode bits and runs in CI on
+`ubuntu-latest` rather than on this machine.
 
 ## Next
 
