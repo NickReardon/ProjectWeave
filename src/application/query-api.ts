@@ -700,7 +700,9 @@ export class ProjectWeaveQueryApi {
     const variants =
       templates === undefined
         ? ['default']
-        : await templates().listVariants('task');
+        : (await templates().listVariants('task')).map(
+            (option) => option.variant,
+          );
     return {
       ok: true,
       ...envelope(snapshot),

@@ -18,7 +18,10 @@ import { ProjectCreationProposalService } from './application/project-creation-p
 import { TaskCreationPreviewService } from './application/task-creation-preview';
 import { VaultTemplateLibrary } from './application/vault-template-library';
 import { TaskCreationProposalService } from './application/task-creation-proposal';
-import { TemplateResolver } from './application/template-resolver';
+import {
+  TemplateResolver,
+  type TemplateVariantOption,
+} from './application/template-resolver';
 import { ReadOnlyAgentGateway } from './application/read-only-agent-gateway';
 import { mintAgentGrant, type AgentGrant } from './application/agent-grants';
 import type { ProjectSummary } from './application/query-api';
@@ -650,7 +653,9 @@ export default class ProjectWeavePlugin extends Plugin {
       .listTemplateVariants(project.path)
       .catch((error: unknown) => {
         console.error('Project Weave could not list task templates', error);
-        return ['default'] as readonly string[];
+        return [
+          { variant: 'default', usable: true, source: 'plugin' },
+        ] as readonly TemplateVariantOption[];
       })
       .then((templateVariants) => {
         new TaskCreationPreviewModal(this.app, {

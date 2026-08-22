@@ -193,7 +193,7 @@ describe('TemplateResolver resolving task templates with a vault library', () =>
     );
   });
 
-  it('lists every configured variant, default first', async () => {
+  it('lists every configured variant, default first, all usable', async () => {
     const notes = [
       template(`${LIBRARY}/task/test.md`),
       template(`${LIBRARY}/task/bug.md`),
@@ -203,11 +203,54 @@ describe('TemplateResolver resolving task templates with a vault library', () =>
     const variants = await resolver(notes, LIBRARY).listVariants('task');
 
     // Another kind's folder is not a task template.
-    expect(variants).toEqual(['default', 'bug', 'test']);
+    expect(variants).toEqual([
+      { variant: 'default', usable: true, source: 'plugin' },
+      { variant: 'bug', usable: true, source: 'vault' },
+      { variant: 'test', usable: true, source: 'vault' },
+    ]);
   });
 
   it('offers only the default when no library is configured', async () => {
-    expect(await resolver([]).listVariants('task')).toEqual(['default']);
+    expect(await resolver([]).listVariants('task')).toEqual([
+      { variant: 'default', usable: true, source: 'plugin' },
+    ]);
+  });
+
+  it('marks a case-colliding default unusable instead of omitting it', async () => {
+    const notes = [
+      template(`${LIBRARY}/task/default.md`),
+      template(`${LIBRARY}/Task/Default.md`),
+    ];
+
+    const variants = await resolver(notes, LIBRARY).listVariants('task');
+
+    // The escape hatch depends on this: a chooser that only ever saw
+    // `entries` (never `ambiguous`) would see a single-item list here and
+    // conclude, wrongly, that nothing needs a way around it.
+    expect(variants).toEqual([
+      { variant: 'default', usable: false, source: 'vault' },
+    ]);
+
+    const resolution = await resolver(notes, LIBRARY).resolve(
+      'task',
+      project().path,
+    );
+    expect(resolution.ok).toBe(false);
+  });
+
+  it('marks a case-colliding named variant unusable rather than dropping it', async () => {
+    const notes = [
+      template(`${LIBRARY}/task/default.md`),
+      template(`${LIBRARY}/task/custom.md`),
+      template(`${LIBRARY}/Task/Custom.md`),
+    ];
+
+    const variants = await resolver(notes, LIBRARY).listVariants('task');
+
+    expect(variants).toEqual([
+      { variant: 'default', usable: true, source: 'vault' },
+      { variant: 'custom', usable: false, source: 'vault' },
+    ]);
   });
 
   /**
@@ -272,16 +315,20 @@ describe('TemplateResolver resolving project templates', () => {
   });
 
   /**
-   * This is the rung project creation was missing before this change: two
-   * vault files claim `project/default` case-insensitively.
-   * `ProjectCreationProposalService` used to build its own candidate list and
-   * merge it by hand (`mergeTemplateCatalog`/`variantsForKind`), duplicating
-   * the ladder `TaskTemplateResolver` implemented as a dedicated, tested
-   * class. Now that project creation goes through the same
-   * `TemplateResolver`, this failure mode is proven once, at the one place
-   * that resolves every kind, rather than trusted to a second private
-   * reimplementation each future kind would otherwise have to repeat
-   * correctly on its own.
+   * Two vault files claim `project/default` case-insensitively. Project
+   * creation already failed closed on this before the shared resolver
+   * existed: `ProjectCreationProposalService` built its own candidate list
+   * and merged it by hand (`mergeTemplateCatalog`/`variantsForKind`), the same
+   * ladder this resolver now implements once for every kind. The rung that
+   * was actually missing belonged to task creation, which read the vault
+   * library through `VaultTemplateLibrary.load()` directly: an ambiguous key
+   * is absent from `list().entries` (it is reported separately in
+   * `.ambiguous`), so `load()` returned null and the `default` branch quietly
+   * fell back to the packaged template with no diagnostic at all — see the
+   * `task/default` case above. Routing both kinds through the same merged
+   * catalog proves this failure mode once, at the one place that resolves
+   * every kind, instead of trusting each kind's own reimplementation to get
+   * it right.
    */
   it('fails closed rather than falling back to the packaged template when the default is ambiguous', async () => {
     const notes = [

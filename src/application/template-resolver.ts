@@ -31,6 +31,22 @@ export interface TemplateResolution {
 }
 
 /**
+ * One variant a chooser could offer, with enough to decide UI state without
+ * re-deriving it from a bare list of names.
+ *
+ * `usable` distinguishes a key that exists but is broken (a case collision, for
+ * instance) from one that would resolve cleanly. A chooser needs this to know
+ * an escape hatch is required; inferring it from array length, as the UI used
+ * to, silently drops broken keys instead of surfacing them (see ADR 0013 and
+ * the vault note templates specification).
+ */
+export interface TemplateVariantOption {
+  readonly variant: string;
+  readonly usable: boolean;
+  readonly source: 'plugin' | 'vault';
+}
+
+/**
  * Resolves a template of any `template_for` kind from the configured vault
  * library, falling back to the packaged default, without writing.
  *
@@ -52,24 +68,30 @@ export class TemplateResolver {
   }
 
   /**
-   * Every variant a caller could ask for, `default` first.
+   * Every variant a caller could ask for, `default` first, with whether each
+   * one would actually resolve.
    *
    * Listed rather than derived from one resolution, because a chooser has to
    * show what exists before anything is selected. A key that exists at any
-   * rung is offered; whether it works is decided when it is resolved.
+   * rung is offered; whether it works is decided when it is resolved — which
+   * is why a case-colliding key is included here as unusable rather than
+   * omitted: a chooser needs it to know an escape hatch is required.
+   *
+   * Built from the same merged catalog `resolve` reads (`#candidatesFor` /
+   * `mergeTemplateCatalog` / `variantsForKind`), so this is not a second,
+   * divergent listing path.
    */
-  public async listVariants(kind: string): Promise<readonly string[]> {
-    const fromVault =
-      this.#library === null
-        ? []
-        : (await this.#library.list()).entries
-            .filter((entry) => entry.kind === kind)
-            .map((entry) => entry.variant);
-    const variants = new Set(['default', ...fromVault]);
-    return [
-      'default',
-      ...[...variants].filter((variant) => variant !== 'default').sort(),
-    ];
+  public async listVariants(
+    kind: string,
+  ): Promise<readonly TemplateVariantOption[]> {
+    const { candidates } = await this.#candidatesFor(kind);
+    return variantsForKind(mergeTemplateCatalog(candidates), kind).map(
+      (entry) => ({
+        variant: entry.variant,
+        usable: entry.usable,
+        source: entry.selected.source,
+      }),
+    );
   }
 
   public async resolve(
@@ -82,7 +104,9 @@ export class TemplateResolver {
     }
 
     const diagnostics: Diagnostic[] = [];
-    const availableVariants = await this.listVariants(kind);
+    const availableVariants = (await this.listVariants(kind)).map(
+      (option) => option.variant,
+    );
     const variant = requestedVariant ?? 'default';
     if (!TEMPLATE_KEY_PATTERN.test(variant)) {
       diagnostics.push(

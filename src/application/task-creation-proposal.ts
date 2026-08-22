@@ -14,7 +14,11 @@ import {
 } from '../domain/templates/task-template';
 import type { IndexSnapshot } from '../indexing/index-snapshot';
 import type { VaultReader } from '../ports/vault-reader';
-import type { TemplateResolver, TemplateSelection } from './template-resolver';
+import type {
+  TemplateResolver,
+  TemplateSelection,
+  TemplateVariantOption,
+} from './template-resolver';
 
 /** The `template_for` kind this service resolves and creates. */
 const TASK_TEMPLATE_KIND = 'task';
@@ -117,7 +121,9 @@ export class TaskCreationProposalService {
   }
 
   /** Variants the shared catalog can select, `default` first. */
-  public async listTemplateVariants(): Promise<readonly string[]> {
+  public async listTemplateVariants(): Promise<
+    readonly TemplateVariantOption[]
+  > {
     return await this.#templates.listVariants(TASK_TEMPLATE_KIND);
   }
 

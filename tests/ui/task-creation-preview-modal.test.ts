@@ -13,7 +13,10 @@ import {
 import type { NoteCreationCommitResult } from '../../src/application/note-creation-commit';
 import { TaskCreationPreviewService } from '../../src/application/task-creation-preview';
 import { TaskCreationProposalService } from '../../src/application/task-creation-proposal';
-import { TemplateResolver } from '../../src/application/template-resolver';
+import {
+  TemplateResolver,
+  type TemplateVariantOption,
+} from '../../src/application/template-resolver';
 import { VaultTemplateLibrary } from '../../src/application/vault-template-library';
 import type { SourceNote } from '../../src/domain/model';
 import { IndexBuilder } from '../../src/indexing/index-builder';
@@ -110,7 +113,7 @@ function openModal(
     }),
   options: {
     readonly libraryFolder?: string;
-    readonly variants?: readonly string[];
+    readonly variants?: readonly TemplateVariantOption[];
   } = {},
 ): ModalHarness {
   const vault = new MemoryVault(notes);
@@ -136,7 +139,9 @@ function openModal(
 
   const openedNotes: string[] = [];
   const app = createStubApp(notes.map((note) => note.path));
-  const variants = options.variants ?? ['default'];
+  const variants: readonly TemplateVariantOption[] = options.variants ?? [
+    { variant: 'default', usable: true, source: 'plugin' },
+  ];
   const modal = new TaskCreationPreviewModal(app as never, {
     projectTitle: 'Fixture Game',
     projectPath: PROJECT_PATH,
@@ -355,6 +360,67 @@ describe('Create task modal template chooser', () => {
     expect(harness.text()).toContain(
       'You can create new tasks in Projects/Game/Tasks.',
     );
+    // The one usable variant is nothing to escape from: offering "Built-in
+    // default" here would just be a second name for the same bytes.
+    expect(
+      [...(chooser?.querySelectorAll('option') ?? [])].map(
+        (option) => option.value,
+      ),
+    ).toEqual(['default']);
+  });
+
+  it('offers the built-in escape hatch when the only variant is broken', async () => {
+    const colliding = [
+      libraryTemplate('default', 'House style'),
+      sourceNote(
+        `${LIBRARY}/Task/Default.md`,
+        [
+          'weave_template: true',
+          'template_schema: 1',
+          'template_for: task',
+          'type: task',
+          'project: "{{project_link}}"',
+          'status: "{{status}}"',
+          'rank: "{{rank}}"',
+        ].join('\n'),
+        ['# {{title}}', '', '## Other case', ''].join('\n'),
+      ),
+    ];
+    const harness = openModal([...fixtureNotes(), ...colliding], undefined, {
+      libraryFolder: LIBRARY,
+      // What TemplateResolver.listVariants actually reports for a case
+      // collision: the key is offered, marked unusable, not omitted.
+      variants: [{ variant: 'default', usable: false, source: 'vault' }],
+    });
+
+    const chooser = harness.content.querySelector('select');
+    expect(chooser).not.toBeNull();
+    // The dropdown is enabled and offers the escape hatch precisely because
+    // the only option is broken, even though there is exactly one of it — the
+    // bug this guards against inferred "no choice needed" from a length of 1.
+    expect(chooser?.disabled).toBe(false);
+    expect(
+      [...(chooser?.querySelectorAll('option') ?? [])].map(
+        (option) => option.value,
+      ),
+    ).toEqual(['default', 'builtin:minimal']);
+    expect(
+      [...(chooser?.querySelectorAll('option') ?? [])].map(
+        (option) => option.textContent,
+      ),
+    ).toEqual(['default', 'Built-in default']);
+
+    harness.type('Implement request', 'Fix the crash');
+    await harness.settle();
+    expect(harness.text()).toContain('template.library.ambiguous');
+    expect(harness.createButton().disabled).toBe(true);
+
+    chooser!.value = 'builtin:minimal';
+    chooser!.dispatchEvent(new Event('change'));
+    await harness.settle();
+
+    expect(harness.text()).toContain('builtin:minimal (packaged)');
+    expect(harness.createButton().disabled).toBe(false);
   });
 
   it('renders the chosen variant, and the packaged escape hatch', async () => {
@@ -365,7 +431,10 @@ describe('Create task modal template chooser', () => {
     ];
     const harness = openModal(notes, undefined, {
       libraryFolder: LIBRARY,
-      variants: ['default', 'bug'],
+      variants: [
+        { variant: 'default', usable: true, source: 'vault' },
+        { variant: 'bug', usable: true, source: 'vault' },
+      ],
     });
 
     const chooser = harness.content.querySelector('select');
@@ -415,7 +484,10 @@ describe('Create task modal template chooser', () => {
     );
     const harness = openModal([...fixtureNotes(), broken], undefined, {
       libraryFolder: LIBRARY,
-      variants: ['default', 'bug'],
+      variants: [
+        { variant: 'default', usable: true, source: 'vault' },
+        { variant: 'bug', usable: true, source: 'vault' },
+      ],
     });
 
     const chooser = harness.content.querySelector('select');
