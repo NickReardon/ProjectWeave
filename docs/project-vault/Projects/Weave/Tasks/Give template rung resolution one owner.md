@@ -81,3 +81,14 @@ matching ambiguous-default cases for both `task` and `project`. The existing
 `tests/application/project-creation-preview.test.ts` collision test still
 passes unchanged. `docs/ARCHITECTURE.md` and the Vault note templates spec
 were updated to describe one resolver rather than two.
+
+Review of this change caught a consequence it had not accounted for. Failing
+closed is only half the specified behavior: the other half is that a refused
+template still offers the explicit **Built-in default** escape hatch. The
+variant listing dropped case-colliding keys, and the task chooser inferred
+"nothing to choose" from the resulting single-entry list, so a colliding
+`task/default` refused creation with no way past it — a state the previous
+silent fallthrough had hidden rather than caused. The listing now reports
+`{variant, usable, source}` and the chooser keys off `usable`. The owning
+specification stated the requirement but left "where allowed" undefined, and
+was tightened to state the rule.

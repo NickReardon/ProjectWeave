@@ -341,7 +341,16 @@ Packaged minimal templates exist for every supported kind. They are immutable pl
 
 A broken, ambiguous, malformed, or incompatible vault template does not
 silently fall back. Creation is disabled with a diagnostic and offers the
-explicit **Built-in default** choice where allowed.
+explicit **Built-in default** choice.
+
+"Where allowed" used to leave that offer undefined, which is how a chooser
+came to hide it exactly when it was needed. The rule is: a chooser offers the
+explicit choice whenever more than one variant exists **or** any offered
+variant is unusable. A broken key is therefore listed as unusable rather than
+omitted — omitting it makes an unusable variant indistinguishable from one
+that was never configured, and leaves a refusal with no way past it. The
+choice stays hidden only when a single usable variant makes it a second name
+for the same bytes.
 
 Agents receive the same disabled action/reason and cannot select fallback unless the proposal explicitly names it.
 
