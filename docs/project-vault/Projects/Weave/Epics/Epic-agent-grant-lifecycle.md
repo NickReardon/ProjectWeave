@@ -40,6 +40,13 @@ does not exist; each listed grant states its project and metadata-only versus
 content-root scope without being opened; and what is copied at creation is a
 complete client configuration.
 
+Every item of that gate is built and covered by tests that fail when the
+behavior is removed. What keeps the two remaining member tasks in `review`
+rather than `done` is not in this gate: both also require the dialog and the
+list to hold together at narrow widths, and layout cannot be exercised in the
+test DOM. The stylesheet rule the retired inline row carried had been deleted
+along with the row and is restored; seeing it in Obsidian is the last step.
+
 ## Progress
 
 > Derived from member tasks.

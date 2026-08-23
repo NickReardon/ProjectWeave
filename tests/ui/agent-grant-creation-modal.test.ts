@@ -91,7 +91,12 @@ function openModal(
 
   const modal = new AgentGrantCreationModal(app as never, {
     listIndexedProjects: async () => [GAME_PROJECT],
-    endpoint: options.endpoint ?? '\\\\.\\pipe\\project-weave-vault-1',
+    // `??` would fold an explicitly disabled gateway back into the enabled
+    // default, which is the state a test needs to be able to ask for.
+    endpoint:
+      'endpoint' in options
+        ? (options.endpoint ?? null)
+        : '\\\\.\\pipe\\project-weave-vault-1',
     createGrant: async (input) => {
       createdInputs.push(input);
       createdCount += 1;
@@ -178,6 +183,58 @@ describe('AgentGrantCreationModal', () => {
     expect(text).toContain('What this grant can read');
     expect(text).toContain('Metadata only');
     expect(text).toContain('Metadata and note text');
+  });
+
+  it('gives every field its own row with a single control, rather than hanging inputs off one setting', () => {
+    const harness = openModal();
+    harness.select(harness.scopeField(), 'content');
+
+    const fieldRows = [
+      ...harness.content.querySelectorAll<HTMLElement>('.setting-item'),
+    ].filter((row) => row.querySelectorAll('input, select').length > 0);
+
+    // Four fields, four rows. The retired design hung three inputs off one
+    // `Setting`, which is the shape this asserts is gone: a row carrying more
+    // than one control means its single label is again explaining several
+    // values at once.
+    expect(fieldRows).toHaveLength(4);
+    for (const row of fieldRows) {
+      expect(row.querySelectorAll('input, select')).toHaveLength(1);
+    }
+    expect(fieldRows.map((row) => row.textContent ?? '')).toEqual([
+      expect.stringContaining('Which tool is this for'),
+      expect.stringContaining('Project'),
+      expect.stringContaining('What this grant can read'),
+      expect.stringContaining('Content folders'),
+    ]);
+  });
+
+  it('states the permission consequence beside the scope choice, not only in the option names', () => {
+    const harness = openModal();
+
+    const scopeRow = harness.scopeField().closest('.setting-item');
+    if (scopeRow === null) {
+      throw new Error('The scope field is not inside a setting row.');
+    }
+    // The option labels alone say which level is chosen but not what choosing
+    // it exposes, so this asserts the explanation that sits with the choice.
+    const scopeText = scopeRow.textContent ?? '';
+    expect(scopeText).toContain(
+      'Metadata only reads titles, statuses, structure, and links.',
+    );
+    expect(scopeText).toContain('additionally exposes Markdown bodies');
+    expect(scopeText).toContain('this is the actual permission boundary');
+  });
+
+  it('carries the class the stylesheet keys its narrow-width handling off', () => {
+    const harness = openModal();
+
+    // This guards the hook, not the layout: whether the fields actually stack
+    // is a visual check in Obsidian. The hook is what silently disappeared
+    // when the inline row was retired, taking its responsive rule with it.
+    expect(
+      harness.content.classList.contains('project-weave-agent-grant-modal'),
+    ).toBe(true);
   });
 
   it('reveals the content-folder field only once note text is chosen', () => {
@@ -283,6 +340,48 @@ describe('AgentGrantCreationModal', () => {
     await flush();
 
     expect(harness.createButton().disabled).toBe(false);
+  });
+
+  it('resolves and creates with the gateway disabled, emitting an empty endpoint', async () => {
+    // Resolution is local to the vault and index, so switching the gateway
+    // off must not change it — a grant is created before the gateway is
+    // turned on, not after. `endpoint: null` is exactly the disabled state
+    // `ProjectWeavePlugin.agentGatewayEndpoint` reports.
+    const harness = openModal({
+      endpoint: null,
+      folderPaths: ['Projects/Game/Documents'],
+    });
+    await flush();
+    harness.type(harness.labelField(), 'Claude Desktop');
+    harness.type(harness.projectField(), 'Projects/Game/Project.md');
+    harness.select(harness.scopeField(), 'content');
+    const folderField = harness.contentRootsField();
+    if (folderField === null) {
+      throw new Error('Expected the content-folder field to be visible.');
+    }
+    harness.type(folderField, 'Projects/Game/Documents');
+    await flush();
+
+    expect(harness.createButton().disabled).toBe(false);
+
+    harness.createButton().click();
+    await flush();
+
+    expect(harness.createdCount()).toBe(1);
+    expect(harness.createdInputs[0]).toEqual({
+      label: 'Claude Desktop',
+      projectPath: 'Projects/Game/Project.md',
+      contentRoots: ['Projects/Game/Documents'],
+    });
+    expect(harness.removedIds).toHaveLength(0);
+    const copied = JSON.parse(harness.copied[0]!) as {
+      mcpServers: Record<string, { env: Record<string, string> }>;
+    };
+    expect(copied.mcpServers['project-weave']?.env).toEqual({
+      PROJECT_WEAVE_ENDPOINT: '',
+      PROJECT_WEAVE_GRANT_ID: 'grant-1',
+      PROJECT_WEAVE_GRANT_SECRET: 'secret-value',
+    });
   });
 
   it('creates nothing when the dialog is dismissed without pressing create', async () => {

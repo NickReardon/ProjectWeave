@@ -3,7 +3,7 @@ type: task
 title: Make the agent grant form explain what it asks for
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-agent-grant-lifecycle]]'
-status: backlog
+status: review
 category: enhancement
 priority: high
 rank: 6100
@@ -97,6 +97,54 @@ ordering this design depends on.
 - What is copied on creation is unambiguous, and covers everything a client
   needs to connect.
 - The dialog and the grant list both hold together at narrow widths.
+
+## Resolution
+
+Built across the member tasks under this one and audited criterion by
+criterion against `src/ui/agent-grant-creation-modal.ts`,
+`src/ui/agent-grant-form.ts`, `src/ui/settings-tab.ts`, and `styles.css`.
+Every criterion but the last holds, and each is now covered by a test that
+fails when the behavior is removed:
+
+- **Dialog, and a list with create and revoke.** `AgentGrantCreationModal`,
+  opened from a single **Create grant** button. The settings entry is the
+  grant list plus that button. `tests/ui/settings-tab.test.ts` asserts the
+  create row carries no value-collecting control at all, so the retired
+  three-input row cannot quietly come back.
+- **Own label and description per input.** Four separate `Setting` rows.
+  `tests/ui/agent-grant-creation-modal.test.ts` asserts one control per row
+  and one row per field name; hanging a second input off any row fails it.
+- **Required versus optional distinguishable.** Each description states it,
+  and every unresolved field names itself in the status line and the button
+  tooltip rather than leaving a dead button.
+- **The metadata-only consequence is stated at the choice.** The scope row's
+  description says what each level exposes and that this is the permission
+  boundary. Previously only the two option names were asserted, which passed
+  with the explanation deleted; the new test reads the scope row itself.
+- **The list describes what each grant permits.** Project, grant id, and
+  `describeAgentGrantScope` for both scope states, covered for metadata-only
+  and content-readable grants.
+- **What is copied is unambiguous and complete.** A whole `mcpServers` entry
+  — endpoint, grant id, secret, and a bracketed placeholder for the one path
+  the plugin cannot know.
+
+### Outstanding: narrow widths
+
+**Not verified, and this task stays open for it.** The responsive rule the
+inline row carried was deleted along with the row, and the replacement
+comment claimed a stacking that no rule performed: Obsidian's `.setting-item`
+keeps a field's label beside its control at every desktop width. `styles.css`
+now stacks both the dialog's fields and the grant list's rows below 700px and
+lets long paths and grant ids break.
+
+That is the implementation, not the confirmation. Layout cannot be exercised
+in the test DOM, which applies no stylesheet and performs no layout, so what
+is proven automatically is only that both surfaces still carry the classes
+the stylesheet targets. Seeing the dialog and the list at narrow width in
+Obsidian — including a mobile-width window — is the remaining check, and it
+is the same one [[Tasks/Move agent grant creation into a dialog]] and
+[[Tasks/Describe what each agent grant permits in the grant list]] each
+claimed while no rule was in place.
 
 ## Notes
 

@@ -29,11 +29,10 @@
   font-size: var(--font-ui-smaller);
 }
 
-/* Agent grant creation moved into a modal (see ADR 0028), so its fields lay
-   out the same way the other creation-preview modals already do: a narrow
-   column that stacks label/control per field rather than the settings
-   pane's full width, which is what the retired inline row needed the grid
-   hack above for. */
+/* Agent grant creation moved into a modal (see ADR 0028), so its fields
+   stack one per row the way the other creation-preview modals do. This rule
+   only stacks the fields; `.setting-item` lays each field's own label and
+   control out side by side, which the narrow-width block below handles. */
 .project-weave-agent-grant-modal {
   display: flex;
   flex-direction: column;
@@ -48,10 +47,54 @@
 .project-weave-agent-grant-modal__status {
   font-size: var(--font-ui-small);
   margin: 0;
+  /* An unresolved value is named by quoting the path the reader typed, and a
+     vault path has no reliable break opportunity. */
+  overflow-wrap: anywhere;
 }
 
 .project-weave-agent-grant-modal__status--error {
   color: var(--text-error);
+}
+
+/* A listed grant states its id, project, and scope in one description, all of
+   which are paths or identifiers that will not break on their own. */
+.project-weave-agent-grant-item .setting-item-description {
+  overflow-wrap: anywhere;
+}
+
+/* Obsidian's `.setting-item` keeps a field's label and its control side by
+   side at every desktop width, so a narrow window squeezes the control
+   instead of dropping it below the label. The retired inline grant row got
+   this from its own grid rule; that rule left with the row, so both grant
+   surfaces need it restored explicitly.
+
+   Unlike the workbench below, both of these are sized by the window rather
+   than by a resizable pane — a modal, and the settings modal the grant list
+   renders into — so the viewport is the honest signal here. The breakpoint
+   matches the one the rest of this stylesheet already uses. */
+@media (max-width: 700px) {
+  .project-weave-agent-grant-modal .setting-item,
+  .project-weave-agent-grant-item {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--size-4-2);
+  }
+
+  .project-weave-agent-grant-modal .setting-item-control,
+  .project-weave-agent-grant-item .setting-item-control {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .project-weave-agent-grant-modal .setting-item-control button,
+  .project-weave-agent-grant-modal .setting-item-control input,
+  .project-weave-agent-grant-modal .setting-item-control select,
+  .project-weave-agent-grant-modal
+    .setting-item-control
+    .search-input-container {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .project-weave-workbench {

@@ -77,6 +77,25 @@ describe('ProjectWeaveSettingTab', () => {
     ].find((button) => button.textContent === 'Create grant');
     expect(createGrantButton).not.toBeUndefined();
 
+    // "Gone" asserted rather than assumed: the retired design collected a
+    // label, a project, and content roots in this very row, so the row that
+    // opens the dialog must carry no value-collecting control at all.
+    const createGrantRow = createGrantButton?.closest('.setting-item');
+    expect(createGrantRow).not.toBeNull();
+    expect(
+      createGrantRow?.querySelectorAll('input, select, textarea'),
+    ).toHaveLength(0);
+
+    // The stylesheet's narrow-width handling for the list keys off this class.
+    // It guards the hook only; whether the row actually stacks is a visual
+    // check in Obsidian.
+    const grantRow = [
+      ...tab.containerEl.querySelectorAll<HTMLElement>('.setting-item'),
+    ].find((row) => row.textContent?.includes('game-agent'));
+    expect(grantRow?.classList.contains('project-weave-agent-grant-item')).toBe(
+      true,
+    );
+
     // Revoke names the grant it acts on rather than a generic tooltip.
     const revokeButton = [...tab.containerEl.querySelectorAll('button')].find(
       (button) => button.title.includes('Game repository'),

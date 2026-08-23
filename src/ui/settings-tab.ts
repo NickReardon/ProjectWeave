@@ -223,7 +223,7 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
       });
     }
     for (const grant of this.#plugin.settings.agentGrants) {
-      new Setting(containerEl)
+      const row = new Setting(containerEl)
         .setName(grant.label)
         .setDesc(
           `Grant id ${grant.id} · Project ${grant.projectPath} · ${describeAgentGrantScope(grant.contentRoots)}`,
@@ -236,6 +236,11 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
               void this.#removeAgentGrant(grant.id);
             }),
         );
+      // The stylesheet's narrow-width handling for the grant list hangs off
+      // this class. A grant row carries a full id, a project path, and its
+      // scope, none of which break on their own; `.setting-item` alone keeps
+      // that description beside the revoke button at every width.
+      row.settingEl.addClass('project-weave-agent-grant-item');
     }
 
     new Setting(containerEl)
