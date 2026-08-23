@@ -3,7 +3,7 @@ type: task
 title: Revisit whether the agent grant secret is load-bearing
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-shared-reads-agent]]'
-status: backlog
+status: done
 category: loose-end
 priority: normal
 rank: 5900
@@ -69,3 +69,38 @@ against locally.
   is settled and recorded as a decision.
 - The rationale states what the secret defends against, in terms of capability
   the filesystem does not already grant.
+
+## Outcome
+
+Settled as
+[[Documents/Decisions/0034-keep-the-grant-secret-alongside-owner-only-sockets|ADR 0034]]:
+the secret stays, alongside the owner-only socket permissions that landed in
+`5bf05ea`. The two are not competing answers — permissions decide who may open
+the endpoint, the secret decides which grant a connection speaks for.
+
+The premise this note was parked on is gone, which is what made the question
+decidable. Socket exposure was the one case where the gateway granted access
+the filesystem did not, and it now binds 0600 from the instant the file exists.
+What survives that fix, stated as capability the filesystem does not grant:
+
+- **Windows has no owner restriction at all.** A named pipe has no mode bits,
+  so the fix is POSIX-only and its assertion is skipped on `win32`. On the
+  platform this project is developed on, the secret is the only control.
+- **Scope binding is per grant; permissions are per user.** Every grant belongs
+  to the same operating-system user, so no file mode can express "this project
+  and these content roots and no others". Without a credential the caller
+  asserts its own scope, and [[Epics/Epic-shared-reads-agent]]'s "one grant
+  cannot read another project" exit criterion becomes unenforceable.
+- **Removal is one-way**, with agent writes queued behind
+  [[Epics/Epic-mutation-kernel]].
+
+Digest-only storage and once-only delivery were already settled above and the
+record restates why they follow from keeping a secret at all: `data.json` syncs
+and, for this project, is committed to git.
+
+No behavior changed and no specification needed to change:
+[[Documents/Specifications/agent-access-and-mcp|Agent access and MCP]] already
+requires both the owner-only bind and per-connection authentication to one vault
+grant. The revisit triggers in this note carry into the record unchanged, with
+one addition: Windows gaining an owner-restricted pipe would not on its own
+reopen the question, because scope binding would still need a credential.

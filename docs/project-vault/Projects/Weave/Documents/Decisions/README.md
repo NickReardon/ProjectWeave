@@ -24,11 +24,23 @@ is not edited.
   record keeps `status: accepted` and gains no `superseded_by`, because most of
   it still holds. The new record names precisely which part it replaces and
   which parts stand. `superseded_by` means the whole decision was replaced.
+  Because the earlier record gains nothing, the forward pointer lives in
+  [Partial supersessions](#partial-supersessions) below.
 - The only permitted edits to an accepted record are typography, broken links,
   and — once, to resolve a genuine numbering collision — the `id` itself,
   never the decision it names. That edit is permitted only when no other
   document cites the record by number; a record any other document cites
   numerically keeps its `id` and the colliding one is renumbered instead.
+- **Frontmatter is part of the record.** Adding metadata to an accepted record
+  is not a permitted edit, even for a tag no reader must obey. `id` is the one
+  exception already taken, and only because a record without one has no
+  identity and the gate rejects it.
+  [ADR 0017](0017-configured-diagnostics-json-export.md) declares no `area` and
+  keeps none: nothing in `scripts/` or the documentation gate reads `area`, so
+  nothing is broken, and treating harmless metadata as editable is what makes a
+  record editable at all. If `area` ever becomes load-bearing the gate changes
+  first, and this rule is revisited in the open rather than settled by quietly
+  backfilling the records that predate it.
 - A record whose rationale still holds but whose behavior has since been
   refined is not updated; the specification is.
 
@@ -37,6 +49,25 @@ current is no longer evidence of why a choice was made, and an editable record
 becomes an attractive home for live rules — which is what
 [ADR 0022](0022-separate-living-specifications-from-point-in-time-decision-records.md)
 was written to end.
+
+## Partial supersessions
+
+A fully superseded record points forward from its own `superseded_by`. A record
+replaced only in part points nowhere, because it is not edited, so the pointers
+are collected here.
+
+| Record | Replaced part | Replaced by |
+| --- | --- | --- |
+| [0010](0010-render-planning-properties-as-empty.md) | the mechanism, not the outcome it keeps | [0013](0013-resolve-templates-from-a-vault-template-folder.md) |
+| [0013](0013-resolve-templates-from-a-vault-template-folder.md) | the project-specific mapping rung of its resolution ladder | [0020](0020-defer-project-specific-template-mappings.md) |
+| [0022](0022-separate-living-specifications-from-point-in-time-decision-records.md) | the naming bullet that kept `docs/spec/` numbered | [0025](0025-name-specifications-by-subject.md) |
+| [0030](0030-one-creation-pipeline-with-a-spec-per-note-kind.md) | the claim that only the task path implemented ADR 0013's fail-closed behavior | [0033](0033-correct-which-creation-path-skipped-the-rung-ladder.md) |
+
+[ADR 0013](0013-resolve-templates-from-a-vault-template-folder.md) records that
+same relation a second time, in a `superseded_in_part_by` key of its own. The
+key was added while that record was still `proposed` and before this lifecycle
+existed; it is history, not a pattern to copy. The row above is the pointer to
+maintain.
 
 ## Writing one
 
