@@ -351,6 +351,42 @@ same source; a mismatch fails closed and tells the client to install the
 matching companion. Disabling the gateway closes the local endpoint. Mobile
 never starts it.
 
+### Starting order and troubleshooting
+
+The companion checks the gateway before it serves anything: at startup it
+connects, authenticates, and confirms the release tag, and if any of that
+fails it prints one line and exits non-zero rather than waiting. That makes a
+broken setup unmistakable, but it also means the order you start things in
+matters.
+
+Obsidian must already be running, with the granted vault open and the gateway
+enabled, before the MCP client launches the companion. Most clients spawn
+every configured stdio server when the client itself starts, so opening the
+client first makes the Project Weave server fail immediately with a
+gateway-unreachable message even though nothing is misconfigured. Start
+Obsidian first, then the client.
+
+Restarting Obsidian is the same problem in reverse: the companion the client
+already launched stays dead until the client starts a new one. Once Obsidian
+is back, restart the Project Weave server using whatever your client offers —
+a per-server restart or reconnect control, a reload of the MCP configuration,
+or restarting the client itself.
+
+Every other failure is reported as a single actionable line, in the client's
+server log when it happens at startup and as the tool result when it happens
+mid-session. The messages below are the stable part; the companion also
+appends the underlying Node error text to transport failures, and fills in
+the endpoint and versions.
+
+| Message                                                                                                                                             | What to do                                                                                                                                                                                                                   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PROJECT_WEAVE_ENDPOINT, PROJECT_WEAVE_GRANT_ID, and PROJECT_WEAVE_GRANT_SECRET are required.` — naming whichever of the three are missing or blank | The companion was started without its environment, either by running it directly from a shell or because the `env` block was not merged into the client's configuration. Paste the entry the grant dialog copied.            |
+| `MCP companion <version> is incompatible with Project Weave <version>. Install project-weave-mcp.cjs from the same release tag.`                    | Download `project-weave-mcp.cjs` from the exact release tag the installed plugin came from, or update the plugin to match the companion.                                                                                     |
+| `The grant credentials are invalid.`                                                                                                                | The grant was revoked, the secret was rotated, or the gateway is serving a different vault than the one the grant was created for. Create a new grant and replace `PROJECT_WEAVE_GRANT_ID` and `PROJECT_WEAVE_GRANT_SECRET`. |
+| `The agent gateway is disabled.`                                                                                                                    | Enable **Read-only agent gateway** in Project Weave settings, then restart the server in your client.                                                                                                                        |
+| `Could not reach the Project Weave gateway at <endpoint>.`                                                                                          | Nothing is listening. Usually the starting order above; otherwise the gateway is disabled or `PROJECT_WEAVE_ENDPOINT` no longer matches the endpoint shown in settings.                                                      |
+| `The connection to the Project Weave gateway at <endpoint> was reset.` or `… closed unexpectedly.`                                                  | The gateway went away mid-session — the vault closed, Obsidian quit, or the gateway was disabled. Confirm it is enabled again, then restart the server in your client.                                                       |
+
 ## Privacy and network behavior
 
 Project Weave has no analytics or telemetry. The plugin reads Markdown only

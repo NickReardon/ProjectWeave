@@ -3,7 +3,7 @@ type: task
 title: Document the companion launch ordering requirement
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-shared-reads-agent]]'
-status: backlog
+status: done
 category: chore
 priority: high
 rank: 5600
@@ -52,3 +52,25 @@ Fold this into
 [[Tasks/Add a companion troubleshooting section to the README]] if that work is
 picked up first; the two overlap and should not produce two separate accounts
 of the same behavior.
+
+## Outcome
+
+Landed together with
+[[Tasks/Add a companion troubleshooting section to the README]] as one
+account, as the note above required. `README.md` gained a single
+`### Starting order and troubleshooting` subsection at the end of
+`## Read-only agent access` — with the client configuration material, not the
+download section.
+
+The subsection states why order matters (the companion verifies connectivity,
+authentication, and the release tag at startup and exits non-zero instead of
+waiting), then the requirement: Obsidian must already be running with the
+granted vault open and the gateway enabled before the MCP client launches the
+companion, because most clients spawn every configured stdio server when the
+client itself starts. It also states the restart case — the companion the
+client already launched stays dead after Obsidian restarts, so the server must
+be restarted through whatever the client offers: a per-server restart or
+reconnect control, an MCP configuration reload, or restarting the client.
+
+All three acceptance criteria are met. No behavior changed; this was a
+documentation gap, and the fail-fast handshake is left as designed.
