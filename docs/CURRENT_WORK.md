@@ -17,73 +17,73 @@ None.
 
 ## Verified
 
-Four backlog items landed on a branch off `main`, then a review round, each
-recorded on its own task note.
+Three disjoint workstreams landed on a branch off `main`, each recorded on its
+own task notes.
 
-Agent grant containment moved into a pure `src/application/agent-grants.ts`
-and the gateway's near-duplicate copy is gone, so the two cannot drift. Lifting it exposed a hole both copies shared: prefix matching
-cannot see through traversal, so `Projects/Game/../Other` starts with
-`Projects/Game/` and read as contained. Any `.` or `..` segment is now
-refused rather than resolved, so the rule no longer depends on its caller.
+The agent grant redesign was audited criterion by criterion against the code
+that the already-closed member tasks shipped. Most of it held. What did not:
+the responsive rule for the grant surface was deleted along with the inline row
+it was written for, and replaced by a comment claiming the modal stacks label
+and control per field — which no rule performed. Obsidian's `.setting-item` is
+a flex row at every desktop width, so the dialog and the grant list had no
+narrow-width handling at all while two closed tasks claimed the criterion. The
+rule is restored and the rows carry the class the stylesheet targets.
 
-The gateway's Unix-domain socket binds owner-only, by tightening
-`process.umask` across the synchronous span that binds it. The span must stay
-synchronous: umask is process-global, so holding it across an await would
-apply it to unrelated files. Windows named pipes are unaffected.
+Three tests were passing whether or not the behavior existed, and the case for
+resolving with the gateway disabled could not even be expressed: the harness
+folded an explicit `null` endpoint back into the enabled default. Each new test
+was verified by breaking the behavior and watching it fail.
 
-Template rung resolution has one owner, generalized over a kind. This
-reversed the premise it was scoped from: project creation already failed
-closed, while **task** creation read an ambiguous key through
-`VaultTemplateLibrary.load()` — which reports a collision as absent rather
-than broken — and silently returned the packaged template.
+The decision log gained two records. ADR 0033 partially supersedes the one
+sentence in ADR 0030 that had the premise backwards: project creation already
+failed closed, while task creation read an ambiguous key as absent. ADR 0034
+settles the grant secret, which became decidable when the owner-only socket
+bind landed and removed the premise the question was parked on. The secret
+stays: a Windows named pipe has no mode bits, so the fix is POSIX-only, and
+file modes are per user while grant scope is per grant.
 
-Failing closed then stranded the user, which review caught: a colliding
-`task/default` vanished from the variant list, so the modal never offered the
-**Built-in default** escape hatch the specification requires. `listVariants`
-now returns `{variant, usable, source}`. Two security tests also passed
-whether or not the code they covered existed, and now fail without it: the
-socket test installs a permissive umask rather than inheriting one, and the
-gateway asserts the content roots it forwards, not merely that a sibling
-stays unreadable.
+Because a partially superseded record is not edited, it points nowhere, so the
+README gained the index of those pointers. The `0017` `area` question is
+settled the other way — frontmatter is part of the record, nothing reads
+`area`, and adding it would be a violation that fixes nothing.
 
-`ObsidianVaultReader.setProjectRoots` was removed as unreachable,
-[[Tasks/Give templateClockFromLocalDate a caller]] closed without a change,
-and `Epic-agent-grant-lifecycle` is `active` rather than `planned`.
+`README.md` gained one `### Starting order and troubleshooting` subsection with
+the client configuration material, keyed to strings read out of the companion.
 
-`npm run check` passes: 452 tests and 99 script tests, one skipped. The skip
-is the socket-mode assertion, which needs POSIX mode bits and runs in CI on
+`npm run check` passes: 456 tests and 99 script tests, one skipped. The skip is
+the socket-mode assertion, which needs POSIX mode bits and runs in CI on
 `ubuntu-latest` rather than on this machine.
 
 ## Next
 
-The agent grant redesign is the coherent next slice, and its three tasks are
-meant to land as one change rather than three passes over the same control:
-[[Tasks/Make the agent grant form explain what it asks for]] owns it, with
-[[Tasks/Restructure agent grant creation into validate-then-create]] and the
-already-done suggester work underneath it.
+Both agent grant tasks are `review` rather than `done`, waiting only on seeing
+the restored narrow-width rule in Obsidian. That is now the cheapest thing
+standing between `Epic-agent-grant-lifecycle` and its exit gate, every other
+item of which is built and covered.
 
-[[Tasks/Run dogfood migration acceptance gate]] is what is left of the
-dogfood Epic and it is manual: browsing the relocated documents in Obsidian,
-origin navigation, live refresh, and workspace restoration.
+[[Tasks/Run dogfood migration acceptance gate]] is what is left of the dogfood
+Epic and it is manual: browsing the relocated documents in Obsidian, origin
+navigation, live refresh, and workspace restoration.
 
-What still needs Obsidian: install prerelease `0.6.1-beta.32112484849`
-through BRAT into a clean vault, run the companion against a real MCP client,
-and record the result on
-[[Tasks/Accept the BRAT preview and optional companion setup]]. The grant
-dialog and grant list have still not been seen at narrow width.
+What still needs Obsidian: install prerelease `0.6.1-beta.32112484849` through
+BRAT into a clean vault, run the companion against a real MCP client, and
+record the result on
+[[Tasks/Accept the BRAT preview and optional companion setup]].
 
 ## Loose ends
 
-- ADR 0030 asserts that only the task path implemented ADR 0013's
-  fail-closed rule fully. The opposite was true. The record is accepted and
-  so immutable; see
-  [[Tasks/Supersede the ADR 0030 claim about which path skipped the rung]].
+- Two closed tasks asserted a narrow-width criterion that no rule satisfied.
+  Neither recorded a verification, which is how it went unnoticed; treat a
+  layout criterion as unmet until it has been seen.
+- The companion tells the user to enable "Agent Access", which is the section
+  heading, not the toggle; see
+  [[Tasks/Name the agent gateway toggle as the companion messages describe it]].
+- The atomicity claim is absolute but has a reachable exception when rollback
+  itself fails; see
+  [[Tasks/Settle the atomicity claim when grant rollback itself fails]].
+- ADR 0013 is still `proposed` and ADR 0015 carries a whole-supersession marker
+  its superseder describes as partial; see
+  [[Tasks/Reconcile two decision records whose frontmatter contradicts their bodies]].
 - Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
   retired path as link text. Immutable bodies; every target resolves.
-- The companion requires the gateway to be reachable when the client launches
-  it, so Obsidian must be running first; see
-  [[Tasks/Document the companion launch ordering requirement]].
-- Grant creation still generates a secret from unvalidated paths; see
-  [[Tasks/Restructure agent grant creation into validate-then-create]].
-- `0017` is the only accepted record carrying no `area`.
 - Full mobile check 11a through 11g remains outstanding.
