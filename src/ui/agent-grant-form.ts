@@ -154,9 +154,16 @@ export const AGENT_MCP_COMPANION_PATH_PLACEHOLDER =
  * left as an unmistakable placeholder in `args` rather than omitted, since an
  * unknown value is a reason to mark it, not a reason to drop it.
  *
- * `endpoint` is `null` when the gateway is currently disabled; creation
- * still succeeds in that case (resolution is local and gateway-independent),
- * so the field is emitted empty rather than omitted.
+ * `endpoint` is derived from the vault id rather than read from the running
+ * gateway, so it is present whether or not the gateway is switched on. It must
+ * be: a grant is routinely created before the gateway is enabled, the
+ * configuration is delivered exactly once, and the companion refuses to start
+ * on a blank `PROJECT_WEAVE_ENDPOINT` — so emitting an empty endpoint here
+ * would hand over a configuration whose only repair is revoking the grant.
+ *
+ * It is `null` only on mobile, where there is no gateway to configure and no
+ * usable configuration to write; the field is emitted empty in that case
+ * rather than omitted, so the shape a client parses never changes.
  */
 export function agentClientConfigurationJson(
   input: AgentClientConfigurationInput,

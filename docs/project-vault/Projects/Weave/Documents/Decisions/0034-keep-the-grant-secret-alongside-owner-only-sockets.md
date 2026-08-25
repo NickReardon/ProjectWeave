@@ -4,7 +4,7 @@ id: '0034'
 area: agent-access
 status: accepted
 canonical: false
-affects: ['0018', '0028']
+affects: ['agent-access-and-mcp']
 ---
 
 # ADR 0034: Keep the grant secret alongside owner-only socket permissions
@@ -44,10 +44,15 @@ secret decides which grant a connection speaks for.
 
 Stated as capability the filesystem does not already grant:
 
-- **On Windows there is no owner restriction at all.** A named pipe has no mode
-  bits, so `5bf05ea` is a POSIX-only fix and its test is skipped on `win32`.
-  On the platform this project is developed on, the secret is the only thing
-  refusing a connection from another local user.
+- **On Windows the pipe carries no owner restriction as we create it.** A named
+  pipe has no POSIX mode bits, so `5bf05ea` is a POSIX-only fix and its test is
+  skipped on `win32`. Windows does have its own access control for named pipes
+  — a security descriptor with a DACL — but the Node and libuv path this plugin
+  binds through exposes no way to supply one, so the pipe is created with the
+  default descriptor rather than an owner-only one. The gap is in what we can
+  install through this transport, not in what the platform can express. On the
+  platform this project is developed on, the secret is the only thing refusing a
+  connection from another local user.
 - **Scope binding is per grant, and permissions are per user.** Every grant on
   a machine belongs to the same operating-system user, so no file mode can
   express "this connection may read this project and these content roots and no
@@ -77,9 +82,10 @@ single vault grant.
   overtaken. It left the endpoint openable cross-user on POSIX and refused the
   caller only after the connection existed, which is the weaker place to refuse.
 - **Drop the secret in favour of operating-system permissions:** rejected. The
-  permissions are POSIX-only, and even where they hold they cannot express grant
-  scope, so dropping the secret would trade an enforced binding for an
-  unenforceable one and would still leave Windows unguarded.
+  permissions we can currently install are POSIX-only, and even where they hold
+  they cannot express grant scope, so dropping the secret would trade an
+  enforced binding for an unenforceable one and would leave the Windows pipe
+  guarded by nothing.
 - **Make the secret recoverable so it can be shown again:** rejected. It would
   write a plaintext credential into synced, committed settings; revoking and
   recreating a grant is the recovery path, which ADR 0028's immutable grants
@@ -91,7 +97,8 @@ single vault grant.
 ## Consequences
 
 - Positive: each control answers one question, so neither has to be justified by
-  the other, and the Windows gap is covered by something rather than by nothing.
+  the other, and the unrestricted pipe is covered by something rather than by
+  nothing.
 - Negative: the marginal protection on POSIX, against a process run by the same
   user, remains close to zero. The cost is paid for the Windows case and for
   scope binding, not for local secrecy.
@@ -100,5 +107,5 @@ single vault grant.
 - Follow-up work: none. Revisit if agent writes land through the mutation
   kernel, if the endpoint becomes reachable beyond the local machine, or if
   once-only delivery proves an obstacle in practice rather than in theory.
-  Windows gaining an owner-restricted pipe would not on its own reopen this,
-  because scope binding would still need a credential.
+  Gaining a way to bind the pipe with a restrictive DACL would not on its own
+  reopen this, because scope binding would still need a credential.

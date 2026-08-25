@@ -1,10 +1,10 @@
 ---
 type: decision
 id: '0033'
-area: architecture
+area: templates
 status: accepted
 canonical: false
-affects: ['0030', '0013']
+affects: ['vault-note-templates']
 ---
 
 # ADR 0033: Correct which creation path skipped ADR 0013's rung ladder

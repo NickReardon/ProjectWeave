@@ -17,38 +17,38 @@ None.
 
 ## Verified
 
-Three disjoint workstreams landed on a branch off `main`, each recorded on its
-own task notes.
+Three disjoint workstreams landed on a branch off `main`, then a review round.
 
 The agent grant redesign was audited criterion by criterion against the code
-that the already-closed member tasks shipped. Most of it held. What did not:
-the responsive rule for the grant surface was deleted along with the inline row
-it was written for, and replaced by a comment claiming the modal stacks label
-and control per field — which no rule performed. Obsidian's `.setting-item` is
-a flex row at every desktop width, so the dialog and the grant list had no
-narrow-width handling at all while two closed tasks claimed the criterion. The
-rule is restored and the rows carry the class the stylesheet targets.
+its already-closed member tasks shipped. Most held. What did not: the
+responsive rule for the grant surface was deleted along with the inline row it
+was written for, and replaced by a comment claiming a stacking no rule
+performed. `.setting-item` is a flex row at every desktop width, so neither
+grant surface had narrow-width handling while two closed tasks claimed it. The
+rule is restored and the rows carry the class it targets.
 
-Three tests were passing whether or not the behavior existed, and the case for
-resolving with the gateway disabled could not even be expressed: the harness
-folded an explicit `null` endpoint back into the enabled default. Each new test
-was verified by breaking the behavior and watching it fail.
+Three tests passed whether or not their behavior existed, and one case could
+not even be expressed: the harness folded an explicit `null` endpoint back into
+the enabled default. Each new test was verified by breaking the behavior.
 
 The decision log gained two records. ADR 0033 partially supersedes the one
-sentence in ADR 0030 that had the premise backwards: project creation already
-failed closed, while task creation read an ambiguous key as absent. ADR 0034
-settles the grant secret, which became decidable when the owner-only socket
-bind landed and removed the premise the question was parked on. The secret
-stays: a Windows named pipe has no mode bits, so the fix is POSIX-only, and
-file modes are per user while grant scope is per grant.
+sentence in ADR 0030 that had the premise backwards. ADR 0034 settles the grant
+secret, decidable once the owner-only socket bind removed the premise it was
+parked on: the secret stays, because the bind is POSIX-only and nothing in the
+Node path binding the Windows pipe can install an owner-only descriptor, and
+file modes are per user while grant scope is per grant. A partially superseded
+record points nowhere, so the README gained the index of those pointers, and
+the `0017` `area` question is settled the other way.
 
-Because a partially superseded record is not edited, it points nowhere, so the
-README gained the index of those pointers. The `0017` `area` question is
-settled the other way — frontmatter is part of the record, nothing reads
-`area`, and adding it would be a violation that fixes nothing.
+`README.md` gained one `### Starting order and troubleshooting` subsection,
+keyed to strings read out of the companion.
 
-`README.md` gained one `### Starting order and troubleshooting` subsection with
-the client configuration material, keyed to strings read out of the companion.
+Review then found a grant created while the gateway is off copied a blank
+`PROJECT_WEAVE_ENDPOINT`, which the companion refuses to start on — and the
+configuration is delivered once, so the only repair was revoking the grant. The
+endpoint is a pure function of the vault id and is now derived rather than read
+from the idle bridge. Both new records also carried decision ids in `affects`,
+where the field means specifications, copied from ADR 0015's precedent.
 
 `npm run check` passes: 456 tests and 99 script tests, one skipped. The skip is
 the socket-mode assertion, which needs POSIX mode bits and runs in CI on

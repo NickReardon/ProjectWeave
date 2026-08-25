@@ -399,7 +399,7 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
   #openAgentGrantModal(): void {
     new AgentGrantCreationModal(this.app, {
       listIndexedProjects: () => this.#plugin.listIndexedProjects(),
-      endpoint: this.#plugin.agentGatewayEndpoint,
+      endpoint: this.#plugin.agentClientEndpoint,
       createGrant: (input) => this.#plugin.createAgentGrant(input),
       removeGrant: (id) => this.#plugin.removeAgentGrant(id),
       onCreated: () => this.display(),

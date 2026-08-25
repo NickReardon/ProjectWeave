@@ -74,6 +74,7 @@ export default class ProjectWeavePlugin extends Plugin {
   #unsubscribeDiagnosticsLog: (() => void) | null = null;
   #openingWorkbench: Promise<void> | null = null;
   #agentBridge: AgentBridgeLifecycle | null = null;
+  #agentClientEndpoint: string | null = null;
   #unloaded = false;
 
   public override async onload(): Promise<void> {
@@ -86,6 +87,7 @@ export default class ProjectWeavePlugin extends Plugin {
       await this.saveData(this.settings);
     }
     this.#installRuntime(this.#createRuntime(this.settings.projectRoots));
+    await this.#resolveAgentClientEndpoint();
     try {
       await this.#refreshAgentBridge();
     } catch (error) {
@@ -335,6 +337,32 @@ export default class ProjectWeavePlugin extends Plugin {
     return this.#agentBridge?.state.endpoint ?? null;
   }
 
+  /**
+   * The endpoint a client configuration must carry, whether or not the gateway
+   * is listening right now.
+   *
+   * `agentGatewayEndpoint` reports the running bridge and is `null` while the
+   * gateway is off. A grant is routinely created before the gateway is switched
+   * on, and its configuration is delivered exactly once, so reading the live
+   * bridge there would copy a blank endpoint into a configuration the companion
+   * then refuses to start with — recoverable only by revoking the grant and
+   * creating another. This derives the same value the bridge will bind instead.
+   *
+   * `null` only on mobile, where no gateway exists to configure.
+   */
+  public get agentClientEndpoint(): string | null {
+    return this.#agentClientEndpoint;
+  }
+
+  async #resolveAgentClientEndpoint(): Promise<void> {
+    if (!Platform.isDesktopApp) {
+      return;
+    }
+    const { localAgentEndpoint } =
+      await import('./adapters/desktop/agent-endpoint');
+    this.#agentClientEndpoint = localAgentEndpoint(this.settings.agentVaultId);
+  }
+
   public async rebuildIndex(showSuccess: boolean): Promise<void> {
     const runtime = this.#runtime;
     if (runtime === null) {
@@ -398,8 +426,10 @@ export default class ProjectWeavePlugin extends Plugin {
       this.#unloaded
     )
       return;
-    const { LocalAgentBridge, localAgentEndpoint } =
+    const { LocalAgentBridge } =
       await import('./adapters/desktop/local-agent-bridge');
+    const { localAgentEndpoint } =
+      await import('./adapters/desktop/agent-endpoint');
     const gateway = new ReadOnlyAgentGateway({
       enabled: () => this.settings.agentGatewayEnabled,
       vaultId: () => this.settings.agentVaultId,

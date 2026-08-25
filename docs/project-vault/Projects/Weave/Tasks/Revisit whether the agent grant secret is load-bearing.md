@@ -83,9 +83,13 @@ decidable. Socket exposure was the one case where the gateway granted access
 the filesystem did not, and it now binds 0600 from the instant the file exists.
 What survives that fix, stated as capability the filesystem does not grant:
 
-- **Windows has no owner restriction at all.** A named pipe has no mode bits,
-  so the fix is POSIX-only and its assertion is skipped on `win32`. On the
-  platform this project is developed on, the secret is the only control.
+- **The Windows pipe carries no owner restriction as we create it.** A named
+  pipe has no POSIX mode bits, so the fix is POSIX-only and its assertion is
+  skipped on `win32`. Windows can restrict a named pipe through a security
+  descriptor, but the Node and libuv path this plugin binds through exposes no
+  way to supply one, so the pipe gets the default rather than an owner-only
+  descriptor. On the platform this project is developed on, the secret is the
+  only control.
 - **Scope binding is per grant; permissions are per user.** Every grant belongs
   to the same operating-system user, so no file mode can express "this project
   and these content roots and no others". Without a credential the caller
@@ -102,5 +106,6 @@ No behavior changed and no specification needed to change:
 [[Documents/Specifications/agent-access-and-mcp|Agent access and MCP]] already
 requires both the owner-only bind and per-connection authentication to one vault
 grant. The revisit triggers in this note carry into the record unchanged, with
-one addition: Windows gaining an owner-restricted pipe would not on its own
-reopen the question, because scope binding would still need a credential.
+one addition: gaining a way to bind the pipe with a restrictive descriptor
+would not on its own reopen the question, because scope binding would still
+need a credential.

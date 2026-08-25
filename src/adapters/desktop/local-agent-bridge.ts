@@ -162,10 +162,3 @@ function loadNodeRuntime(): LocalAgentBridgeNodeRuntime {
   /* eslint-enable @typescript-eslint/no-require-imports */
   return { fileSystem, network };
 }
-
-export function localAgentEndpoint(vaultId: string): string {
-  const safe = vaultId.toLowerCase().replace(/[^a-z0-9_-]/gu, '-');
-  return process.platform === 'win32'
-    ? `\\\\.\\pipe\\project-weave-${safe}`
-    : `${process.env['TMPDIR'] ?? '/tmp'}/project-weave-${safe}.sock`;
-}

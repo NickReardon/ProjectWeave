@@ -13,6 +13,16 @@ import {
 import { installObsidianDom } from '../helpers/obsidian-dom';
 import { createStubApp } from '../helpers/obsidian-stub';
 
+const openedContexts: { endpoint: string | null }[] = [];
+vi.mock('../../src/ui/agent-grant-creation-modal', () => ({
+  AgentGrantCreationModal: class {
+    constructor(_app: unknown, context: { endpoint: string | null }) {
+      openedContexts.push(context);
+    }
+    open(): void {}
+  },
+}));
+
 beforeAll(() => installObsidianDom());
 
 describe('ProjectWeaveSettingTab', () => {
@@ -142,6 +152,50 @@ describe('ProjectWeaveSettingTab', () => {
     tab.display();
 
     expect(tab.containerEl.textContent).toContain('Entity metadata only');
+  });
+
+  it('hands the dialog the derived endpoint, not the idle bridge', () => {
+    // The gateway is off, so `agentGatewayEndpoint` is null — that is the
+    // state a user is in when they create their first grant. Reading the
+    // bridge here would copy a blank PROJECT_WEAVE_ENDPOINT into a
+    // configuration delivered exactly once, and the companion refuses to
+    // start on a blank one, so the only repair would be revoking the grant.
+    const derived = String.raw`\\.\pipe\project-weave-vault-1`;
+    openedContexts.length = 0;
+    const app = createStubApp();
+    const plugin = {
+      settings: {
+        settingsVersion: 2,
+        projectRoots: ['Projects'],
+        templateScaffoldFolder: 'Templates/Project Weave',
+        diagnosticsLogFolder: '',
+        taskCategories: [],
+        agentGatewayEnabled: false,
+        agentVaultId: 'vault-1',
+        agentGrants: [],
+      },
+      agentGatewayEndpoint: null,
+      agentClientEndpoint: derived,
+      openProjectWorkbench: vi.fn(),
+      updateProjectRoots: vi.fn(),
+      updateTemplateScaffoldFolder: vi.fn(),
+      updateTaskCategories: vi.fn(),
+      updateDiagnosticsLogFolder: vi.fn(),
+      rebuildIndex: vi.fn(),
+      updateAgentGatewayEnabled: vi.fn(),
+      createAgentGrant: vi.fn(),
+      removeAgentGrant: vi.fn(),
+    } as unknown as ProjectWeavePlugin;
+    const tab = new ProjectWeaveSettingTab(app as never, plugin);
+
+    tab.display();
+    const createButton = [...tab.containerEl.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Create grant',
+    );
+    createButton?.click();
+
+    expect(openedContexts).toHaveLength(1);
+    expect(openedContexts[0]?.endpoint).toBe(derived);
   });
 });
 

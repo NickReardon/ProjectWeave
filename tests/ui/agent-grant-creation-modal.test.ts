@@ -15,6 +15,13 @@ import {
 beforeAll(() => installObsidianDom());
 beforeEach(() => clearNotices());
 
+/**
+ * The endpoint the plugin derives from the vault id. It is the same value
+ * whether or not the gateway is listening, which is what lets a grant created
+ * while the gateway is off still carry a configuration a client can launch.
+ */
+const DERIVED_ENDPOINT = String.raw`\\.\pipe\project-weave-vault-1`;
+
 function project(path: string, title: string): ProjectSummary {
   return {
     ref: { kind: 'project', path, fingerprint: 'fingerprint' },
@@ -94,9 +101,7 @@ function openModal(
     // `??` would fold an explicitly disabled gateway back into the enabled
     // default, which is the state a test needs to be able to ask for.
     endpoint:
-      'endpoint' in options
-        ? (options.endpoint ?? null)
-        : '\\\\.\\pipe\\project-weave-vault-1',
+      'endpoint' in options ? (options.endpoint ?? null) : DERIVED_ENDPOINT,
     createGrant: async (input) => {
       createdInputs.push(input);
       createdCount += 1;
@@ -342,13 +347,18 @@ describe('AgentGrantCreationModal', () => {
     expect(harness.createButton().disabled).toBe(false);
   });
 
-  it('resolves and creates with the gateway disabled, emitting an empty endpoint', async () => {
+  it('resolves and creates with the gateway disabled, still emitting a launchable endpoint', async () => {
     // Resolution is local to the vault and index, so switching the gateway
     // off must not change it — a grant is created before the gateway is
-    // turned on, not after. `endpoint: null` is exactly the disabled state
-    // `ProjectWeavePlugin.agentGatewayEndpoint` reports.
+    // turned on, not after.
+    //
+    // The endpoint stays present while disabled because the plugin derives it
+    // from the vault id rather than reading the running bridge. That is
+    // load-bearing rather than cosmetic: the companion refuses to start on a
+    // blank PROJECT_WEAVE_ENDPOINT, and the configuration is delivered once,
+    // so a blank one here would cost the user the grant.
     const harness = openModal({
-      endpoint: null,
+      endpoint: DERIVED_ENDPOINT,
       folderPaths: ['Projects/Game/Documents'],
     });
     await flush();
@@ -378,7 +388,7 @@ describe('AgentGrantCreationModal', () => {
       mcpServers: Record<string, { env: Record<string, string> }>;
     };
     expect(copied.mcpServers['project-weave']?.env).toEqual({
-      PROJECT_WEAVE_ENDPOINT: '',
+      PROJECT_WEAVE_ENDPOINT: DERIVED_ENDPOINT,
       PROJECT_WEAVE_GRANT_ID: 'grant-1',
       PROJECT_WEAVE_GRANT_SECRET: 'secret-value',
     });
