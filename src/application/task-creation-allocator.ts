@@ -81,10 +81,11 @@ export type TaskRankAllocationResult = TaskRankAllocation | AllocationFailure;
  * This suggests a free path; it never reserves or creates one. The proposal
  * service re-checks the target through the vault port and fails closed on
  * `proposal.target.exists`, which stays the authoritative guard — this only
- * spares the user a collision they can predict. the Task management spec requires a collision
- * to block creation and offer another filename, and the Agent access and MCP spec expects the
- * generated name to remain visible and editable in the preview; suggesting a
- * free name satisfies both, because suggesting is not committing.
+ * spares the user a collision they can predict. The Task management spec
+ * requires a collision to block creation and offer another filename, and the
+ * Agent access and MCP spec expects the generated name to remain visible and
+ * editable in the preview; suggesting a free name satisfies both, because
+ * suggesting is not committing.
  */
 export function allocateTaskPath(
   input: TaskPathAllocationInput,
@@ -158,8 +159,9 @@ export function allocateTaskPath(
  * (docs/project-vault/Projects/Weave/Documents/Specifications/scheduling-and-milestones.md).
  *
  * The maximum spans every task in the project rather than only backlog ones.
- * the Scheduling and milestones spec keeps a rank while a task is assigned elsewhere, so a
- * status-scoped maximum would reissue a rank the project is still using.
+ * The Scheduling and milestones spec keeps a rank while a task is assigned
+ * elsewhere, so a status-scoped maximum would reissue a rank the project is
+ * still using.
  */
 export function allocateTaskRank(
   tasks: readonly TaskEntity[],

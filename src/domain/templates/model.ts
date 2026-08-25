@@ -1,9 +1,9 @@
 import type { Diagnostic, DiagnosticSeverity } from '../model';
 
 /**
- * Frontmatter keys that describe the template itself. the Vault note templates spec reserves this
- * set; rendering removes every one of them so template-only metadata never
- * reaches a created note.
+ * Frontmatter keys that describe the template itself. The Vault note templates
+ * spec reserves this set; rendering removes every one of them so template-only
+ * metadata never reaches a created note.
  */
 export const RESERVED_TEMPLATE_KEYS = [
   'weave_template',

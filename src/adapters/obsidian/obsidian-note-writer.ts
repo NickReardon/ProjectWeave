@@ -56,8 +56,9 @@ export class ObsidianNoteWriter implements NoteWriter {
   }
 
   /**
-   * Create missing ancestor folders. the Plugin experience spec permits this only as part of a
-   * confirmed creation that needs them, which is the only way this runs.
+   * Create missing ancestor folders. The Plugin experience spec permits this
+   * only as part of a confirmed creation that needs them, which is the only
+   * way this runs.
    */
   async #ensureParentFolder(notePath: string): Promise<void> {
     const separator = notePath.lastIndexOf('/');
