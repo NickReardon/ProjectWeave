@@ -1,9 +1,9 @@
 import type { TemplateSource } from './model';
 
 /**
- * Stable selector for the packaged minimal templates. the Vault note templates spec lets an agent
- * or a repair action name `builtin:minimal` explicitly instead of silently
- * falling back to it.
+ * Stable selector for the packaged minimal templates. The Vault note templates
+ * spec lets an agent or a repair action name `builtin:minimal` explicitly
+ * instead of silently falling back to it.
  */
 export const PACKAGED_MINIMAL_TEMPLATE_ID = 'builtin:minimal';
 
