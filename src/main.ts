@@ -60,6 +60,32 @@ interface AgentBridgeLifecycle {
   stop(): Promise<void>;
 }
 
+/**
+ * Whether a synced settings change means the agent bridge must be rebuilt.
+ *
+ * Intent changing is the obvious half. The other half is that a previous
+ * refresh can have failed — `bridge.start()` throws on `EADDRINUSE` — leaving
+ * the setting enabled with nothing listening. Reacting only to a difference
+ * would treat that failure as applied, so the next notification sees no change
+ * and never retries and the gateway stays down until a manual toggle or a
+ * restart. Comparing intent against the bridge that actually exists retries in
+ * exactly that case, without restarting a healthy bridge on every sync.
+ *
+ * Extracted so the terms can be tested: reaching this condition in place needs
+ * an enabled gateway binding a real socket.
+ */
+export function agentBridgeNeedsRefresh(input: {
+  readonly enabledChanged: boolean;
+  readonly identityChanged: boolean;
+  readonly enabled: boolean;
+  readonly listening: boolean;
+}): boolean {
+  if (input.enabledChanged || input.identityChanged) {
+    return true;
+  }
+  return input.enabled && !input.listening;
+}
+
 export default class ProjectWeavePlugin extends Plugin {
   public override settings: ProjectWeaveSettings =
     createDefaultProjectWeaveSettings();
@@ -369,30 +395,22 @@ export default class ProjectWeavePlugin extends Plugin {
     const previous = this.settings;
     const stored: unknown = await this.loadData();
     if (!isAdoptableSettingsPayload(stored)) {
-      // Absent, malformed, or written by a build this one does not understand.
-      // loadProjectWeaveSettings would hand back defaults, which is right at
-      // load and wrong here: adopting them would drop every grant and root,
-      // and writing them back would make that permanent. A read we cannot
-      // trust is not a change, so nothing is adopted and nothing is saved.
+      // Absent, malformed, from a build this one does not understand, or
+      // missing the identity its grants are bound to. loadProjectWeaveSettings
+      // would answer any of those with defaults, which is right at load and
+      // wrong here: it would drop every grant and root from a session that
+      // currently has them. A read we cannot trust is not a change.
+      //
+      // Nothing is written back, either. An earlier attempt repaired a missing
+      // identity and saved it, which put a write on this path — and a write
+      // here can land on top of a change that synced while we were reading,
+      // losing it. Between a revocation that silently fails to apply and a
+      // vault id that has to be re-established after a restart, the second is
+      // the safer way to be wrong: grants stop working rather than quietly
+      // keeping a credential alive.
       return;
     }
-    // A record can be valid and still carry no identity. Patch the payload
-    // rather than the normalized result, so what is written back is the
-    // stored settings plus an id, not this build's defaults plus an id.
-    const missingIdentity =
-      typeof stored['agentVaultId'] !== 'string' ||
-      stored['agentVaultId'].trim().length === 0;
-    this.settings = loadProjectWeaveSettings(
-      missingIdentity
-        ? { ...stored, agentVaultId: previous.agentVaultId }
-        : stored,
-    );
-    if (missingIdentity && previous.agentVaultId.length > 0) {
-      // onload mints a fresh id whenever the stored one is blank, so leaving
-      // this unwritten would hand every grant a vaultId that no longer matches
-      // on the next start, and move the derived endpoint with it.
-      await this.saveData(this.settings);
-    }
+    this.settings = loadProjectWeaveSettings(stored);
     const differs = (key: keyof ProjectWeaveSettings): boolean =>
       JSON.stringify(previous[key]) !== JSON.stringify(this.settings[key]);
 
@@ -422,7 +440,14 @@ export default class ProjectWeavePlugin extends Plugin {
       // client configurations and the socket already bound are now stale.
       await this.#resolveAgentClientEndpoint();
     }
-    if (differs('agentGatewayEnabled') || differs('agentVaultId')) {
+    if (
+      agentBridgeNeedsRefresh({
+        enabledChanged: differs('agentGatewayEnabled'),
+        identityChanged: differs('agentVaultId'),
+        enabled: this.settings.agentGatewayEnabled,
+        listening: this.#agentBridge !== null,
+      })
+    ) {
       await this.#refreshAgentBridge();
     }
   }

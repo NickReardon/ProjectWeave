@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import ProjectWeavePlugin from '../../src/main';
+import ProjectWeavePlugin, { agentBridgeNeedsRefresh } from '../../src/main';
 import { ReadOnlyAgentGateway } from '../../src/application/read-only-agent-gateway';
 import { ProjectWeaveQueryApi } from '../../src/application/query-api';
 import { IndexBuilder } from '../../src/indexing/index-builder';
@@ -155,20 +155,19 @@ describe('onExternalSettingsChange', () => {
     expect(plugin.agentClientEndpoint).not.toBe(before);
   });
 
-  it('writes the repaired vault identity back, so a restart keeps it', async () => {
-    // Keeping the id in memory alone only postpones the damage: onload mints a
-    // fresh one whenever the stored value is blank, so the next start would
-    // hand every grant a vaultId that no longer matches and move the endpoint.
-    // A valid payload can carry grants and omit the id, which is exactly the
-    // case that would look fine until a restart.
+  it('adopts nothing and writes nothing when the payload carries no identity', async () => {
+    // Every grant is bound to the vault id, so a payload without one does not
+    // describe this vault. An earlier version repaired it and saved, which put
+    // a write on this path; a write here can land on top of a change that
+    // synced while we were reading and lose it. Refusing is the fail-closed
+    // half of that trade: grants stop working rather than a revoked credential
+    // quietly staying alive.
     const plugin = createPlugin([GRANT]);
+    const before = plugin.settings;
     const saved: unknown[] = [];
     plugin.saveData = async (data: unknown) => {
       saved.push(data);
     };
-    // templateScaffoldFolder differs from the default and reconciles to
-    // nothing on an unloaded plugin, so it shows the payload was preserved
-    // without dragging a real index rebuild into the assertion.
     const withoutId: Record<string, unknown> = {
       ...storedSettings([STORED_GRANT]),
       templateScaffoldFolder: 'Templates/Custom',
@@ -178,26 +177,33 @@ describe('onExternalSettingsChange', () => {
 
     await plugin.onExternalSettingsChange();
 
-    expect(plugin.settings.agentVaultId).toBe('vault-1');
-    expect(saved).toHaveLength(1);
-    const written = saved[0] as {
-      agentVaultId: string;
-      agentGrants: readonly unknown[];
-      templateScaffoldFolder: string;
+    expect(saved).toEqual([]);
+    expect(plugin.settings).toBe(before);
+    expect(plugin.settings.agentGrants).toHaveLength(1);
+  });
+
+  it('never writes on a path that only reads', async () => {
+    // The hook exists to adopt a file, not to edit it. A write here races the
+    // sync that triggered the notification.
+    const plugin = createPlugin([GRANT]);
+    const saved: unknown[] = [];
+    plugin.saveData = async (data: unknown) => {
+      saved.push(data);
     };
-    expect(written.agentVaultId).toBe('vault-1');
-    // What is written back must be the stored settings plus an identity, not
-    // this build's defaults plus one. Patching the normalized result instead
-    // of the payload would silently replace both of these.
-    expect(written.agentGrants).toHaveLength(1);
-    expect(written.templateScaffoldFolder).toBe('Templates/Custom');
-    expect(plugin.settings.templateScaffoldFolder).toBe('Templates/Custom');
+    plugin.loadData = async () => storedSettings([]);
+
+    await plugin.onExternalSettingsChange();
+
+    expect(saved).toEqual([]);
+    expect(plugin.settings.agentGrants).toEqual([]);
   });
 
   it.each([
     ['absent', null],
     ['malformed', 'not-a-settings-record'],
     ['from an unsupported build', { settingsVersion: 99, agentGrants: [] }],
+    ['a bare version claim', { settingsVersion: 2 }],
+    ['missing its grant list', { settingsVersion: 2, agentVaultId: 'vault-9' }],
   ])(
     'adopts nothing and saves nothing when the file is %s',
     async (_label, payload) => {
@@ -221,4 +227,39 @@ describe('onExternalSettingsChange', () => {
       expect(plugin.settings.agentVaultId).toBe('vault-1');
     },
   );
+});
+
+describe('agentBridgeNeedsRefresh', () => {
+  const base = {
+    enabledChanged: false,
+    identityChanged: false,
+    enabled: false,
+    listening: false,
+  };
+
+  it('rebuilds when intent changes', () => {
+    expect(agentBridgeNeedsRefresh({ ...base, enabledChanged: true })).toBe(
+      true,
+    );
+    expect(agentBridgeNeedsRefresh({ ...base, identityChanged: true })).toBe(
+      true,
+    );
+  });
+
+  it('retries when the gateway should be listening but is not', () => {
+    // The case a difference check alone misses: a refresh that threw on
+    // EADDRINUSE left the setting enabled with no bridge, and every later
+    // notification would see no change and never retry.
+    expect(agentBridgeNeedsRefresh({ ...base, enabled: true })).toBe(true);
+  });
+
+  it('leaves a healthy bridge alone on an unrelated sync', () => {
+    expect(
+      agentBridgeNeedsRefresh({ ...base, enabled: true, listening: true }),
+    ).toBe(false);
+  });
+
+  it('does not start a bridge the settings did not ask for', () => {
+    expect(agentBridgeNeedsRefresh(base)).toBe(false);
+  });
 });

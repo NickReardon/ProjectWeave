@@ -34,9 +34,9 @@ no endpoint at all; both are now gated on the desktop. Keeping revoke
 available there had to then be made true: a plugin read `data.json` only at
 load, so a grant revoked on one device kept authorizing on another until
 Obsidian restarted. `onExternalSettingsChange` now adopts the rewritten file,
-reconciles every setting carrying a side effect, is serialized, and adopts
-nothing from a read it cannot trust — the loader answers a bad payload with
-defaults, which is right at load and destructive once written back.
+reconciles every setting carrying a side effect, and is serialized. It refuses
+a payload missing the identity its grants are bound to, and never writes: a
+write on a read path can land on a change that synced while it was reading.
 
 The decision log gained two records. ADR 0033 partially supersedes the one
 sentence in ADR 0030 that had the premise backwards. ADR 0034 keeps the grant
@@ -47,7 +47,7 @@ so the README gained that index, and `0017`'s `area` is settled the other way.
 `README.md` gained a starting-order and troubleshooting subsection, keyed to
 strings read out of the companion.
 
-`npm run check` passes: 468 tests and 99 script tests, one skipped. The skip is
+`npm run check` passes: 475 tests and 99 script tests, one skipped. The skip is
 the socket-mode assertion, which needs POSIX mode bits and runs in CI on
 `ubuntu-latest` rather than on this machine.
 
@@ -80,6 +80,8 @@ record the result on
   [[Tasks/Reconcile two decision records whose frontmatter contradicts their bodies]].
 - Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
   retired path as link text. Immutable bodies; every target resolves.
+- A payload with no vault id is refused rather than repaired, so the id must be
+  re-established after a restart; the alternative put a write on a read path.
 - Three of the six external-settings reconcilers, and the serialization guard
   on the bridge, reach services that exist only after `onload`, so no test
   covers them; see

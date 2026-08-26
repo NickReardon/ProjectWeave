@@ -42,14 +42,21 @@ export function createDefaultProjectWeaveSettings(): ProjectWeaveSettings {
 }
 
 /**
- * Whether a stored payload is a settings record this build can adopt.
+ * Whether a stored payload is a settings record this build can adopt in place
+ * of the one it is already running.
  *
  * `loadProjectWeaveSettings` answers a different question: it always returns a
  * usable object, falling back to defaults for anything it cannot read. That is
- * right at load, where defaults are the only alternative to failing to start.
- * It is wrong for a payload that is about to be written back, because adopting
- * defaults and saving them replaces real settings with empty ones. Ask this
- * first whenever the result may be persisted.
+ * right at load, where defaults are the only alternative to failing to start,
+ * and wrong when settings already exist — silently replacing real grants with
+ * an empty list is not a reasonable reading of a damaged file.
+ *
+ * The identity and the grant list are the two fields a default cannot stand in
+ * for: every grant is bound to the vault id, so a payload missing it is not a
+ * settings record this vault can be described by. Requiring both is also what
+ * rejects a record that merely claims a version, such as `{settingsVersion: 2}`.
+ * The remaining fields may fall back, because a default root or folder is a
+ * usable value rather than a silent loss of authority.
  */
 export function isAdoptableSettingsPayload(
   value: unknown,
@@ -57,10 +64,14 @@ export function isAdoptableSettingsPayload(
   if (!isRecord(value)) {
     return false;
   }
+  const version = value.settingsVersion;
+  if (version !== undefined && version !== 1 && version !== 2) {
+    return false;
+  }
   return (
-    value.settingsVersion === undefined ||
-    value.settingsVersion === 1 ||
-    value.settingsVersion === 2
+    typeof value.agentVaultId === 'string' &&
+    value.agentVaultId.trim().length > 0 &&
+    Array.isArray(value.agentGrants)
   );
 }
 
