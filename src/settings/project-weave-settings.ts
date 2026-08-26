@@ -41,6 +41,29 @@ export function createDefaultProjectWeaveSettings(): ProjectWeaveSettings {
   };
 }
 
+/**
+ * Whether a stored payload is a settings record this build can adopt.
+ *
+ * `loadProjectWeaveSettings` answers a different question: it always returns a
+ * usable object, falling back to defaults for anything it cannot read. That is
+ * right at load, where defaults are the only alternative to failing to start.
+ * It is wrong for a payload that is about to be written back, because adopting
+ * defaults and saving them replaces real settings with empty ones. Ask this
+ * first whenever the result may be persisted.
+ */
+export function isAdoptableSettingsPayload(
+  value: unknown,
+): value is Record<string, unknown> {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    value.settingsVersion === undefined ||
+    value.settingsVersion === 1 ||
+    value.settingsVersion === 2
+  );
+}
+
 export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
   const defaults = createDefaultProjectWeaveSettings();
   if (!isRecord(value)) {

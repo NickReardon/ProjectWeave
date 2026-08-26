@@ -17,6 +17,13 @@ const GRANT = {
   enabled: true,
 };
 
+/**
+ * A grant as `data.json` stores it. GRANT's digest is shaped for the gateway
+ * test's stub digester and would be dropped by the settings normalizer, so a
+ * payload that must survive a load carries a real one.
+ */
+const STORED_GRANT = { ...GRANT, secretDigest: 'a'.repeat(64) };
+
 /** The shape `data.json` holds, as another device would have rewritten it. */
 function storedSettings(grants: readonly unknown[]): Record<string, unknown> {
   return {
@@ -159,7 +166,13 @@ describe('onExternalSettingsChange', () => {
     plugin.saveData = async (data: unknown) => {
       saved.push(data);
     };
-    const withoutId: Record<string, unknown> = { ...storedSettings([GRANT]) };
+    // templateScaffoldFolder differs from the default and reconciles to
+    // nothing on an unloaded plugin, so it shows the payload was preserved
+    // without dragging a real index rebuild into the assertion.
+    const withoutId: Record<string, unknown> = {
+      ...storedSettings([STORED_GRANT]),
+      templateScaffoldFolder: 'Templates/Custom',
+    };
     delete withoutId['agentVaultId'];
     plugin.loadData = async () => withoutId;
 
@@ -167,18 +180,45 @@ describe('onExternalSettingsChange', () => {
 
     expect(plugin.settings.agentVaultId).toBe('vault-1');
     expect(saved).toHaveLength(1);
-    expect((saved[0] as { agentVaultId: string }).agentVaultId).toBe('vault-1');
+    const written = saved[0] as {
+      agentVaultId: string;
+      agentGrants: readonly unknown[];
+      templateScaffoldFolder: string;
+    };
+    expect(written.agentVaultId).toBe('vault-1');
+    // What is written back must be the stored settings plus an identity, not
+    // this build's defaults plus one. Patching the normalized result instead
+    // of the payload would silently replace both of these.
+    expect(written.agentGrants).toHaveLength(1);
+    expect(written.templateScaffoldFolder).toBe('Templates/Custom');
+    expect(plugin.settings.templateScaffoldFolder).toBe('Templates/Custom');
   });
 
-  it('keeps the vault identity when the file comes back unreadable', async () => {
-    // An absent or unparsable read falls to defaults, whose vault id is blank.
-    // Adopting that would orphan every grant bound to the real id and move the
-    // endpoint derived from it, so the existing identity is kept instead.
-    const plugin = createPlugin([GRANT]);
-    plugin.loadData = async () => null;
+  it.each([
+    ['absent', null],
+    ['malformed', 'not-a-settings-record'],
+    ['from an unsupported build', { settingsVersion: 99, agentGrants: [] }],
+  ])(
+    'adopts nothing and saves nothing when the file is %s',
+    async (_label, payload) => {
+      // loadProjectWeaveSettings answers every bad payload with defaults, which
+      // is correct at load and destructive here: adopting them drops every grant
+      // and root, and writing them back makes that permanent. A read that cannot
+      // be trusted is not a change.
+      const plugin = createPlugin([GRANT]);
+      const before = plugin.settings;
+      const saved: unknown[] = [];
+      plugin.saveData = async (data: unknown) => {
+        saved.push(data);
+      };
+      plugin.loadData = async () => payload;
 
-    await plugin.onExternalSettingsChange();
+      await plugin.onExternalSettingsChange();
 
-    expect(plugin.settings.agentVaultId).toBe('vault-1');
-  });
+      expect(saved).toEqual([]);
+      expect(plugin.settings).toBe(before);
+      expect(plugin.settings.agentGrants).toHaveLength(1);
+      expect(plugin.settings.agentVaultId).toBe('vault-1');
+    },
+  );
 });

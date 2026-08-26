@@ -31,6 +31,7 @@ import { IndexCoordinator } from './indexing/index-coordinator';
 import {
   classifyScopeTransition,
   createDefaultProjectWeaveSettings,
+  isAdoptableSettingsPayload,
   loadProjectWeaveSettings,
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
@@ -366,20 +367,30 @@ export default class ProjectWeavePlugin extends Plugin {
 
   async #adoptExternalSettings(): Promise<void> {
     const previous = this.settings;
-    this.settings = loadProjectWeaveSettings(await this.loadData());
-    if (this.settings.agentVaultId.length === 0) {
-      // A read that comes back empty or unparsable falls to defaults, and a
-      // blank vault id is not a value to adopt: grants are bound to it and the
-      // endpoint is derived from it, so taking it would orphan every existing
-      // grant and move the socket. onload generates one when it is missing;
-      // here the identity already exists, so it is kept.
-      //
-      // Keeping it in memory alone only postpones the damage. onload mints a
-      // fresh id whenever the stored one is blank, so the next start would
-      // hand every grant a vaultId that no longer matches and move the
-      // endpoint with it. The repair is written back for the same reason
-      // onload writes its own.
-      this.settings = { ...this.settings, agentVaultId: previous.agentVaultId };
+    const stored: unknown = await this.loadData();
+    if (!isAdoptableSettingsPayload(stored)) {
+      // Absent, malformed, or written by a build this one does not understand.
+      // loadProjectWeaveSettings would hand back defaults, which is right at
+      // load and wrong here: adopting them would drop every grant and root,
+      // and writing them back would make that permanent. A read we cannot
+      // trust is not a change, so nothing is adopted and nothing is saved.
+      return;
+    }
+    // A record can be valid and still carry no identity. Patch the payload
+    // rather than the normalized result, so what is written back is the
+    // stored settings plus an id, not this build's defaults plus an id.
+    const missingIdentity =
+      typeof stored['agentVaultId'] !== 'string' ||
+      stored['agentVaultId'].trim().length === 0;
+    this.settings = loadProjectWeaveSettings(
+      missingIdentity
+        ? { ...stored, agentVaultId: previous.agentVaultId }
+        : stored,
+    );
+    if (missingIdentity && previous.agentVaultId.length > 0) {
+      // onload mints a fresh id whenever the stored one is blank, so leaving
+      // this unwritten would hand every grant a vaultId that no longer matches
+      // on the next start, and move the derived endpoint with it.
       await this.saveData(this.settings);
     }
     const differs = (key: keyof ProjectWeaveSettings): boolean =>
