@@ -22,7 +22,7 @@ Three disjoint workstreams landed off `main`, then four review rounds.
 The grant redesign was audited criterion by criterion against the code its
 already-closed member tasks shipped. Most held. The responsive rule had been
 deleted along with the inline row it was written for, so neither surface had
-narrow-width handling while two closed tasks claimed it. Restored.
+narrow-width handling while two closed tasks claimed it.
 
 One defect ran through the whole creation path. A grant created while the
 gateway was off copied a blank `PROJECT_WEAVE_ENDPOINT`, which the companion
@@ -30,12 +30,13 @@ refuses to start on — and the configuration is delivered once, so the only
 repair was revoking the grant. The endpoint is a pure function of the vault id
 and is now derived rather than read from the idle bridge. Settings also offered
 the gateway and creation on every platform, so mobile could mint a grant with
-no endpoint at all; both are now gated on the desktop, which the specification
-already implied by making agent access on mobile a non-goal. Keeping revoke
+no endpoint at all; both are now gated on the desktop. Keeping revoke
 available there had to then be made true: a plugin read `data.json` only at
 load, so a grant revoked on one device kept authorizing on another until
 Obsidian restarted. `onExternalSettingsChange` now adopts the rewritten file,
-reconciles every setting carrying a side effect, and is serialized.
+reconciles every setting carrying a side effect, is serialized, and adopts
+nothing from a read it cannot trust — the loader answers a bad payload with
+defaults, which is right at load and destructive once written back.
 
 The decision log gained two records. ADR 0033 partially supersedes the one
 sentence in ADR 0030 that had the premise backwards. ADR 0034 keeps the grant
@@ -46,16 +47,16 @@ so the README gained that index, and `0017`'s `area` is settled the other way.
 `README.md` gained a starting-order and troubleshooting subsection, keyed to
 strings read out of the companion.
 
-`npm run check` passes: 466 tests and 99 script tests, one skipped. The skip is
+`npm run check` passes: 468 tests and 99 script tests, one skipped. The skip is
 the socket-mode assertion, which needs POSIX mode bits and runs in CI on
 `ubuntu-latest` rather than on this machine.
 
 ## Next
 
 Both agent grant tasks are `review` rather than `done`, waiting only on seeing
-the restored narrow-width rule in Obsidian. That is now the cheapest thing
-standing between `Epic-agent-grant-lifecycle` and its exit gate, every other
-item of which is built and covered.
+the restored narrow-width rule in Obsidian — the cheapest thing standing
+between `Epic-agent-grant-lifecycle` and its exit gate, every other item of
+which is built and covered.
 
 [[Tasks/Run dogfood migration acceptance gate]] is what is left of the dogfood
 Epic and it is manual: browsing the relocated documents in Obsidian, origin
@@ -68,9 +69,6 @@ record the result on
 
 ## Loose ends
 
-- Two closed tasks asserted a narrow-width criterion that no rule satisfied.
-  Neither recorded a verification, which is how it went unnoticed; treat a
-  layout criterion as unmet until it has been seen.
 - The companion tells the user to enable "Agent Access", which is the section
   heading, not the toggle; see
   [[Tasks/Name the agent gateway toggle as the companion messages describe it]].
