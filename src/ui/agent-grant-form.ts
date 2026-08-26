@@ -161,9 +161,9 @@ export const AGENT_MCP_COMPANION_PATH_PLACEHOLDER =
  * on a blank `PROJECT_WEAVE_ENDPOINT` — so emitting an empty endpoint here
  * would hand over a configuration whose only repair is revoking the grant.
  *
- * It is `null` only on mobile, where there is no gateway to configure and no
- * usable configuration to write; the field is emitted empty in that case
- * rather than omitted, so the shape a client parses never changes.
+ * It is `null` only on mobile, where the settings surface offers no creation
+ * at all, so this builder is not reached; the field is emitted empty in that
+ * case rather than omitted, so the shape a client parses never changes.
  */
 export function agentClientConfigurationJson(
   input: AgentClientConfigurationInput,

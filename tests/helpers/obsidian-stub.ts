@@ -45,6 +45,28 @@ export interface StubVault {
   getAllLoadedFiles(): readonly unknown[];
 }
 
+/**
+ * Obsidian's platform flags.
+ *
+ * Defaults to desktop, because that is where every surface exists and where a
+ * test that says nothing about the platform means to run. `setPlatform` lets a
+ * test ask for the mobile branch; call `resetPlatform` after, since this is
+ * module state shared by every test in the run.
+ */
+export const Platform = { isDesktopApp: true, isMobile: false };
+
+export function setPlatform(next: {
+  readonly isDesktopApp: boolean;
+  readonly isMobile: boolean;
+}): void {
+  Platform.isDesktopApp = next.isDesktopApp;
+  Platform.isMobile = next.isMobile;
+}
+
+export function resetPlatform(): void {
+  setPlatform({ isDesktopApp: true, isMobile: false });
+}
+
 /** Every `new Notice(...)` raised since the last `clearNotices()`. */
 export const recordedNotices: string[] = [];
 

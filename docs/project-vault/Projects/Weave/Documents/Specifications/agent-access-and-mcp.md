@@ -388,6 +388,13 @@ The transport is a stdio MCP companion connected to a bridge inside the plugin o
 - close/revoke on plugin unload or grant disable;
 - conditionally load desktop facilities so core plugin startup/mobile do not depend on them;
 - keep `isDesktopOnly: false` for the core v1 plugin;
+- offer neither gateway enablement nor grant creation in settings when the
+  plugin is not running on the desktop, because agent access on mobile is a
+  non-goal above: a toggle there is inert, and creation is worse than inert,
+  since there is no endpoint to name and a grant's configuration is delivered
+  exactly once. Grants already created on a desktop stay listed and revocable
+  on every platform, so a credential can always be withdrawn from the device
+  in hand;
 - pin the MCP protocol revision and SDK to exact tested versions rather than ranges, so a protocol revision never changes underneath a tested adapter. The adapter targets MCP revision `2025-06-18`, using the official TypeScript SDK. Proposal handles stay independent of transport sessions, so a version bump is an isolated, testable change.
 
 The companion may start in any working directory, on any volume, with no relationship on disk to the vault it reaches. Nothing about agent access depends on the repository and the vault sharing a location.
