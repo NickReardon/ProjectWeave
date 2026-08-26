@@ -17,40 +17,38 @@ None.
 
 ## Verified
 
-Three disjoint workstreams landed on a branch off `main`, then a review round.
+Three disjoint workstreams landed on a branch off `main`, then three review
+rounds against it.
 
-The agent grant redesign was audited criterion by criterion against the code
-its already-closed member tasks shipped. Most held. What did not: the
-responsive rule for the grant surface was deleted along with the inline row it
-was written for, and replaced by a comment claiming a stacking no rule
-performed. `.setting-item` is a flex row at every desktop width, so neither
-grant surface had narrow-width handling while two closed tasks claimed it. The
-rule is restored and the rows carry the class it targets.
+The grant redesign was audited criterion by criterion against the code its
+already-closed member tasks shipped. Most held. The responsive rule had been
+deleted along with the inline row it was written for, leaving a comment
+claiming a stacking no rule performed — so neither surface had narrow-width
+handling while two closed tasks claimed it. Restored.
 
-Three tests passed whether or not their behavior existed, and one case could
-not even be expressed: the harness folded an explicit `null` endpoint back into
-the enabled default. Each new test was verified by breaking the behavior.
+One defect ran through the whole creation path. A grant created while the
+gateway was off copied a blank `PROJECT_WEAVE_ENDPOINT`, which the companion
+refuses to start on — and the configuration is delivered once, so the only
+repair was revoking the grant. The endpoint is a pure function of the vault id
+and is now derived rather than read from the idle bridge. Settings also offered
+the gateway and creation on every platform, so mobile could mint a grant with
+no endpoint at all; both are now gated on the desktop, which the specification
+already implied by making agent access on mobile a non-goal. Keeping revoke
+available there had to then be made true: a plugin read `data.json` only at
+load, so a grant revoked on one device kept authorizing on another until
+Obsidian restarted. `onExternalSettingsChange` now adopts the rewritten file.
 
 The decision log gained two records. ADR 0033 partially supersedes the one
-sentence in ADR 0030 that had the premise backwards. ADR 0034 settles the grant
-secret, decidable once the owner-only socket bind removed the premise it was
-parked on: the secret stays, because the bind is POSIX-only and nothing in the
-Node path binding the Windows pipe can install an owner-only descriptor, and
-file modes are per user while grant scope is per grant. A partially superseded
-record points nowhere, so the README gained the index of those pointers, and
-the `0017` `area` question is settled the other way.
+sentence in ADR 0030 that had the premise backwards. ADR 0034 keeps the grant
+secret: the owner-only bind is POSIX-only, nothing in the Node path binding the
+Windows pipe can install an owner-only descriptor, and file modes are per user
+while grant scope is per grant. A partially superseded record points nowhere,
+so the README gained that index, and `0017`'s `area` is settled the other way.
 
-`README.md` gained one `### Starting order and troubleshooting` subsection,
-keyed to strings read out of the companion.
+`README.md` gained a starting-order and troubleshooting subsection, keyed to
+strings read out of the companion.
 
-Review then found a grant created while the gateway is off copied a blank
-`PROJECT_WEAVE_ENDPOINT`, which the companion refuses to start on — and the
-configuration is delivered once, so the only repair was revoking the grant. The
-endpoint is a pure function of the vault id and is now derived rather than read
-from the idle bridge. Both new records also carried decision ids in `affects`,
-where the field means specifications, copied from ADR 0015's precedent.
-
-`npm run check` passes: 456 tests and 99 script tests, one skipped. The skip is
+`npm run check` passes: 460 tests and 99 script tests, one skipped. The skip is
 the socket-mode assertion, which needs POSIX mode bits and runs in CI on
 `ubuntu-latest` rather than on this machine.
 

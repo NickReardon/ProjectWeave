@@ -333,6 +333,39 @@ export default class ProjectWeavePlugin extends Plugin {
     this.settings = nextSettings;
   }
 
+  /**
+   * Adopt `data.json` when it changes underneath us — Obsidian calls this when
+   * sync rewrites the file.
+   *
+   * Revocation is why this exists. A grant revoked on another device only
+   * rewrites that device's settings file; without this, a running gateway kept
+   * authorizing against the grants it read at load, so a withdrawn credential
+   * stayed usable until Obsidian restarted. The gateway reads grants and the
+   * enabled flag through live callbacks, so adopting the new settings is
+   * enough for the next request to see the revocation.
+   *
+   * Only a change to the enabled flag needs the socket bound or unbound, and
+   * only a change to the roots needs a reindex; refreshing either
+   * unconditionally would tear down a working bridge on every unrelated sync.
+   */
+  public override async onExternalSettingsChange(): Promise<void> {
+    const previous = this.settings;
+    this.settings = loadProjectWeaveSettings(await this.loadData());
+    if (previous.agentGatewayEnabled !== this.settings.agentGatewayEnabled) {
+      await this.#refreshAgentBridge();
+    }
+    if (
+      previous.projectRoots.length !== this.settings.projectRoots.length ||
+      previous.projectRoots.some(
+        (root, index) => root !== this.settings.projectRoots[index],
+      )
+    ) {
+      const next = this.#createRuntime(this.settings.projectRoots);
+      this.#installRuntime(next);
+      await this.#rebuildRuntime(next, false);
+    }
+  }
+
   public get agentGatewayEndpoint(): string | null {
     return this.#agentBridge?.state.endpoint ?? null;
   }

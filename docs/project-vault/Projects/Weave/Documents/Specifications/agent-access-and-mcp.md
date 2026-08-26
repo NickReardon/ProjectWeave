@@ -395,6 +395,12 @@ The transport is a stdio MCP companion connected to a bridge inside the plugin o
   exactly once. Grants already created on a desktop stay listed and revocable
   on every platform, so a credential can always be withdrawn from the device
   in hand;
+- adopt the settings file when it changes underneath a running plugin, so a
+  grant revoked on one device stops authorizing on another. Revocation is only
+  a promise if it reaches the instance actually serving requests: the grant
+  list and the enabled flag are read per request rather than captured when the
+  gateway starts, and the plugin reloads its settings when sync rewrites them.
+  Delivery is bounded by whatever sync latency the vault has, not by a restart;
 - pin the MCP protocol revision and SDK to exact tested versions rather than ranges, so a protocol revision never changes underneath a tested adapter. The adapter targets MCP revision `2025-06-18`, using the official TypeScript SDK. Proposal handles stay independent of transport sessions, so a version bump is an isolated, testable change.
 
 The companion may start in any working directory, on any volume, with no relationship on disk to the vault it reaches. Nothing about agent access depends on the repository and the vault sharing a location.
