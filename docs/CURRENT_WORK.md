@@ -17,14 +17,12 @@ None.
 
 ## Verified
 
-Three disjoint workstreams landed on a branch off `main`, then three review
-rounds against it.
+Three disjoint workstreams landed off `main`, then four review rounds.
 
 The grant redesign was audited criterion by criterion against the code its
 already-closed member tasks shipped. Most held. The responsive rule had been
-deleted along with the inline row it was written for, leaving a comment
-claiming a stacking no rule performed — so neither surface had narrow-width
-handling while two closed tasks claimed it. Restored.
+deleted along with the inline row it was written for, so neither surface had
+narrow-width handling while two closed tasks claimed it. Restored.
 
 One defect ran through the whole creation path. A grant created while the
 gateway was off copied a blank `PROJECT_WEAVE_ENDPOINT`, which the companion
@@ -36,7 +34,9 @@ no endpoint at all; both are now gated on the desktop, which the specification
 already implied by making agent access on mobile a non-goal. Keeping revoke
 available there had to then be made true: a plugin read `data.json` only at
 load, so a grant revoked on one device kept authorizing on another until
-Obsidian restarted. `onExternalSettingsChange` now adopts the rewritten file.
+Obsidian restarted. `onExternalSettingsChange` now adopts the rewritten file
+and reconciles every setting that carries a side effect, not only the two the
+first attempt covered.
 
 The decision log gained two records. ADR 0033 partially supersedes the one
 sentence in ADR 0030 that had the premise backwards. ADR 0034 keeps the grant
@@ -44,11 +44,10 @@ secret: the owner-only bind is POSIX-only, nothing in the Node path binding the
 Windows pipe can install an owner-only descriptor, and file modes are per user
 while grant scope is per grant. A partially superseded record points nowhere,
 so the README gained that index, and `0017`'s `area` is settled the other way.
-
 `README.md` gained a starting-order and troubleshooting subsection, keyed to
 strings read out of the companion.
 
-`npm run check` passes: 460 tests and 99 script tests, one skipped. The skip is
+`npm run check` passes: 464 tests and 99 script tests, one skipped. The skip is
 the socket-mode assertion, which needs POSIX mode bits and runs in CI on
 `ubuntu-latest` rather than on this machine.
 
@@ -84,4 +83,7 @@ record the result on
   [[Tasks/Reconcile two decision records whose frontmatter contradicts their bodies]].
 - Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
   retired path as link text. Immutable bodies; every target resolves.
+- Three of the six external-settings reconcilers reach services that exist
+  only after `onload`, so no test covers them; see
+  [[Tasks/Lift a testable workspace out of the plugin entry point]].
 - Full mobile check 11a through 11g remains outstanding.

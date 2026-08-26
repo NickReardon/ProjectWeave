@@ -403,6 +403,40 @@ export class Setting {
   }
 }
 
+/**
+ * Enough of `Plugin` to construct the real plugin class and drive one method.
+ *
+ * Deliberately not enough to run `onload`, which registers views, commands,
+ * ribbon icons, and workspace listeners. Tests that need a loaded plugin want
+ * the harness from "Lift a testable workspace out of the plugin entry point";
+ * this covers methods reachable on a constructed instance.
+ */
+export class Plugin {
+  public readonly app: unknown;
+  public readonly manifest: { readonly version: string };
+  /** Whatever `loadData()` should return; set it to stage a synced file. */
+  public storedData: unknown = null;
+
+  public constructor(app: unknown, manifest: { readonly version: string }) {
+    this.app = app;
+    this.manifest = manifest;
+  }
+
+  public async loadData(): Promise<unknown> {
+    return this.storedData;
+  }
+
+  public async saveData(data: unknown): Promise<void> {
+    this.storedData = data;
+  }
+
+  public registerView(): void {}
+  public registerEvent(): void {}
+  public addSettingTab(): void {}
+  public addRibbonIcon(): void {}
+  public addCommand(): void {}
+}
+
 export class PluginSettingTab {
   public readonly app: StubApp;
   public readonly plugin: unknown;

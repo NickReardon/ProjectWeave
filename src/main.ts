@@ -351,18 +351,45 @@ export default class ProjectWeavePlugin extends Plugin {
   public override async onExternalSettingsChange(): Promise<void> {
     const previous = this.settings;
     this.settings = loadProjectWeaveSettings(await this.loadData());
-    if (previous.agentGatewayEnabled !== this.settings.agentGatewayEnabled) {
-      await this.#refreshAgentBridge();
+    if (this.settings.agentVaultId.length === 0) {
+      // A read that comes back empty or unparsable falls to defaults, and a
+      // blank vault id is not a value to adopt: grants are bound to it and the
+      // endpoint is derived from it, so taking it would orphan every existing
+      // grant and move the socket. onload generates one when it is missing;
+      // here the identity already exists, so it is kept.
+      this.settings = { ...this.settings, agentVaultId: previous.agentVaultId };
     }
-    if (
-      previous.projectRoots.length !== this.settings.projectRoots.length ||
-      previous.projectRoots.some(
-        (root, index) => root !== this.settings.projectRoots[index],
-      )
-    ) {
-      const next = this.#createRuntime(this.settings.projectRoots);
-      this.#installRuntime(next);
-      await this.#rebuildRuntime(next, false);
+    const differs = (key: keyof ProjectWeaveSettings): boolean =>
+      JSON.stringify(previous[key]) !== JSON.stringify(this.settings[key]);
+
+    // Adopting the file is all a revoked grant needs: the gateway reads the
+    // grant list and the enabled flag per request. Every other setting has a
+    // side effect that its own updater performs after saving, and skipping any
+    // of them here would leave settings showing one thing while creation,
+    // diagnostics, or the index still used another.
+    if (differs('projectRoots')) {
+      const runtime = this.#createRuntime(this.settings.projectRoots);
+      this.#installRuntime(runtime);
+      await this.#rebuildRuntime(runtime, false);
+    } else if (differs('taskCategories')) {
+      // A new runtime already reindexes; this covers the case where it is the
+      // categories alone that moved.
+      await this.rebuildIndex(false);
+    }
+    if (differs('templateScaffoldFolder')) {
+      if (this.#runtime !== null) this.#bindReadSource(this.#runtime);
+      this.#noteDiagnosticBanners?.scheduleRefresh();
+    }
+    if (differs('diagnosticsLogFolder')) {
+      this.#diagnosticsLogService?.publish(this.#readSource.current);
+    }
+    if (differs('agentVaultId')) {
+      // The endpoint is derived from this id, so both the value handed to new
+      // client configurations and the socket already bound are now stale.
+      await this.#resolveAgentClientEndpoint();
+    }
+    if (differs('agentGatewayEnabled') || differs('agentVaultId')) {
+      await this.#refreshAgentBridge();
     }
   }
 
