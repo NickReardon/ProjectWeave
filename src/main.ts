@@ -75,6 +75,8 @@ export default class ProjectWeavePlugin extends Plugin {
   #openingWorkbench: Promise<void> | null = null;
   #agentBridge: AgentBridgeLifecycle | null = null;
   #agentClientEndpoint: string | null = null;
+  #externalSettingsWork: Promise<void> = Promise.resolve();
+  #agentBridgeWork: Promise<void> = Promise.resolve();
   #unloaded = false;
 
   public override async onload(): Promise<void> {
@@ -349,6 +351,20 @@ export default class ProjectWeavePlugin extends Plugin {
    * unconditionally would tear down a working bridge on every unrelated sync.
    */
   public override async onExternalSettingsChange(): Promise<void> {
+    // Obsidian can call this again while the previous call is still awaiting a
+    // read or a bridge restart. Both would capture the same `previous`, so
+    // both would compute their differences from a baseline the other has
+    // already moved past. Queued rather than dropped: each notification
+    // describes a real file state, and the last one to run leaves the settings
+    // matching the file.
+    this.#externalSettingsWork = this.#externalSettingsWork.then(
+      () => this.#adoptExternalSettings(),
+      () => this.#adoptExternalSettings(),
+    );
+    await this.#externalSettingsWork;
+  }
+
+  async #adoptExternalSettings(): Promise<void> {
     const previous = this.settings;
     this.settings = loadProjectWeaveSettings(await this.loadData());
     if (this.settings.agentVaultId.length === 0) {
@@ -357,7 +373,14 @@ export default class ProjectWeavePlugin extends Plugin {
       // endpoint is derived from it, so taking it would orphan every existing
       // grant and move the socket. onload generates one when it is missing;
       // here the identity already exists, so it is kept.
+      //
+      // Keeping it in memory alone only postpones the damage. onload mints a
+      // fresh id whenever the stored one is blank, so the next start would
+      // hand every grant a vaultId that no longer matches and move the
+      // endpoint with it. The repair is written back for the same reason
+      // onload writes its own.
       this.settings = { ...this.settings, agentVaultId: previous.agentVaultId };
+      await this.saveData(this.settings);
     }
     const differs = (key: keyof ProjectWeaveSettings): boolean =>
       JSON.stringify(previous[key]) !== JSON.stringify(this.settings[key]);
@@ -478,7 +501,23 @@ export default class ProjectWeavePlugin extends Plugin {
     });
   }
 
+  /**
+   * Serialized because three callers reach it — load, the settings toggle, and
+   * an external change — and it stops the bridge before binding a new one. Two
+   * overlapping runs can both pass the stop and then race to bind the same
+   * endpoint, where the loser fails with `EADDRINUSE` and leaves its caller
+   * rejected. Chained on both settle paths so one failure does not strand
+   * every later refresh.
+   */
   async #refreshAgentBridge(): Promise<void> {
+    this.#agentBridgeWork = this.#agentBridgeWork.then(
+      () => this.#refreshAgentBridgeNow(),
+      () => this.#refreshAgentBridgeNow(),
+    );
+    await this.#agentBridgeWork;
+  }
+
+  async #refreshAgentBridgeNow(): Promise<void> {
     await this.#stopAgentBridge();
     if (
       !this.settings.agentGatewayEnabled ||

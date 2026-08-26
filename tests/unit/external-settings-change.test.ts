@@ -100,6 +100,31 @@ describe('onExternalSettingsChange', () => {
     expect(plugin.settings.projectRoots).toEqual(['Projects']);
   });
 
+  it('serializes overlapping notifications instead of interleaving them', async () => {
+    // Obsidian can notify again while the first call is still awaiting the
+    // read. Unserialized, both capture the same baseline and both run their
+    // side effects; the bridge refresh they share stops one bridge and races
+    // to bind the same endpoint twice.
+    const plugin = createPlugin([GRANT]);
+    let inFlight = 0;
+    let overlapped = false;
+    plugin.loadData = async () => {
+      inFlight += 1;
+      if (inFlight > 1) overlapped = true;
+      await Promise.resolve();
+      inFlight -= 1;
+      return storedSettings([]);
+    };
+
+    await Promise.all([
+      plugin.onExternalSettingsChange(),
+      plugin.onExternalSettingsChange(),
+    ]);
+
+    expect(overlapped).toBe(false);
+    expect(plugin.settings.agentGrants).toEqual([]);
+  });
+
   it('recomputes the client endpoint when the vault id changes', async () => {
     // The endpoint is derived from the vault id, so a synced change to the id
     // makes both the value handed to new client configurations and the socket
@@ -121,6 +146,28 @@ describe('onExternalSettingsChange', () => {
 
     expect(plugin.agentClientEndpoint).toContain('vault-2');
     expect(plugin.agentClientEndpoint).not.toBe(before);
+  });
+
+  it('writes the repaired vault identity back, so a restart keeps it', async () => {
+    // Keeping the id in memory alone only postpones the damage: onload mints a
+    // fresh one whenever the stored value is blank, so the next start would
+    // hand every grant a vaultId that no longer matches and move the endpoint.
+    // A valid payload can carry grants and omit the id, which is exactly the
+    // case that would look fine until a restart.
+    const plugin = createPlugin([GRANT]);
+    const saved: unknown[] = [];
+    plugin.saveData = async (data: unknown) => {
+      saved.push(data);
+    };
+    const withoutId: Record<string, unknown> = { ...storedSettings([GRANT]) };
+    delete withoutId['agentVaultId'];
+    plugin.loadData = async () => withoutId;
+
+    await plugin.onExternalSettingsChange();
+
+    expect(plugin.settings.agentVaultId).toBe('vault-1');
+    expect(saved).toHaveLength(1);
+    expect((saved[0] as { agentVaultId: string }).agentVaultId).toBe('vault-1');
   });
 
   it('keeps the vault identity when the file comes back unreadable', async () => {

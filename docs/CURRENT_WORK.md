@@ -34,9 +34,8 @@ no endpoint at all; both are now gated on the desktop, which the specification
 already implied by making agent access on mobile a non-goal. Keeping revoke
 available there had to then be made true: a plugin read `data.json` only at
 load, so a grant revoked on one device kept authorizing on another until
-Obsidian restarted. `onExternalSettingsChange` now adopts the rewritten file
-and reconciles every setting that carries a side effect, not only the two the
-first attempt covered.
+Obsidian restarted. `onExternalSettingsChange` now adopts the rewritten file,
+reconciles every setting carrying a side effect, and is serialized.
 
 The decision log gained two records. ADR 0033 partially supersedes the one
 sentence in ADR 0030 that had the premise backwards. ADR 0034 keeps the grant
@@ -47,7 +46,7 @@ so the README gained that index, and `0017`'s `area` is settled the other way.
 `README.md` gained a starting-order and troubleshooting subsection, keyed to
 strings read out of the companion.
 
-`npm run check` passes: 464 tests and 99 script tests, one skipped. The skip is
+`npm run check` passes: 466 tests and 99 script tests, one skipped. The skip is
 the socket-mode assertion, which needs POSIX mode bits and runs in CI on
 `ubuntu-latest` rather than on this machine.
 
@@ -83,7 +82,8 @@ record the result on
   [[Tasks/Reconcile two decision records whose frontmatter contradicts their bodies]].
 - Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
   retired path as link text. Immutable bodies; every target resolves.
-- Three of the six external-settings reconcilers reach services that exist
-  only after `onload`, so no test covers them; see
+- Three of the six external-settings reconcilers, and the serialization guard
+  on the bridge, reach services that exist only after `onload`, so no test
+  covers them; see
   [[Tasks/Lift a testable workspace out of the plugin entry point]].
 - Full mobile check 11a through 11g remains outstanding.

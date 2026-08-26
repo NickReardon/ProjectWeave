@@ -66,6 +66,9 @@ other three — reindexing on changed roots or categories, rebinding the templat
 reader, and republishing diagnostics — reach services that only exist after
 `onload`, so removing any of those branches leaves the suite green.
 
+The serialization guard on `#refreshAgentBridge` is untestable for the same
+reason: reaching it needs an enabled gateway, which binds a real socket.
+
 `tests/helpers/obsidian-stub.ts` gained a `Plugin` base deliberately too small
 to run `onload`, which registers views, commands, a ribbon icon, and workspace
 listeners. Growing it into a real harness is this task.
