@@ -380,6 +380,11 @@ The transport is a stdio MCP companion connected to a bridge inside the plugin o
 - bind the Unix-domain socket file owner-only (mode 0600) so only the user
   running Obsidian can open it; a named pipe on Windows has no mode bits and
   is unaffected;
+- derive an endpoint that fits the platform's socket-path limit, with margin.
+  A macOS `sun_path` stops at 104 bytes and its temporary directory spends 49
+  of them, so the vault id is folded to a fixed-width token rather than spelled
+  in full; spelling it in full left no room and the gateway could not bind
+  there at all;
 - authenticate every companion connection to one vault grant, because the
   pipe or socket is reachable by other local processes run by that same
   user and is not itself authentication;

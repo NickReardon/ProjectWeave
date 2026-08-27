@@ -4,12 +4,24 @@ import { describe, expect, it } from 'vitest';
 
 import { LocalAgentBridge } from '../../src/adapters/desktop/local-agent-bridge';
 
+/**
+ * Short by construction. A Unix-domain socket path stops at 104 bytes on macOS
+ * and `TMPDIR` there spends 49 of them, so a descriptive name carrying a whole
+ * UUID does not fit: these tests failed with `EINVAL` on every Mac, and only
+ * passed in CI because Linux hands out `/tmp`.
+ */
+function testEndpoint(): string {
+  const id = crypto.randomUUID().slice(0, 8);
+  if (process.platform === 'win32') {
+    return `\\\\.\\pipe\\project-weave-test-${id}`;
+  }
+  const directory = (process.env['TMPDIR'] ?? '/tmp').replace(/\/+$/u, '');
+  return `${directory}/pw-test-${id}.sock`;
+}
+
 describe('LocalAgentBridge', () => {
   it('opens only when started, forwards one NDJSON request, and closes cleanly', async () => {
-    const endpoint =
-      process.platform === 'win32'
-        ? `\\\\.\\pipe\\project-weave-test-${crypto.randomUUID()}`
-        : `${process.env['TMPDIR'] ?? '/tmp'}/project-weave-test-${crypto.randomUUID()}.sock`;
+    const endpoint = testEndpoint();
     const gateway = {
       handle: async (request: { readonly requestId: string }) => ({
         requestId: request.requestId,
@@ -48,7 +60,7 @@ describe('LocalAgentBridge', () => {
   it.skipIf(process.platform === 'win32')(
     'binds the Unix-domain socket file as owner-only',
     async () => {
-      const endpoint = `${process.env['TMPDIR'] ?? '/tmp'}/project-weave-test-${crypto.randomUUID()}.sock`;
+      const endpoint = testEndpoint();
       const gateway = {
         handle: async (request: { readonly requestId: string }) => ({
           requestId: request.requestId,

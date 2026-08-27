@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import ProjectWeavePlugin, { agentBridgeNeedsRefresh } from '../../src/main';
+import { localAgentEndpoint } from '../../src/adapters/desktop/agent-endpoint';
 import { ReadOnlyAgentGateway } from '../../src/application/read-only-agent-gateway';
 import { ProjectWeaveQueryApi } from '../../src/application/query-api';
 import { IndexBuilder } from '../../src/indexing/index-builder';
@@ -193,9 +194,10 @@ describe('onExternalSettingsChange', () => {
   });
 
   it('recomputes the client endpoint when the vault id changes', async () => {
-    // The endpoint is derived from the vault id, so a synced change to the id
-    // makes both the value handed to new client configurations and the socket
-    // already bound stale. This is the one reconciler with a result visible
+    // The endpoint is derived from the vault id — through a digest, so it is
+    // compared against the deriving function rather than searched for the id —
+    // so a synced change to the id makes both the value handed to new client
+    // configurations and the socket already bound stale. This is the one reconciler with a result visible
     // from outside a fully loaded plugin.
     // Start on a different id so the first adoption is itself a change.
     const plugin = createPlugin([]);
@@ -203,7 +205,7 @@ describe('onExternalSettingsChange', () => {
     plugin.loadData = async () => storedSettings([]);
     await plugin.onExternalSettingsChange();
     const before = plugin.agentClientEndpoint;
-    expect(before).toContain('vault-1');
+    expect(before).toBe(localAgentEndpoint('vault-1'));
 
     plugin.loadData = async () => ({
       ...storedSettings([]),
@@ -211,7 +213,7 @@ describe('onExternalSettingsChange', () => {
     });
     await plugin.onExternalSettingsChange();
 
-    expect(plugin.agentClientEndpoint).toContain('vault-2');
+    expect(plugin.agentClientEndpoint).toBe(localAgentEndpoint('vault-2'));
     expect(plugin.agentClientEndpoint).not.toBe(before);
   });
 

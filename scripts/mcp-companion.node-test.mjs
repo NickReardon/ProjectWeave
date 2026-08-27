@@ -197,11 +197,17 @@ function withoutNames(env, names) {
   return copy;
 }
 
+/**
+ * Short by construction: a socket path stops at 104 bytes on macOS and the
+ * temporary directory there spends 49 of them, so a descriptive name carrying
+ * pid, clock, and randomness does not fit and these tests could not run on a
+ * Mac at all.
+ */
 function uniqueEndpoint() {
-  const id = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const id = `${process.pid.toString(36)}${Math.random().toString(36).slice(2, 8)}`;
   return process.platform === 'win32'
     ? `\\\\.\\pipe\\project-weave-mcp-test-${id}`
-    : join(tmpdir(), `project-weave-mcp-test-${id}.sock`);
+    : join(tmpdir(), `pw-mcp-${id}.sock`);
 }
 
 function send(child, message) {
