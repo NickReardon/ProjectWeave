@@ -132,6 +132,66 @@ describe('onExternalSettingsChange', () => {
     expect(plugin.settings.agentGrants).toEqual([]);
   });
 
+  it('cannot restore a revoked grant through a local save already in flight', async () => {
+    // The interleaving the queue exists for. A local save that began before the
+    // revocation synced used to compute its payload from the grant list it read
+    // at call time, so it landed after the adoption and wrote the withdrawn
+    // grant back — to data.json and to the list the live gateway callbacks
+    // read. data.json is modelled here because that is where the two writers
+    // actually meet.
+    const plugin = createPlugin([GRANT]);
+    let file: Record<string, unknown> = storedSettings([STORED_GRANT]);
+    plugin.loadData = async () => file;
+    plugin.saveData = async (data: unknown) => {
+      file = data as Record<string, unknown>;
+    };
+
+    // An unrelated local setting starts saving, then the revocation reaches
+    // the file and Obsidian notifies us while that save is still in flight.
+    const localSave = plugin.updateDiagnosticsLogFolder('Logs');
+    file = storedSettings([]);
+    const adoption = plugin.onExternalSettingsChange();
+    await Promise.all([localSave, adoption]);
+
+    expect(plugin.settings.agentGrants).toEqual([]);
+    expect(file['agentGrants']).toEqual([]);
+    // The local change is not lost to the merge; only the stale grant list is.
+    expect(plugin.settings.diagnosticsLogFolder).toBe('Logs');
+  });
+
+  it('drops a notification the plugin was unloaded during', async () => {
+    // onunload disposes the read source and the current coordinator. A read
+    // still outstanding at that moment used to continue afterwards and could
+    // install a fresh runtime, leaving a coordinator nothing would ever
+    // dispose.
+    const plugin = createPlugin([GRANT]);
+    const before = plugin.settings;
+    plugin.loadData = async () => {
+      plugin.onunload();
+      return { ...storedSettings([]), projectRoots: ['Archive'] };
+    };
+
+    await plugin.onExternalSettingsChange();
+
+    expect(plugin.settings).toBe(before);
+    expect(plugin.settings.projectRoots).toEqual(['Projects']);
+  });
+
+  it('does not adopt a local write that finished after unload', async () => {
+    // Same boundary on the writing side: the file write is already committed,
+    // but the settings it describes belong to a plugin that no longer has a
+    // runtime to reconcile them against.
+    const plugin = createPlugin([]);
+    plugin.loadData = async () => null;
+    plugin.saveData = async () => {
+      plugin.onunload();
+    };
+
+    await plugin.updateDiagnosticsLogFolder('Logs');
+
+    expect(plugin.settings.diagnosticsLogFolder).toBe('');
+  });
+
   it('recomputes the client endpoint when the vault id changes', async () => {
     // The endpoint is derived from the vault id, so a synced change to the id
     // makes both the value handed to new client configurations and the socket

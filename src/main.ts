@@ -102,18 +102,17 @@ export default class ProjectWeavePlugin extends Plugin {
   #openingWorkbench: Promise<void> | null = null;
   #agentBridge: AgentBridgeLifecycle | null = null;
   #agentClientEndpoint: string | null = null;
-  #externalSettingsWork: Promise<void> = Promise.resolve();
+  #settingsWork: Promise<void> = Promise.resolve();
   #agentBridgeWork: Promise<void> = Promise.resolve();
   #unloaded = false;
 
   public override async onload(): Promise<void> {
     this.settings = loadProjectWeaveSettings(await this.loadData());
     if (this.settings.agentVaultId.length === 0) {
-      this.settings = {
-        ...this.settings,
+      await this.#commitSettings((current) => ({
+        ...current,
         agentVaultId: randomIdentifier(),
-      };
-      await this.saveData(this.settings);
+      }));
     }
     this.#installRuntime(this.#createRuntime(this.settings.projectRoots));
     await this.#resolveAgentClientEndpoint();
@@ -252,9 +251,11 @@ export default class ProjectWeavePlugin extends Plugin {
     projectRoots: readonly string[],
   ): Promise<boolean> {
     const normalized = normalizeProjectRoots(projectRoots);
-    const nextSettings = { ...this.settings, projectRoots: normalized };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      projectRoots: normalized,
+    }));
+    if (this.#unloaded) return false;
 
     const next = this.#createRuntime(normalized);
     this.#installRuntime(next);
@@ -269,9 +270,10 @@ export default class ProjectWeavePlugin extends Plugin {
     taskCategories: readonly string[],
   ): Promise<void> {
     const normalized = normalizeTaskCategories(taskCategories);
-    const nextSettings = { ...this.settings, taskCategories: normalized };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      taskCategories: normalized,
+    }));
     await this.rebuildIndex(false);
   }
 
@@ -279,24 +281,20 @@ export default class ProjectWeavePlugin extends Plugin {
     templateScaffoldFolder: string,
   ): Promise<void> {
     const normalized = normalizeOptionalVaultFolderPath(templateScaffoldFolder);
-    const nextSettings = {
-      ...this.settings,
+    await this.#commitSettings((current) => ({
+      ...current,
       templateScaffoldFolder: normalized,
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    }));
     if (this.#runtime !== null) this.#bindReadSource(this.#runtime);
     this.#noteDiagnosticBanners?.scheduleRefresh();
   }
 
   public async updateDiagnosticsLogFolder(value: string): Promise<void> {
     const normalized = normalizeOptionalVaultFolderPath(value);
-    const nextSettings = {
-      ...this.settings,
+    await this.#commitSettings((current) => ({
+      ...current,
       diagnosticsLogFolder: normalized,
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    }));
     this.#diagnosticsLogService?.publish(this.#readSource.current);
   }
 
@@ -304,9 +302,10 @@ export default class ProjectWeavePlugin extends Plugin {
     if (enabled && !Platform.isDesktopApp) {
       throw new Error('Agent access is available only in the desktop app.');
     }
-    const nextSettings = { ...this.settings, agentGatewayEnabled: enabled };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      agentGatewayEnabled: enabled,
+    }));
     await this.#refreshAgentBridge();
   }
 
@@ -323,23 +322,27 @@ export default class ProjectWeavePlugin extends Plugin {
     const contentRoots = normalizeProjectRoots(
       input.contentRoots.map(normalizeVaultFolderPath),
     );
-    const result = await mintAgentGrant(
-      {
-        label: input.label,
-        fallbackLabel: entity.title,
-        vaultId: this.settings.agentVaultId,
-        projectPath,
-        contentRoots,
-      },
-      { nextIdentifier: randomIdentifier, digestSecret },
-    );
-    const nextSettings = {
-      ...this.settings,
-      agentGrants: [...this.settings.agentGrants, result.grant],
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
-    return result;
+    // Minted inside the queue rather than before it: the grant is bound to the
+    // vault identity, and a synced change to that identity between the mint and
+    // the save would store a grant no request could ever match.
+    return await this.#queueSettingsWork(async () => {
+      await this.#adoptExternalSettings();
+      const result = await mintAgentGrant(
+        {
+          label: input.label,
+          fallbackLabel: entity.title,
+          vaultId: this.settings.agentVaultId,
+          projectPath,
+          contentRoots,
+        },
+        { nextIdentifier: randomIdentifier, digestSecret },
+      );
+      await this.#persistSettings({
+        ...this.settings,
+        agentGrants: [...this.settings.agentGrants, result.grant],
+      });
+      return result;
+    });
   }
 
   /**
@@ -354,12 +357,66 @@ export default class ProjectWeavePlugin extends Plugin {
   }
 
   public async removeAgentGrant(id: string): Promise<void> {
-    const nextSettings = {
-      ...this.settings,
-      agentGrants: this.settings.agentGrants.filter((grant) => grant.id !== id),
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      agentGrants: current.agentGrants.filter((grant) => grant.id !== id),
+    }));
+  }
+
+  /**
+   * The one place `settings` is written, and the one queue every writer waits
+   * in — the local updaters above and the adoption of a synced file alike.
+   *
+   * Revocation is why the queue is shared rather than one chain per writer.
+   * Every updater used to build its next settings from a snapshot taken before
+   * its own `saveData`, so an unrelated local save that started before a
+   * revocation was adopted would finish after it and write the withdrawn grant
+   * back — to disk and to the list the live gateway callbacks read. Running the
+   * mutation inside the queue means it always sees the last committed state,
+   * whatever produced it.
+   */
+  #queueSettingsWork<T>(work: () => Promise<T>): Promise<T> {
+    // Chained on both settle paths so one failed write does not strand every
+    // later one; the stored chain is settled separately so a rejection waiting
+    // for the next writer is never unhandled.
+    const queued = this.#settingsWork.then(work, work);
+    this.#settingsWork = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
+  }
+
+  /**
+   * Saves and adopts `next`. Only ever called from inside the settings queue,
+   * which is what makes the read that built `next` still current here.
+   */
+  async #persistSettings(next: ProjectWeaveSettings): Promise<void> {
+    await this.saveData(next);
+    // The write is already on disk; the in-memory half is skipped because the
+    // plugin this would be settings for no longer has a runtime.
+    if (this.#unloaded) return;
+    this.settings = next;
+  }
+
+  /**
+   * Derives the next settings from whatever is current when the turn comes,
+   * where current means the file as well as memory.
+   *
+   * The queue alone orders this device's writers; it cannot order them against
+   * the sync that rewrites `data.json` underneath all of them. Reading the file
+   * first — through the same reconciler the change notification uses, so a
+   * divergence is acted on and not merely absorbed — means a save can no longer
+   * carry a revoked grant back into a list this instance is still serving from.
+   */
+  #commitSettings(
+    mutate: (current: ProjectWeaveSettings) => ProjectWeaveSettings,
+  ): Promise<void> {
+    return this.#queueSettingsWork(async () => {
+      await this.#adoptExternalSettings();
+      if (this.#unloaded) return;
+      await this.#persistSettings(mutate(this.settings));
+    });
   }
 
   /**
@@ -383,17 +440,18 @@ export default class ProjectWeavePlugin extends Plugin {
     // both would compute their differences from a baseline the other has
     // already moved past. Queued rather than dropped: each notification
     // describes a real file state, and the last one to run leaves the settings
-    // matching the file.
-    this.#externalSettingsWork = this.#externalSettingsWork.then(
-      () => this.#adoptExternalSettings(),
-      () => this.#adoptExternalSettings(),
-    );
-    await this.#externalSettingsWork;
+    // matching the file. The queue is the same one every local write waits in,
+    // so a save in flight can no longer restore a grant this adopts as revoked.
+    await this.#queueSettingsWork(() => this.#adoptExternalSettings());
   }
 
   async #adoptExternalSettings(): Promise<void> {
     const previous = this.settings;
     const stored: unknown = await this.loadData();
+    // onunload has disposed the read source and the coordinator while this read
+    // was outstanding. Adopting now would install a runtime nothing will ever
+    // dispose, so the notification is dropped with the plugin.
+    if (this.#unloaded) return;
     if (!isAdoptableSettingsPayload(stored)) {
       // Absent, malformed, from a build this one does not understand, or
       // missing the identity its grants are bound to. loadProjectWeaveSettings
@@ -519,6 +577,12 @@ export default class ProjectWeavePlugin extends Plugin {
   }
 
   #installRuntime(next: ProjectWeaveRuntime): void {
+    if (this.#unloaded) {
+      // onunload already disposed what it knew about; installing here would
+      // leave this coordinator running with nothing left to dispose it.
+      next.coordinator.dispose();
+      return;
+    }
     const previous = this.#runtime;
     this.#runtime = next;
     this.#bindReadSource(next);

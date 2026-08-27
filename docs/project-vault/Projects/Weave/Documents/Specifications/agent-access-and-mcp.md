@@ -400,6 +400,9 @@ The transport is a stdio MCP companion connected to a bridge inside the plugin o
   a promise if it reaches the instance actually serving requests: the grant
   list and the enabled flag are read per request rather than captured when the
   gateway starts, and the plugin reloads its settings when sync rewrites them.
+  Every settings write on the device waits in one queue with that adoption and
+  re-reads the file before saving, so a save already in flight cannot carry a
+  withdrawn grant back into the file or into the list being served.
   Delivery is bounded by whatever sync latency the vault has, not by a restart;
 - pin the MCP protocol revision and SDK to exact tested versions rather than ranges, so a protocol revision never changes underneath a tested adapter. The adapter targets MCP revision `2025-06-18`, using the official TypeScript SDK. Proposal handles stay independent of transport sessions, so a version bump is an isolated, testable change.
 
