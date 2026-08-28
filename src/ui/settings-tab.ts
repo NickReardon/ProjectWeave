@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab, Setting } from 'obsidian';
+import { Notice, Platform, PluginSettingTab, Setting } from 'obsidian';
 import type { App, SearchComponent } from 'obsidian';
 
 import type ProjectWeavePlugin from '../main';
@@ -195,35 +195,54 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
         }),
       );
 
+    // Agent access is desktop-only, and "agent access on mobile" is a stated
+    // non-goal of the owning specification. The gateway already refuses to
+    // start off the desktop, so a toggle here would be inert, and creation
+    // would be worse than inert: there is no endpoint to name on mobile, and a
+    // grant's configuration is delivered exactly once, so the user would be
+    // handed an unusable credential whose only repair is revoking it.
+    //
+    // Existing grants stay listed and revocable. They reach a phone through
+    // synced `data.json` rather than being creatable here, and revoking one is
+    // pure settings mutation that needs no desktop facility — being unable to
+    // withdraw a credential from the device in hand would be the worse gap.
+    const agentAccessAvailable = Platform.isDesktopApp;
+
     new Setting(containerEl).setName('Agent access').setHeading();
     containerEl.createEl('p', {
       cls: 'setting-item-description',
-      text: 'Optional desktop-only, read-only access for local agents. It opens no endpoint until enabled, and every connection needs a one-project grant secret.',
+      text: agentAccessAvailable
+        ? 'Optional desktop-only, read-only access for local agents. It opens no endpoint until enabled, and every connection needs a one-project grant secret.'
+        : 'Read-only agent access is desktop-only and cannot be enabled on this device. Grants created on a desktop appear below and can be revoked here.',
     });
-    new Setting(containerEl)
-      .setName('Read-only agent gateway')
-      .setDesc(
-        this.#plugin.agentGatewayEndpoint === null
-          ? 'Disabled. No named pipe or socket is listening.'
-          : `Listening locally at ${this.#plugin.agentGatewayEndpoint}`,
-      )
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.#plugin.settings.agentGatewayEnabled)
-          .onChange((enabled) => {
-            void this.#setAgentGatewayEnabled(enabled);
-          }),
-      );
+    if (agentAccessAvailable) {
+      new Setting(containerEl)
+        .setName('Read-only agent gateway')
+        .setDesc(
+          this.#plugin.agentGatewayEndpoint === null
+            ? 'Disabled. No named pipe or socket is listening.'
+            : `Listening locally at ${this.#plugin.agentGatewayEndpoint}`,
+        )
+        .addToggle((toggle) =>
+          toggle
+            .setValue(this.#plugin.settings.agentGatewayEnabled)
+            .onChange((enabled) => {
+              void this.#setAgentGatewayEnabled(enabled);
+            }),
+        );
+    }
 
     new Setting(containerEl).setName('Agent grants').setHeading();
     if (this.#plugin.settings.agentGrants.length === 0) {
       containerEl.createEl('p', {
         cls: 'setting-item-description',
-        text: 'No agent grants exist yet. Create one to let a local MCP client read one project.',
+        text: agentAccessAvailable
+          ? 'No agent grants exist yet. Create one to let a local MCP client read one project.'
+          : 'No agent grants exist yet. They are created on a desktop.',
       });
     }
     for (const grant of this.#plugin.settings.agentGrants) {
-      new Setting(containerEl)
+      const row = new Setting(containerEl)
         .setName(grant.label)
         .setDesc(
           `Grant id ${grant.id} · Project ${grant.projectPath} · ${describeAgentGrantScope(grant.contentRoots)}`,
@@ -236,21 +255,28 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
               void this.#removeAgentGrant(grant.id);
             }),
         );
+      // The stylesheet's narrow-width handling for the grant list hangs off
+      // this class. A grant row carries a full id, a project path, and its
+      // scope, none of which break on their own; `.setting-item` alone keeps
+      // that description beside the revoke button at every width.
+      row.settingEl.addClass('project-weave-agent-grant-item');
     }
 
-    new Setting(containerEl)
-      .setName('Create grant')
-      .setDesc(
-        'Opens a dialog to scope a new read-only grant to one indexed project.',
-      )
-      .addButton((button) =>
-        button
-          .setButtonText('Create grant')
-          .setCta()
-          .onClick(() => {
-            this.#openAgentGrantModal();
-          }),
-      );
+    if (agentAccessAvailable) {
+      new Setting(containerEl)
+        .setName('Create grant')
+        .setDesc(
+          'Opens a dialog to scope a new read-only grant to one indexed project.',
+        )
+        .addButton((button) =>
+          button
+            .setButtonText('Create grant')
+            .setCta()
+            .onClick(() => {
+              this.#openAgentGrantModal();
+            }),
+        );
+    }
   }
 
   #configureFolderSearch(
@@ -394,7 +420,7 @@ export class ProjectWeaveSettingTab extends PluginSettingTab {
   #openAgentGrantModal(): void {
     new AgentGrantCreationModal(this.app, {
       listIndexedProjects: () => this.#plugin.listIndexedProjects(),
-      endpoint: this.#plugin.agentGatewayEndpoint,
+      endpoint: this.#plugin.agentClientEndpoint,
       createGrant: (input) => this.#plugin.createAgentGrant(input),
       removeGrant: (id) => this.#plugin.removeAgentGrant(id),
       onCreated: () => this.display(),

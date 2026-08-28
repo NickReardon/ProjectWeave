@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyScopeTransition,
   createDefaultProjectWeaveSettings,
+  isAdoptableSettingsPayload,
   isPathInProjectRoots,
   loadProjectWeaveSettings,
+  mergeRevokedGrantIds,
   normalizeOptionalVaultFolderPath,
   normalizeAgentGrants,
   normalizeProjectRoots,
@@ -23,6 +25,7 @@ describe('Project Weave settings', () => {
       agentGatewayEnabled: false,
       agentVaultId: '',
       agentGrants: [],
+      revokedAgentGrantIds: [],
     });
     expect(loadProjectWeaveSettings(null)).toEqual(
       createDefaultProjectWeaveSettings(),
@@ -93,6 +96,7 @@ describe('Project Weave settings', () => {
       agentGatewayEnabled: false,
       agentVaultId: '',
       agentGrants: [],
+      revokedAgentGrantIds: [],
     });
     expect(
       loadProjectWeaveSettings({
@@ -123,6 +127,137 @@ describe('agent gateway settings', () => {
       agentVaultId: '',
       agentGrants: [],
     });
+  });
+
+  it('keeps revoked grant ids through a load, normalized the way grants are', () => {
+    // A tombstone has to compare equal to the id of the grant it withdraws, so
+    // it goes through the same identifier rule rather than being stored raw.
+    const loaded = loadProjectWeaveSettings({
+      settingsVersion: 2,
+      agentVaultId: 'vault-1',
+      agentGrants: [],
+      revokedAgentGrantIds: [' Grant One ', 'grant-one', 'grant two'],
+    });
+    expect(loaded.revokedAgentGrantIds).toEqual(['grant-one', 'grant-two']);
+  });
+
+  it.each([
+    ['not a list', 'grant-one'],
+    ['a list holding something that is not an id', ['grant-one', 7]],
+    ['a list holding an empty id', ['grant-one', '']],
+    ['null', null],
+  ])(
+    'serves nothing when the revocation record is %s',
+    (_label, revokedAgentGrantIds) => {
+      // The record says which credentials were withdrawn. A value that cannot
+      // be parsed is not evidence that none were, so reading it as an empty
+      // list would hand back every grant the damaged file still names.
+      const digest = 'a'.repeat(64);
+      const loaded = loadProjectWeaveSettings({
+        settingsVersion: 2,
+        projectRoots: ['Projects'],
+        agentVaultId: 'vault-1',
+        agentGatewayEnabled: true,
+        agentGrants: [
+          {
+            id: 'game-agent',
+            label: 'Game',
+            vaultId: 'vault-1',
+            projectPath: 'Projects/Game/Project.md',
+            contentRoots: [],
+            secretDigest: digest,
+            enabled: true,
+          },
+        ],
+        revokedAgentGrantIds,
+      });
+
+      expect(loaded.agentGrants).toEqual([]);
+      expect(loaded.agentGatewayEnabled).toBe(false);
+      // Everything that is not authorization still loads, so a damaged record
+      // does not cost the user their index as well.
+      expect(loaded.projectRoots).toEqual(['Projects']);
+      expect(loaded.agentVaultId).toBe('vault-1');
+    },
+  );
+
+  it('refuses to adopt a payload whose revocation record cannot be read', () => {
+    // The same rule on the sync path, where the safe answer is to keep serving
+    // what this session already reconciled rather than to trust the file.
+    expect(
+      isAdoptableSettingsPayload({
+        settingsVersion: 2,
+        agentVaultId: 'vault-1',
+        agentGrants: [],
+        revokedAgentGrantIds: 'grant-one',
+      }),
+    ).toBe(false);
+    expect(
+      isAdoptableSettingsPayload({
+        settingsVersion: 2,
+        agentVaultId: 'vault-1',
+        agentGrants: [],
+        revokedAgentGrantIds: ['grant-one'],
+      }),
+    ).toBe(true);
+  });
+
+  it('reads a file written before revocations were recorded as an empty set', () => {
+    // The field is added without a version bump, so every file that predates
+    // it is still adoptable and simply carries no tombstones.
+    expect(
+      loadProjectWeaveSettings({
+        settingsVersion: 2,
+        agentVaultId: 'vault-1',
+        agentGrants: [],
+      }).revokedAgentGrantIds,
+    ).toEqual([]);
+  });
+
+  it('drops a grant the same file records as revoked', () => {
+    // The restart case. Load has no previous settings to merge a tombstone
+    // against, so if the file carrying a restored grant also carries the id
+    // that withdrew it, only the loader can tell them apart.
+    const digest = 'a'.repeat(64);
+    const loaded = loadProjectWeaveSettings({
+      settingsVersion: 2,
+      agentVaultId: 'vault-1',
+      agentGrants: [
+        {
+          id: 'revoked-agent',
+          label: 'Revoked',
+          vaultId: 'vault-1',
+          projectPath: 'Projects/Game/Project.md',
+          contentRoots: [],
+          secretDigest: digest,
+          enabled: true,
+        },
+        {
+          id: 'live-agent',
+          label: 'Live',
+          vaultId: 'vault-1',
+          projectPath: 'Projects/Game/Project.md',
+          contentRoots: [],
+          secretDigest: digest,
+          enabled: true,
+        },
+      ],
+      revokedAgentGrantIds: ['revoked-agent'],
+    });
+    expect(loaded.agentGrants.map((grant) => grant.id)).toEqual(['live-agent']);
+    expect(loaded.revokedAgentGrantIds).toEqual(['revoked-agent']);
+  });
+
+  it('merges revoked ids as a union, never dropping one side', () => {
+    // The whole mechanism: adopting a file that omits an id this device holds
+    // must not drop it, or a stale save undoes a revocation exactly as before.
+    expect(mergeRevokedGrantIds(['grant-a'], ['grant-b'])).toEqual([
+      'grant-a',
+      'grant-b',
+    ]);
+    expect(mergeRevokedGrantIds(['grant-a'], [])).toEqual(['grant-a']);
+    expect(mergeRevokedGrantIds([], ['grant-a'])).toEqual(['grant-a']);
+    expect(mergeRevokedGrantIds(['grant-a'], ['grant-a'])).toEqual(['grant-a']);
   });
 
   it('normalizes valid local grants and drops malformed or duplicate entries', () => {

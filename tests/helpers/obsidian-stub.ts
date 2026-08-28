@@ -37,12 +37,44 @@ export interface StubWorkspace {
   getActiveFile(): StubTFile | null;
   requestSaveLayout(): void;
   getLeaf(kind: string): StubLeaf;
+  /**
+   * Enough of the event and layout surface for `onload` to run to completion.
+   * No leaf is ever open and no listener is ever fired, so a test that drives
+   * `onload` observes what loading decided, not what the workspace then does —
+   * the workspace harness in "Lift a testable workspace out of the plugin entry
+   * point" is still what layout-dependent tests want.
+   */
+  on(name: string, callback: () => void): { name: string };
+  getLeavesOfType(kind: string): readonly never[];
+  onLayoutReady(callback: () => void): void;
 }
 
 export interface StubVault {
   readonly paths: Set<string>;
   getFileByPath(path: string): StubTFile | null;
   getAllLoadedFiles(): readonly unknown[];
+}
+
+/**
+ * Obsidian's platform flags.
+ *
+ * Defaults to desktop, because that is where every surface exists and where a
+ * test that says nothing about the platform means to run. `setPlatform` lets a
+ * test ask for the mobile branch; call `resetPlatform` after, since this is
+ * module state shared by every test in the run.
+ */
+export const Platform = { isDesktopApp: true, isMobile: false };
+
+export function setPlatform(next: {
+  readonly isDesktopApp: boolean;
+  readonly isMobile: boolean;
+}): void {
+  Platform.isDesktopApp = next.isDesktopApp;
+  Platform.isMobile = next.isMobile;
+}
+
+export function resetPlatform(): void {
+  setPlatform({ isDesktopApp: true, isMobile: false });
 }
 
 /** Every `new Notice(...)` raised since the last `clearNotices()`. */
@@ -381,6 +413,43 @@ export class Setting {
   }
 }
 
+/**
+ * Enough of `Plugin` to construct the real plugin class and drive its methods,
+ * `onload` included — the registration calls are no-ops and the stub workspace
+ * answers the event and layout calls, so loading completes in a DOM
+ * environment.
+ *
+ * What it does not model is anything loading then goes on to do: no leaf is
+ * ever open, no listener ever fires, and no view is ever constructed. A test
+ * about layout, or about what a registered handler does, still wants the
+ * harness from "Lift a testable workspace out of the plugin entry point".
+ */
+export class Plugin {
+  public readonly app: unknown;
+  public readonly manifest: { readonly version: string };
+  /** Whatever `loadData()` should return; set it to stage a synced file. */
+  public storedData: unknown = null;
+
+  public constructor(app: unknown, manifest: { readonly version: string }) {
+    this.app = app;
+    this.manifest = manifest;
+  }
+
+  public async loadData(): Promise<unknown> {
+    return this.storedData;
+  }
+
+  public async saveData(data: unknown): Promise<void> {
+    this.storedData = data;
+  }
+
+  public registerView(): void {}
+  public registerEvent(): void {}
+  public addSettingTab(): void {}
+  public addRibbonIcon(): void {}
+  public addCommand(): void {}
+}
+
 export class PluginSettingTab {
   public readonly app: StubApp;
   public readonly plugin: unknown;
@@ -466,6 +535,16 @@ export function createStubApp(
     getLeaf(kind) {
       requestedLeafKinds.push(kind);
       return createStubLeaf(app);
+    },
+    on(name) {
+      return { name };
+    },
+    getLeavesOfType() {
+      return [];
+    },
+    onLayoutReady() {
+      // Never fires: nothing here indexes, and a test that wants the
+      // layout-ready path drives it itself.
     },
   };
 

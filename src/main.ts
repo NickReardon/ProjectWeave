@@ -31,7 +31,11 @@ import { IndexCoordinator } from './indexing/index-coordinator';
 import {
   classifyScopeTransition,
   createDefaultProjectWeaveSettings,
+  hasUnreadableRevocationRecord,
+  isAdoptableSettingsPayload,
   loadProjectWeaveSettings,
+  mergeRevokedGrantIds,
+  normalizeAgentGrants,
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
   normalizeTaskCategories,
@@ -59,6 +63,32 @@ interface AgentBridgeLifecycle {
   stop(): Promise<void>;
 }
 
+/**
+ * Whether a synced settings change means the agent bridge must be rebuilt.
+ *
+ * Intent changing is the obvious half. The other half is that a previous
+ * refresh can have failed — `bridge.start()` throws on `EADDRINUSE` — leaving
+ * the setting enabled with nothing listening. Reacting only to a difference
+ * would treat that failure as applied, so the next notification sees no change
+ * and never retries and the gateway stays down until a manual toggle or a
+ * restart. Comparing intent against the bridge that actually exists retries in
+ * exactly that case, without restarting a healthy bridge on every sync.
+ *
+ * Extracted so the terms can be tested: reaching this condition in place needs
+ * an enabled gateway binding a real socket.
+ */
+export function agentBridgeNeedsRefresh(input: {
+  readonly enabledChanged: boolean;
+  readonly identityChanged: boolean;
+  readonly enabled: boolean;
+  readonly listening: boolean;
+}): boolean {
+  if (input.enabledChanged || input.identityChanged) {
+    return true;
+  }
+  return input.enabled && !input.listening;
+}
+
 export default class ProjectWeavePlugin extends Plugin {
   public override settings: ProjectWeaveSettings =
     createDefaultProjectWeaveSettings();
@@ -74,18 +104,51 @@ export default class ProjectWeavePlugin extends Plugin {
   #unsubscribeDiagnosticsLog: (() => void) | null = null;
   #openingWorkbench: Promise<void> | null = null;
   #agentBridge: AgentBridgeLifecycle | null = null;
+  #agentClientEndpoint: string | null = null;
+  #settingsWork: Promise<void> = Promise.resolve();
+  /** Revoked ids this session holds but has not managed to write to the file. */
+  readonly #unwrittenRevocations = new Set<string>();
+  #agentBridgeWork: Promise<void> = Promise.resolve();
   #unloaded = false;
 
   public override async onload(): Promise<void> {
-    this.settings = loadProjectWeaveSettings(await this.loadData());
-    if (this.settings.agentVaultId.length === 0) {
-      this.settings = {
-        ...this.settings,
-        agentVaultId: randomIdentifier(),
-      };
-      await this.saveData(this.settings);
+    const stored: unknown = await this.loadData();
+    this.settings = loadProjectWeaveSettings(stored);
+    const hasUnreadableRevocations = hasUnreadableRevocationRecord(stored);
+    if (hasUnreadableRevocations) {
+      // Failing closed is silent otherwise: the grants simply stop working,
+      // which reads as a broken gateway rather than as a damaged record the
+      // user can repair.
+      new Notice(
+        'Project Weave could not read which agent grants had been revoked, so it is serving none of them and the gateway stays off. Repair or remove revokedAgentGrantIds in the plugin data file.',
+      );
+    }
+    // Do not turn a fail-closed read into a destructive repair. A malformed
+    // revocation record can coexist with a missing or invalid old identity;
+    // generating a new identity would immediately save the defaults and erase
+    // the record (and any grants it accompanies) before the user could repair
+    // it. A later deliberate settings change is a user-authorized write, but
+    // load itself must leave this damaged security record intact.
+    if (this.settings.agentVaultId.length === 0 && !hasUnreadableRevocations) {
+      try {
+        await this.#commitSettings((current) => ({
+          ...current,
+          agentVaultId: randomIdentifier(),
+        }));
+      } catch (error) {
+        // Only reachable when the vault closed during load. There is nothing
+        // to persist for a plugin that no longer has a runtime, and failing
+        // onload over it would report a load failure that did not happen.
+        if (!this.#unloaded) throw error;
+      }
+      // Loading stops there rather than continuing without the write. onunload
+      // has already run, so the rest of this method would register a view,
+      // commands, events, and a banner controller onto a plugin Obsidian has
+      // finished tearing down, and nothing would ever dispose them.
+      if (this.#unloaded) return;
     }
     this.#installRuntime(this.#createRuntime(this.settings.projectRoots));
+    await this.#resolveAgentClientEndpoint();
     try {
       await this.#refreshAgentBridge();
     } catch (error) {
@@ -94,6 +157,9 @@ export default class ProjectWeavePlugin extends Plugin {
         'Project Weave loaded, but its agent gateway could not start.',
       );
     }
+    // The same boundary for the two awaits above, which can straddle onunload
+    // just as the settings write can. Everything below registers something.
+    if (this.#unloaded) return;
     const diagnosticsLogService = new DiagnosticsLogService(
       new ObsidianDiagnosticsLogWriter(this.app.vault),
       () => this.settings.diagnosticsLogFolder,
@@ -221,9 +287,11 @@ export default class ProjectWeavePlugin extends Plugin {
     projectRoots: readonly string[],
   ): Promise<boolean> {
     const normalized = normalizeProjectRoots(projectRoots);
-    const nextSettings = { ...this.settings, projectRoots: normalized };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      projectRoots: normalized,
+    }));
+    if (this.#unloaded) return false;
 
     const next = this.#createRuntime(normalized);
     this.#installRuntime(next);
@@ -238,9 +306,10 @@ export default class ProjectWeavePlugin extends Plugin {
     taskCategories: readonly string[],
   ): Promise<void> {
     const normalized = normalizeTaskCategories(taskCategories);
-    const nextSettings = { ...this.settings, taskCategories: normalized };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      taskCategories: normalized,
+    }));
     await this.rebuildIndex(false);
   }
 
@@ -248,24 +317,20 @@ export default class ProjectWeavePlugin extends Plugin {
     templateScaffoldFolder: string,
   ): Promise<void> {
     const normalized = normalizeOptionalVaultFolderPath(templateScaffoldFolder);
-    const nextSettings = {
-      ...this.settings,
+    await this.#commitSettings((current) => ({
+      ...current,
       templateScaffoldFolder: normalized,
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    }));
     if (this.#runtime !== null) this.#bindReadSource(this.#runtime);
     this.#noteDiagnosticBanners?.scheduleRefresh();
   }
 
   public async updateDiagnosticsLogFolder(value: string): Promise<void> {
     const normalized = normalizeOptionalVaultFolderPath(value);
-    const nextSettings = {
-      ...this.settings,
+    await this.#commitSettings((current) => ({
+      ...current,
       diagnosticsLogFolder: normalized,
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    }));
     this.#diagnosticsLogService?.publish(this.#readSource.current);
   }
 
@@ -273,9 +338,10 @@ export default class ProjectWeavePlugin extends Plugin {
     if (enabled && !Platform.isDesktopApp) {
       throw new Error('Agent access is available only in the desktop app.');
     }
-    const nextSettings = { ...this.settings, agentGatewayEnabled: enabled };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      agentGatewayEnabled: enabled,
+    }));
     await this.#refreshAgentBridge();
   }
 
@@ -292,23 +358,27 @@ export default class ProjectWeavePlugin extends Plugin {
     const contentRoots = normalizeProjectRoots(
       input.contentRoots.map(normalizeVaultFolderPath),
     );
-    const result = await mintAgentGrant(
-      {
-        label: input.label,
-        fallbackLabel: entity.title,
-        vaultId: this.settings.agentVaultId,
-        projectPath,
-        contentRoots,
-      },
-      { nextIdentifier: randomIdentifier, digestSecret },
-    );
-    const nextSettings = {
-      ...this.settings,
-      agentGrants: [...this.settings.agentGrants, result.grant],
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
-    return result;
+    // Minted inside the queue rather than before it: the grant is bound to the
+    // vault identity, and a synced change to that identity between the mint and
+    // the save would store a grant no request could ever match.
+    return await this.#queueSettingsWork(async () => {
+      await this.#adoptExternalSettings();
+      const result = await mintAgentGrant(
+        {
+          label: input.label,
+          fallbackLabel: entity.title,
+          vaultId: this.settings.agentVaultId,
+          projectPath,
+          contentRoots,
+        },
+        { nextIdentifier: randomIdentifier, digestSecret },
+      );
+      await this.#persistSettings({
+        ...this.settings,
+        agentGrants: [...this.settings.agentGrants, result.grant],
+      });
+      return result;
+    });
   }
 
   /**
@@ -322,17 +392,292 @@ export default class ProjectWeavePlugin extends Plugin {
     return result.ok ? result.items : [];
   }
 
+  /**
+   * Withdraws a grant, and records that it was withdrawn.
+   *
+   * The tombstone is the part that survives sync (ADR 0035). Removing the entry
+   * alone left revocation expressed as an absence, and an absence is undone by
+   * any device that writes a settings file it read before the revocation
+   * arrived.
+   */
   public async removeAgentGrant(id: string): Promise<void> {
-    const nextSettings = {
-      ...this.settings,
-      agentGrants: this.settings.agentGrants.filter((grant) => grant.id !== id),
-    };
-    await this.saveData(nextSettings);
-    this.settings = nextSettings;
+    await this.#commitSettings((current) => ({
+      ...current,
+      agentGrants: current.agentGrants.filter((grant) => grant.id !== id),
+      revokedAgentGrantIds: mergeRevokedGrantIds(current.revokedAgentGrantIds, [
+        id,
+      ]),
+    }));
+  }
+
+  /**
+   * The one place `settings` is written, and the one queue every writer waits
+   * in — the local updaters above and the adoption of a synced file alike.
+   *
+   * Revocation is why the queue is shared rather than one chain per writer.
+   * Every updater used to build its next settings from a snapshot taken before
+   * its own `saveData`, so an unrelated local save that started before a
+   * revocation was adopted would finish after it and write the withdrawn grant
+   * back — to disk and to the list the live gateway callbacks read. Running the
+   * mutation inside the queue means it always sees the last committed state,
+   * whatever produced it.
+   */
+  #queueSettingsWork<T>(work: () => Promise<T>): Promise<T> {
+    // Chained on both settle paths so one failed write does not strand every
+    // later one; the stored chain is settled separately so a rejection waiting
+    // for the next writer is never unhandled.
+    const queued = this.#settingsWork.then(work, work);
+    this.#settingsWork = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
+  }
+
+  /**
+   * Saves and adopts `next`. Only ever called from inside the settings queue,
+   * which is what makes the read that built `next` still current here.
+   */
+  async #persistSettings(next: ProjectWeaveSettings): Promise<void> {
+    await this.saveData(next);
+    // The write is already on disk; the in-memory half is skipped because the
+    // plugin this would be settings for no longer has a runtime.
+    if (this.#unloaded) return;
+    this.settings = next;
+  }
+
+  /**
+   * Derives the next settings from whatever is current when the turn comes,
+   * where current means the file as well as memory.
+   *
+   * The queue alone orders this device's writers; it cannot order them against
+   * the sync that rewrites `data.json` underneath all of them. Reading the file
+   * first — through the same reconciler the change notification uses, so a
+   * divergence is acted on and not merely absorbed — narrows the window in
+   * which a save can carry a revoked grant back into the list this instance is
+   * still serving from to the write itself.
+   *
+   * It does not close it. `loadData`/`saveData` offer no compare-and-swap, so a
+   * sync landing between this read and the end of that write is overwritten by
+   * it, and the notification for it then reads back the settings this save
+   * restored — leaving a revoked credential authorized here. Closing it needs
+   * revocations recorded rather than inferred from a grant's absence, which is
+   * what `revokedAgentGrantIds` does (ADR 0035): the entry a stale write
+   * restores is dropped against the recorded id, so what this window can still
+   * cost is a revocation's durability rather than its effect.
+   */
+  #commitSettings(
+    mutate: (current: ProjectWeaveSettings) => ProjectWeaveSettings,
+  ): Promise<void> {
+    return this.#queueSettingsWork(async () => {
+      await this.#adoptExternalSettings();
+      // Adoption abandons its read once the plugin is unloaded, so `settings`
+      // is no longer known to describe the file and a mutation derived from it
+      // could write a stale payload over a change that synced meanwhile.
+      //
+      // Refusing loudly rather than quietly. A caller that cannot persist has
+      // to be able to tell: grant creation rolls back by removing the grant it
+      // just wrote, and a rollback that resolves without deleting anything
+      // would report that the grant was not kept while it is still stored and
+      // still authorized, with its secret never delivered.
+      if (this.#unloaded) {
+        throw new Error(
+          'Project Weave was unloaded before the change could be saved.',
+        );
+      }
+      await this.#persistSettings(mutate(this.settings));
+    });
+  }
+
+  /**
+   * Adopt `data.json` when it changes underneath us — Obsidian calls this when
+   * sync rewrites the file.
+   *
+   * Revocation is why this exists. A grant revoked on another device only
+   * rewrites that device's settings file; without this, a running gateway kept
+   * authorizing against the grants it read at load, so a withdrawn credential
+   * stayed usable until Obsidian restarted. The gateway reads grants and the
+   * enabled flag through live callbacks, so adopting the new settings is
+   * enough for the next request to see the revocation.
+   *
+   * Only a change to the enabled flag needs the socket bound or unbound, and
+   * only a change to the roots needs a reindex; refreshing either
+   * unconditionally would tear down a working bridge on every unrelated sync.
+   */
+  public override async onExternalSettingsChange(): Promise<void> {
+    // Obsidian can call this again while the previous call is still awaiting a
+    // read or a bridge restart. Both would capture the same `previous`, so
+    // both would compute their differences from a baseline the other has
+    // already moved past. Queued rather than dropped: each notification
+    // describes a real file state, and the last one to run leaves the settings
+    // matching the file. The queue is the same one every local write waits in,
+    // so a save in flight can no longer restore a grant this adopts as revoked.
+    await this.#queueSettingsWork(() => this.#adoptExternalSettings());
+  }
+
+  async #adoptExternalSettings(): Promise<void> {
+    const previous = this.settings;
+    const stored: unknown = await this.loadData();
+    // onunload has disposed the read source and the coordinator while this read
+    // was outstanding. Adopting now would install a runtime nothing will ever
+    // dispose, so the notification is dropped with the plugin.
+    if (this.#unloaded) return;
+    if (!isAdoptableSettingsPayload(stored)) {
+      // Absent, malformed, from a build this one does not understand, or
+      // missing the identity its grants are bound to. loadProjectWeaveSettings
+      // would answer any of those with defaults, which is right at load and
+      // wrong here: it would drop every grant and root from a session that
+      // currently has them. A read we cannot trust is not a change.
+      //
+      // Nothing is written back, either. An earlier attempt repaired a missing
+      // identity and saved it, which put a write on this path — and a write
+      // here can land on top of a change that synced while we were reading,
+      // losing it. Between a revocation that silently fails to apply and a
+      // vault id that has to be re-established after a restart, the second is
+      // the safer way to be wrong: grants stop working rather than quietly
+      // keeping a credential alive.
+      return;
+    }
+    const loaded = loadProjectWeaveSettings(stored);
+    // Revocations this device knows about outlive any file that forgets them.
+    const revokedAgentGrantIds = mergeRevokedGrantIds(
+      previous.revokedAgentGrantIds,
+      loaded.revokedAgentGrantIds,
+    );
+    const revoked = new Set(revokedAgentGrantIds);
+    const agentGrants = loaded.agentGrants.filter(
+      (grant) => !revoked.has(grant.id),
+    );
+    // What the file itself holds, before the loader dropped anything: comparing
+    // against `loaded` would compare the merge with its own result, since the
+    // loader has already applied the ids the file carries.
+    const storedGrants = Array.isArray(stored.agentGrants)
+      ? normalizeAgentGrants(stored.agentGrants)
+      : [];
+    // The file is behind this device when it is missing an id held here, or
+    // still carrying an entry for a grant any recorded id withdrew — including
+    // one it records itself, which a build that predates these ids would serve.
+    const fileIsBehind =
+      revokedAgentGrantIds.length !== loaded.revokedAgentGrantIds.length ||
+      storedGrants.length !== agentGrants.length;
+    this.settings = { ...loaded, agentGrants, revokedAgentGrantIds };
+    if (fileIsBehind) {
+      await this.#propagateRevocations(
+        this.settings,
+        revokedAgentGrantIds.filter(
+          (id) => !loaded.revokedAgentGrantIds.includes(id),
+        ),
+      );
+    }
+    const differs = (key: keyof ProjectWeaveSettings): boolean =>
+      JSON.stringify(previous[key]) !== JSON.stringify(this.settings[key]);
+
+    // Adopting the file is all a revoked grant needs: the gateway reads the
+    // grant list and the enabled flag per request. Every other setting has a
+    // side effect that its own updater performs after saving, and skipping any
+    // of them here would leave settings showing one thing while creation,
+    // diagnostics, or the index still used another.
+    if (differs('projectRoots')) {
+      const runtime = this.#createRuntime(this.settings.projectRoots);
+      this.#installRuntime(runtime);
+      await this.#rebuildRuntime(runtime, false);
+    } else if (differs('taskCategories')) {
+      // A new runtime already reindexes; this covers the case where it is the
+      // categories alone that moved.
+      await this.rebuildIndex(false);
+    }
+    if (differs('templateScaffoldFolder')) {
+      if (this.#runtime !== null) this.#bindReadSource(this.#runtime);
+      this.#noteDiagnosticBanners?.scheduleRefresh();
+    }
+    if (differs('diagnosticsLogFolder')) {
+      this.#diagnosticsLogService?.publish(this.#readSource.current);
+    }
+    if (differs('agentVaultId')) {
+      // The endpoint is derived from this id, so both the value handed to new
+      // client configurations and the socket already bound are now stale.
+      await this.#resolveAgentClientEndpoint();
+    }
+    if (
+      agentBridgeNeedsRefresh({
+        enabledChanged: differs('agentGatewayEnabled'),
+        identityChanged: differs('agentVaultId'),
+        enabled: this.settings.agentGatewayEnabled,
+        listening: this.#agentBridge !== null,
+      })
+    ) {
+      await this.#refreshAgentBridge();
+    }
+  }
+
+  /**
+   * Writes the merged settings back when the adopted file was missing a
+   * revocation this device holds.
+   *
+   * The one write on a path that otherwise only reads, and taken deliberately
+   * (ADR 0035): a device that revoked and lost the race is the only one holding
+   * the record, so a set that is never written back never reaches the device
+   * that restored the grant.
+   *
+   * Not raised, because raising rejects a notification Obsidian does not
+   * handle, and because this device is already refusing the grant. But not
+   * silent either: what fails here is the durability of a revocation, and until
+   * it is written the record lives only in this session. Closing the vault
+   * loses it, and another device can still be serving the grant. The user is
+   * told, once per id per session, since adoption can repeat often and the
+   * retry is simply the next one.
+   */
+  async #propagateRevocations(
+    next: ProjectWeaveSettings,
+    missingFromFile: readonly string[],
+  ): Promise<void> {
+    try {
+      await this.#persistSettings(next);
+      for (const id of missingFromFile) this.#unwrittenRevocations.delete(id);
+    } catch (error) {
+      console.error(
+        'Project Weave could not write back a revoked grant id',
+        error,
+      );
+      const unreported = missingFromFile.filter(
+        (id) => !this.#unwrittenRevocations.has(id),
+      );
+      if (unreported.length === 0) return;
+      for (const id of unreported) this.#unwrittenRevocations.add(id);
+      new Notice(
+        `Project Weave could not record the revocation of ${unreported.join(', ')} permanently. It is refused on this device, but another device may still accept it until the vault can be written again.`,
+      );
+    }
   }
 
   public get agentGatewayEndpoint(): string | null {
     return this.#agentBridge?.state.endpoint ?? null;
+  }
+
+  /**
+   * The endpoint a client configuration must carry, whether or not the gateway
+   * is listening right now.
+   *
+   * `agentGatewayEndpoint` reports the running bridge and is `null` while the
+   * gateway is off. A grant is routinely created before the gateway is switched
+   * on, and its configuration is delivered exactly once, so reading the live
+   * bridge there would copy a blank endpoint into a configuration the companion
+   * then refuses to start with — recoverable only by revoking the grant and
+   * creating another. This derives the same value the bridge will bind instead.
+   *
+   * `null` only on mobile, where no gateway exists to configure.
+   */
+  public get agentClientEndpoint(): string | null {
+    return this.#agentClientEndpoint;
+  }
+
+  async #resolveAgentClientEndpoint(): Promise<void> {
+    if (!Platform.isDesktopApp) {
+      return;
+    }
+    const { localAgentEndpoint } =
+      await import('./adapters/desktop/agent-endpoint');
+    this.#agentClientEndpoint = localAgentEndpoint(this.settings.agentVaultId);
   }
 
   public async rebuildIndex(showSuccess: boolean): Promise<void> {
@@ -372,6 +717,12 @@ export default class ProjectWeavePlugin extends Plugin {
   }
 
   #installRuntime(next: ProjectWeaveRuntime): void {
+    if (this.#unloaded) {
+      // onunload already disposed what it knew about; installing here would
+      // leave this coordinator running with nothing left to dispose it.
+      next.coordinator.dispose();
+      return;
+    }
     const previous = this.#runtime;
     this.#runtime = next;
     this.#bindReadSource(next);
@@ -390,7 +741,23 @@ export default class ProjectWeavePlugin extends Plugin {
     });
   }
 
+  /**
+   * Serialized because three callers reach it — load, the settings toggle, and
+   * an external change — and it stops the bridge before binding a new one. Two
+   * overlapping runs can both pass the stop and then race to bind the same
+   * endpoint, where the loser fails with `EADDRINUSE` and leaves its caller
+   * rejected. Chained on both settle paths so one failure does not strand
+   * every later refresh.
+   */
   async #refreshAgentBridge(): Promise<void> {
+    this.#agentBridgeWork = this.#agentBridgeWork.then(
+      () => this.#refreshAgentBridgeNow(),
+      () => this.#refreshAgentBridgeNow(),
+    );
+    await this.#agentBridgeWork;
+  }
+
+  async #refreshAgentBridgeNow(): Promise<void> {
     await this.#stopAgentBridge();
     if (
       !this.settings.agentGatewayEnabled ||
@@ -398,8 +765,10 @@ export default class ProjectWeavePlugin extends Plugin {
       this.#unloaded
     )
       return;
-    const { LocalAgentBridge, localAgentEndpoint } =
+    const { LocalAgentBridge } =
       await import('./adapters/desktop/local-agent-bridge');
+    const { localAgentEndpoint } =
+      await import('./adapters/desktop/agent-endpoint');
     const gateway = new ReadOnlyAgentGateway({
       enabled: () => this.settings.agentGatewayEnabled,
       vaultId: () => this.settings.agentVaultId,

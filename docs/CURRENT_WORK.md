@@ -17,73 +17,73 @@ None.
 
 ## Verified
 
-Four backlog items landed on a branch off `main`, then a review round, each
-recorded on its own task note.
+Three disjoint workstreams landed off `main`, then eight review rounds, all on agent
+access. The client endpoint is derived from the vault id rather than read from a running
+socket — folded to a token, since in full it could not bind on macOS — so a grant created
+while the gateway is off still carries a launchable configuration; `README.md` documents
+the repointing preview installs need.
 
-Agent grant containment moved into a pure `src/application/agent-grants.ts`
-and the gateway's near-duplicate copy is gone, so the two cannot drift. Lifting it exposed a hole both copies shared: prefix matching
-cannot see through traversal, so `Projects/Game/../Other` starts with
-`Projects/Game/` and read as contained. Any `.` or `..` segment is now
-refused rather than resolved, so the rule no longer depends on its caller.
+Revocation across devices then had to be made true. A plugin read `data.json`
+only at load, so a grant revoked elsewhere kept authorizing until Obsidian
+restarted. `onExternalSettingsChange` adopts the rewritten file and reconciles
+every setting carrying a side effect; every write shares that queue, reconciles
+the file first, and stops at `onunload`.
 
-The gateway's Unix-domain socket binds owner-only, by tightening
-`process.umask` across the synchronous span that binds it. The span must stay
-synchronous: umask is process-global, so holding it across an await would
-apply it to unrelated files. Windows named pipes are unaffected.
+Stopping there was silent: grant creation's rollback removed nothing and still
+reported the grant as not kept, while it was stored and authorized with its
+secret undelivered. `#commitSettings` throws rather than resolving, `onload`
+stops before registering anything if the vault closed during its first write,
+and the modal distinguishes a failed copy from a failed rollback; the
+specification guarantees the reporting, not all-or-nothing delivery.
 
-Template rung resolution has one owner, generalized over a kind. This
-reversed the premise it was scoped from: project creation already failed
-closed, while **task** creation read an ambiguous key through
-`VaultTemplateLibrary.load()` — which reports a collision as absent rather
-than broken — and silently returned the packaged template.
+The queue orders every writer this plugin controls, not sync, so a revocation
+landing between a local write's read and that write was overwritten and never
+observed. `loadData`/`saveData` have no compare-and-swap, so revocation stopped
+depending on a grant's absence:
+[[Documents/Decisions/0035-record-grant-revocations-as-tombstones|ADR 0035]] is
+accepted and built. Revoking records the id; every path that reads settings
+drops a grant carrying a recorded one, load included, or a restart restores the
+credential. Recorded ids merge as a union, adopting a file that omits one — or that still
+carries an entry any of them withdrew — writes the union back, and a failed write costs
+durability, not effect. A record present but unreadable serves no grant and keeps the
+gateway off, rather than reading as nothing revoked; it also blocks first-load identity
+initialization, so it cannot be overwritten before repair. Ids are kept permanently;
+bounded retention needs device acknowledgements this plugin does not have.
 
-Failing closed then stranded the user, which review caught: a colliding
-`task/default` vanished from the variant list, so the modal never offered the
-**Built-in default** escape hatch the specification requires. `listVariants`
-now returns `{variant, usable, source}`. Two security tests also passed
-whether or not the code they covered existed, and now fail without it: the
-socket test installs a permissive umask rather than inheriting one, and the
-gateway asserts the content roots it forwards, not merely that a sibling
-stays unreadable.
+That record binds only builds that read it, so
+[[Documents/Decisions/0036-require-a-revocation-aware-build-on-every-gateway-device|ADR 0036]]
+requires a recording build on every device hosting the gateway, withdrawing
+ADR 0035's claim that an additive field made mixed versions safe: an older build
+serves a restored grant until upgraded, and a `settingsVersion` bump would fail
+it closed only by also letting it write defaults over the shared file.
 
-`ObsidianVaultReader.setProjectRoots` was removed as unreachable,
-[[Tasks/Give templateClockFromLocalDate a caller]] closed without a change,
-and `Epic-agent-grant-lifecycle` is `active` rather than `planned`.
-
-`npm run check` passes: 452 tests and 99 script tests, one skipped. The skip
-is the socket-mode assertion, which needs POSIX mode bits and runs in CI on
-`ubuntu-latest` rather than on this machine.
+`npm run check` passes in full on macOS: 505 tests and 99 script tests, none
+skipped, plus the release verification.
 
 ## Next
 
-The agent grant redesign is the coherent next slice, and its three tasks are
-meant to land as one change rather than three passes over the same control:
-[[Tasks/Make the agent grant form explain what it asks for]] owns it, with
-[[Tasks/Restructure agent grant creation into validate-then-create]] and the
-already-done suggester work underneath it.
+Both agent grant tasks are `review`, waiting only on seeing the restored
+narrow-width rule in Obsidian — the last of `Epic-agent-grant-lifecycle`'s gate.
 
-[[Tasks/Run dogfood migration acceptance gate]] is what is left of the
-dogfood Epic and it is manual: browsing the relocated documents in Obsidian,
-origin navigation, live refresh, and workspace restoration.
+[[Tasks/Run dogfood migration acceptance gate]] is the manual remainder of that
+Epic: relocated documents, origin navigation, live refresh, workspace
+restoration.
 
-What still needs Obsidian: install prerelease `0.6.1-beta.32112484849`
-through BRAT into a clean vault, run the companion against a real MCP client,
-and record the result on
-[[Tasks/Accept the BRAT preview and optional companion setup]]. The grant
-dialog and grant list have still not been seen at narrow width.
+What still needs Obsidian: install the prerelease through BRAT into a clean
+vault, run the companion against a real MCP client, and record it on
+[[Tasks/Accept the BRAT preview and optional companion setup]]. A prerelease
+configuration carries the old endpoint and must be repointed at what settings
+now shows; the grant and its secret are unaffected.
 
 ## Loose ends
 
-- ADR 0030 asserts that only the task path implemented ADR 0013's
-  fail-closed rule fully. The opposite was true. The record is accepted and
-  so immutable; see
-  [[Tasks/Supersede the ADR 0030 claim about which path skipped the rung]].
-- Accepted records still name `docs/spec/` in prose, and ADR 0026 renders a
-  retired path as link text. Immutable bodies; every target resolves.
-- The companion requires the gateway to be reachable when the client launches
-  it, so Obsidian must be running first; see
-  [[Tasks/Document the companion launch ordering requirement]].
-- Grant creation still generates a secret from unvalidated paths; see
-  [[Tasks/Restructure agent grant creation into validate-then-create]].
-- `0017` is the only accepted record carrying no `area`.
+- The companion says to enable "Agent Access", the section heading rather than
+  the toggle; see [[Tasks/Name the agent gateway toggle as the companion messages describe it]].
+- ADR 0013 is still `proposed` and ADR 0015 carries a whole-supersession marker
+  its superseder describes as partial; see [[Tasks/Reconcile two decision records whose frontmatter contradicts their bodies]].
+- Accepted records still name `docs/spec/` in prose; immutable bodies, and every target resolves.
+- Three of the six external-settings reconcilers and the bridge serialization
+  guard reach services that exist only after `onload`, so no test covers them,
+  though the stub workspace now answers enough for `onload` itself to run; see
+  [[Tasks/Lift a testable workspace out of the plugin entry point]].
 - Full mobile check 11a through 11g remains outstanding.

@@ -196,6 +196,37 @@ describe('ReadOnlyAgentGateway', () => {
       ['Projects/Game/Documents'],
     );
   });
+
+  it('stops authorizing a grant as soon as it is revoked, without a restart', async () => {
+    // A grant revoked on another device reaches this one as a rewritten
+    // data.json, which the plugin adopts through onExternalSettingsChange.
+    // Nothing restarts the gateway, so revocation only takes effect if the
+    // grant list is read per request rather than captured at construction.
+    // Without that, a withdrawn credential keeps working until Obsidian
+    // restarts — which is the promise the settings surface makes when it
+    // offers revoke on a platform that cannot create.
+    // Rebound, not mutated in place: mutating the array a captured callback
+    // already holds would pass either way, so it would not tell a per-request
+    // read apart from one snapshot taken at construction.
+    let live: readonly AgentGrant[] = [GRANT];
+    const gateway = new ReadOnlyAgentGateway({
+      enabled: () => true,
+      vaultId: () => 'vault-1',
+      grants: () => live,
+      pluginVersion: () => '0.7.0-beta.1',
+      queryApi: () => new ProjectWeaveQueryApi(() => buildSnapshot()),
+      digestSecret: async (secret) => `digest:${secret}`,
+    });
+
+    expect((await gateway.handle(request('projects_list'))).ok).toBe(true);
+
+    live = [];
+
+    const afterRevoke = await gateway.handle(request('projects_list'));
+    expect(afterRevoke.ok).toBe(false);
+    if (afterRevoke.ok) throw new Error('Expected the revoked grant to fail');
+    expect(afterRevoke.error.code).toBe('gateway.authentication_failed');
+  });
 });
 
 function createGateway(

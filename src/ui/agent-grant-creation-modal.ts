@@ -40,10 +40,16 @@ export interface AgentGrantCreationContext {
  * than only on submit, and it never asks the gateway — the same local
  * checks apply whether the gateway is enabled or disabled.
  *
- * Creation stays atomic with copying the client configuration: pressing
- * create both creates the grant and copies its configuration in one step,
- * and the grant is rolled back if the clipboard write fails, so no grant can
- * exist without its configuration having been delivered.
+ * Creation and delivery move together: pressing create both creates the grant
+ * and copies its configuration in one step, and a clipboard write that fails
+ * is followed by removing the grant it was delivering.
+ *
+ * That removal is a save, so it is an attempt rather than a certainty — the
+ * plugin refuses one outright once it has been unloaded. What this dialog
+ * guarantees is the reporting: an undelivered grant is either removed, or
+ * named in the failure with instructions to revoke it in settings, where it is
+ * listed with its revoke action. It is never reported as gone while it is
+ * still stored.
  */
 export class AgentGrantCreationModal extends Modal {
   readonly #context: AgentGrantCreationContext;
@@ -289,7 +295,19 @@ export class AgentGrantCreationModal extends Modal {
       try {
         await navigator.clipboard.writeText(configuration);
       } catch (error) {
-        await this.#context.removeGrant(created.grant.id);
+        try {
+          await this.#context.removeGrant(created.grant.id);
+        } catch (removalError) {
+          // The rollback is what makes creation and delivery atomic, so when
+          // it is the rollback that fails the message has to say what is
+          // actually stored. Reporting the grant as not kept here would leave
+          // an authorized grant whose secret was never delivered, described as
+          // gone.
+          throw new Error(
+            `The client configuration could not be copied, and grant ${created.grant.id} could not be removed. It is still authorized with no configuration delivered — revoke it in settings.`,
+            { cause: removalError },
+          );
+        }
         throw new Error(
           'The client configuration could not be copied, so the grant was not kept.',
           { cause: error },

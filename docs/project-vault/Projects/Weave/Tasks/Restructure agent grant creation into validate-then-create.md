@@ -3,7 +3,7 @@ type: task
 title: Restructure agent grant creation into validate-then-create
 project: '[[Projects/Weave/Project]]'
 epic: '[[Epics/Epic-agent-grant-lifecycle]]'
-status: backlog
+status: review
 category: enhancement
 priority: high
 rank: 5500
@@ -94,9 +94,54 @@ belongs with the companion rather than with this settings row.
   existing folder are rejected with distinct messages.
 - Resolution works with the agent gateway disabled.
 
+## Resolution
+
+`resolveAgentGrantForm` in `src/ui/agent-grant-form.ts` is the gate, and the
+dialog re-runs it on every field change rather than only on submit.
+
+- **Resolution precedes creation.** The create button is disabled until every
+  chosen value resolves, and `#create` re-checks before calling out, so the
+  button state is not the only guard.
+- **The result names what failed.** Each unresolved state produces its own
+  message, in the status line and on the button, rather than an unexplained
+  refusal.
+- **Distinct messages.** A path that is not indexed is rejected as *not an
+  indexed project*; a folder that does not exist is rejected as *not an
+  existing vault folder*, quoting the offending entry. Covered separately.
+- **Atomicity.** Creation and clipboard delivery happen in one action, and a
+  clipboard failure removes the grant again. Deleting the rollback call fails
+  `tests/ui/agent-grant-creation-modal.test.ts`, so the coverage is real.
+- **Gateway disabled.** This had a harness that could not express it: the
+  `endpoint` option folded `null` back into the enabled default through `??`,
+  so the disabled case had never actually been run. Fixed, and the dialog now
+  resolves and creates with `endpoint: null`, emitting an empty endpoint in
+  the copied configuration. Making readiness depend on the endpoint fails
+  that test.
+
+`resolveAgentGrantForm` takes both predicates as arguments and reaches
+nothing else, so the local-versus-gateway distinction is structural rather
+than only tested.
+
+**Residual, not covered by the atomicity claim as written.** Rollback itself
+can fail: if the clipboard write fails *and* the subsequent `removeAgentGrant`
+save also fails, the grant survives with its configuration never delivered.
+Both failures are surfaced to the user and the grant is visible in the list to
+revoke by hand, but the specification's "no reachable state" is absolute and
+this compound path is a counterexample. Deciding whether to soften the claim
+or close the path belongs with the specification's owner.
+
+### Outstanding: narrow widths
+
+**Not verified, and this task stays open for it.** See the same section on
+[[Tasks/Make the agent grant form explain what it asks for]]: the rule is
+restored in `styles.css`, but confirming it needs Obsidian, since the test DOM
+applies no stylesheet and performs no layout.
+
 ## Notes
 
 Depends on the suggester work landing first, since the selections it validates
-are the ones that work introduces. The owning specification is updated in the
-same change; it is not edited yet because parallel work is currently editing
-the agent-access specification.
+are the ones that work introduces. The owning specification already carries
+these rules under "Grant lifecycle and creation" in
+[[Documents/Specifications/agent-access-and-mcp]] — local resolution gating
+creation, gateway independence, explicit scope, and atomic creation — so this
+change adds no behavior the specification does not already state.

@@ -56,3 +56,19 @@ Sequenced before [[Tasks/Collapse the two creation ladders into one pipeline]],
 which rewrites the entry point's two creation openers: doing that against a
 workspace rather than against `Plugin` means the new wiring lands somewhere
 testable the first time. The ordering is a convenience, not a dependency.
+
+## What is currently untestable because of this
+
+`onExternalSettingsChange` reconciles six settings against their side effects.
+Three are observable from a constructed plugin and are covered: the adopted
+grant list, the derived client endpoint, and the blank-vault-id guard. The
+other three — reindexing on changed roots or categories, rebinding the template
+reader, and republishing diagnostics — reach services that only exist after
+`onload`, so removing any of those branches leaves the suite green.
+
+The serialization guard on `#refreshAgentBridge` is untestable for the same
+reason: reaching it needs an enabled gateway, which binds a real socket.
+
+`tests/helpers/obsidian-stub.ts` gained a `Plugin` base deliberately too small
+to run `onload`, which registers views, commands, a ribbon icon, and workspace
+listeners. Growing it into a real harness is this task.
