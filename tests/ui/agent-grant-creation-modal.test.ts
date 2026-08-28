@@ -60,6 +60,7 @@ function openModal(
   options: {
     readonly folderPaths?: readonly string[];
     readonly writeTextImpl?: (text: string) => Promise<void>;
+    readonly removeGrantImpl?: (id: string) => Promise<void>;
     readonly endpoint?: string | null;
     readonly grant?: AgentGrant;
   } = {},
@@ -109,6 +110,9 @@ function openModal(
     },
     removeGrant: async (id) => {
       removedIds.push(id);
+      if (options.removeGrantImpl) {
+        await options.removeGrantImpl(id);
+      }
     },
     onCreated: () => undefined,
   });
@@ -461,5 +465,35 @@ describe('AgentGrantCreationModal', () => {
     expect(recordedNotices.some((notice) => notice.includes('grant id'))).toBe(
       false,
     );
+  });
+
+  it('says the grant survived when the rollback save fails too', async () => {
+    // The rollback is a save, and a save can fail — the plugin refuses one
+    // outright once it has been unloaded. Reporting "the grant was not kept"
+    // there would describe a grant that is still stored and still authorized,
+    // with its secret never delivered, as gone.
+    const harness = openModal({
+      writeTextImpl: async () => {
+        throw new Error('denied');
+      },
+      removeGrantImpl: async () => {
+        throw new Error(
+          'Project Weave was unloaded before the change could be saved.',
+        );
+      },
+    });
+    await flush();
+    harness.type(harness.labelField(), 'Claude Desktop');
+    harness.type(harness.projectField(), 'Projects/Game/Project.md');
+    await flush();
+
+    harness.createButton().click();
+    await flush();
+
+    expect(harness.removedIds).toEqual(['grant-1']);
+    const status = harness.content.textContent ?? '';
+    expect(status).toContain('grant-1');
+    expect(status).toContain('revoke it in settings');
+    expect(status).not.toContain('was not kept');
   });
 });

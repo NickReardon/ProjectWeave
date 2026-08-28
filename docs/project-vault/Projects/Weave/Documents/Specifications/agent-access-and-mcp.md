@@ -406,9 +406,47 @@ The transport is a stdio MCP companion connected to a bridge inside the plugin o
   list and the enabled flag are read per request rather than captured when the
   gateway starts, and the plugin reloads its settings when sync rewrites them.
   Every settings write on the device waits in one queue with that adoption and
-  re-reads the file before saving, so a save already in flight cannot carry a
+  re-reads the file before saving, so no writer on this device carries a
   withdrawn grant back into the file or into the list being served.
-  Delivery is bounded by whatever sync latency the vault has, not by a restart;
+  Delivery is bounded by whatever sync latency the vault has, not by a restart.
+
+  That ordering does not extend to sync itself, which rewrites the file
+  directly rather than through the queue, so a revocation can still be
+  overwritten by a local write that read the file before it arrived. Revocation
+  therefore does not depend on a grant's absence surviving: revoking records the
+  grant's id, and adoption drops any grant whose id is recorded, so a restored
+  entry never reaches the list authorization is served from (ADR 0035).
+  A recorded id is applied wherever settings are read, at load as much as on
+  adoption: a restart has nothing in memory to compare a file against, so a
+  file carrying both a restored grant and the id that withdrew it must resolve
+  in favour of the id. A record that cannot be read at all — present, but not a
+  list of ids — is not read as an empty one. It is the account of which
+  credentials were withdrawn, and a damaged account is not evidence that none
+  were, so the settings it accompanies serve no grant and leave the gateway off
+  until it is repaired, and the plugin says so rather than failing quietly. On
+  the sync path the same payload is refused as unadoptable, which keeps this
+  session serving what it had already reconciled;
+
+  Recorded ids merge as a union rather than being replaced by the file, and
+  adopting a file that omits one this device holds writes the union back, so a
+  revocation reaches the device that restored the grant rather than living on
+  the one that lost the race. That write-back is the single case in which
+  adopting settings writes them. It is not raised as an error, because the
+  device holding the id is already refusing the grant, but a revocation that
+  cannot be written is not durable: it is held only for the life of the
+  session, and another device may still be serving the grant. What is
+  guaranteed is that the user is told when this happens, once per grant per
+  session, and the next adoption tries the write again. Recorded ids are kept
+  permanently. Discarding one would need every device to acknowledge it, since
+  an offline device can hold a stale grant for any length of time, and no
+  elapsed time proves otherwise.
+
+  A recorded revocation binds only the builds that read it. Every device that
+  hosts the gateway for a vault must therefore run a build that records
+  revocations (ADR 0036); an older one ignores the record, so a grant a stale
+  save restored is served there until that device is upgraded. No build can
+  constrain an older build running on another machine, so this is a constraint
+  on how a vault is deployed rather than a behavior of the plugin;
 - pin the MCP protocol revision and SDK to exact tested versions rather than ranges, so a protocol revision never changes underneath a tested adapter. The adapter targets MCP revision `2025-06-18`, using the official TypeScript SDK. Proposal handles stay independent of transport sessions, so a version bump is an isolated, testable change.
 
 The companion may start in any working directory, on any volume, with no relationship on disk to the vault it reaches. Nothing about agent access depends on the repository and the vault sharing a location.
@@ -544,14 +582,23 @@ multi-field decisions (see [Plugin experience](plugin-experience.md)). The
 settings entry itself is a list of existing grants with create and revoke
 actions; there is no inline multi-field row.
 
-**Creation stays atomic.** Pressing create both creates the grant and hands
-over its secret in one step; a resolution failure blocks the action before
-either happens. A grant either exists with its secret delivered, or it does
-not exist — there is no reachable state where a grant exists but its secret
-was never captured. What is delivered at creation is a complete client
-configuration — endpoint, grant id, and secret together — because a client
-needs all three to connect and transcribing them by hand from separate
-displayed values is itself a source of setup error.
+**Creation delivers the secret or attempts to withdraw the grant.** Pressing
+create both creates the grant and hands over its secret in one step. A
+resolution failure blocks the action before either happens, so there is nothing
+to withdraw. A delivery that fails is followed by removing the grant it was
+delivering — an attempt rather than a certainty, because that removal is itself
+a save and a save can fail.
+
+What is guaranteed is therefore the reporting, not the state. A grant whose
+delivery failed is either removed, or named in the failure message with
+instructions to revoke it and listed in settings with its revoke action beside
+it. No grant is left both undelivered and unmentioned, and no grant retains
+access without appearing where access is withdrawn.
+
+What is delivered at creation is a complete client configuration — endpoint,
+grant id, and secret together — because a client needs all three to connect
+and transcribing them by hand from separate displayed values is itself a
+source of setup error.
 
 **The grant list conveys scope without an editor.** Each listed grant states
 the project it may read, whether it is metadata-only or which content roots

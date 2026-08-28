@@ -20,6 +20,26 @@ export interface ProjectWeaveSettings {
   readonly agentVaultId: string;
   /** Local-only, secret-digest-bearing grants; never vault Markdown. */
   readonly agentGrants: readonly AgentGrant[];
+  /**
+   * Ids of grants that have been revoked, kept after the grant itself is gone
+   * (ADR 0035).
+   *
+   * Revocation used to be expressed only by a grant's absence, which a stale
+   * save could undo: sync writes the revocation, a local save that read the
+   * file first lands on top of it, and the notification for that revocation
+   * then reads back the list the save restored. Recording the id instead makes
+   * the merge monotonic — a restored entry is dropped on adoption, so it never
+   * reaches the list authorization is served from.
+   *
+   * Grow-only, and never emptied. Nothing short of an acknowledgement from
+   * every device proves an id is safe to drop, since an offline device can
+   * hold a stale grant indefinitely.
+   *
+   * Deliberately not guarded by a `settingsVersion` bump: an older build
+   * ignores the field, and would refuse the whole file for a version it does
+   * not know.
+   */
+  readonly revokedAgentGrantIds: readonly string[];
 }
 
 export type ScopeTransition = 'ignore' | 'upsert' | 'remove' | 'rename';
@@ -38,6 +58,7 @@ export function createDefaultProjectWeaveSettings(): ProjectWeaveSettings {
     agentGatewayEnabled: false,
     agentVaultId: '',
     agentGrants: [],
+    revokedAgentGrantIds: [],
   };
 }
 
@@ -68,11 +89,36 @@ export function isAdoptableSettingsPayload(
   if (version !== undefined && version !== 1 && version !== 2) {
     return false;
   }
+  if (hasUnreadableRevocationRecord(value)) {
+    return false;
+  }
   return (
     typeof value.agentVaultId === 'string' &&
     value.agentVaultId.trim().length > 0 &&
     Array.isArray(value.agentGrants)
   );
+}
+
+/**
+ * Whether a payload carries a revocation record that cannot be read.
+ *
+ * Absent is not unreadable: every file written before revocations were
+ * recorded has no field at all, and it means what it says — nothing has been
+ * revoked. A field that is present and is not a list of ids means something
+ * else entirely. It is the record of which credentials were withdrawn, and a
+ * value that cannot be parsed is not evidence that none were.
+ *
+ * Callers fail closed on this rather than substituting an empty list, which
+ * would read a damaged file as permission to serve every grant it still names.
+ */
+export function hasUnreadableRevocationRecord(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  const stored = value.revokedAgentGrantIds;
+  if (stored === undefined) return false;
+  if (!Array.isArray(stored)) return true;
+  // An entry that normalizes away is an id this build cannot account for, so
+  // the record is incomplete in exactly the direction that matters.
+  return stored.some((entry) => normalizeIdentifier(entry).length === 0);
 }
 
 export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
@@ -103,6 +149,34 @@ export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
       ? normalizeStoredOptionalFolder(value.diagnosticsLogFolder, '')
       : defaults.diagnosticsLogFolder;
 
+  if (hasUnreadableRevocationRecord(value)) {
+    // Authorization state that cannot be read authorizes nothing. Grants are
+    // dropped and the gateway is forced off rather than trusting a file whose
+    // record of what was withdrawn is damaged; the grants themselves are still
+    // in the file, and stay there until something writes settings again.
+    return {
+      ...defaults,
+      projectRoots,
+      templateScaffoldFolder,
+      diagnosticsLogFolder,
+      taskCategories: Array.isArray(value.taskCategories)
+        ? normalizeTaskCategories(value.taskCategories)
+        : defaults.taskCategories,
+      agentVaultId:
+        typeof value.agentVaultId === 'string'
+          ? normalizeIdentifier(value.agentVaultId)
+          : '',
+      agentGatewayEnabled: false,
+      agentGrants: [],
+      revokedAgentGrantIds: [],
+    };
+  }
+
+  const revokedAgentGrantIds = Array.isArray(value.revokedAgentGrantIds)
+    ? normalizeRevokedGrantIds(value.revokedAgentGrantIds)
+    : defaults.revokedAgentGrantIds;
+  const revoked = new Set(revokedAgentGrantIds);
+
   return {
     settingsVersion: 2,
     projectRoots,
@@ -116,10 +190,47 @@ export function loadProjectWeaveSettings(value: unknown): ProjectWeaveSettings {
       typeof value.agentVaultId === 'string'
         ? normalizeIdentifier(value.agentVaultId)
         : '',
+    // A recorded revocation outranks an entry for the same grant, wherever the
+    // two arrive together. Filtering here rather than only where a synced file
+    // is adopted is what makes it survive a restart: load is the path with no
+    // previous settings to merge against, so a file carrying both a restored
+    // grant and the id that withdrew it would otherwise come back authorized.
     agentGrants: Array.isArray(value.agentGrants)
-      ? normalizeAgentGrants(value.agentGrants)
+      ? normalizeAgentGrants(value.agentGrants).filter(
+          (grant) => !revoked.has(grant.id),
+        )
       : [],
+    revokedAgentGrantIds,
   };
+}
+
+/**
+ * Normalizes stored revoked ids through the same identifier rule grants are
+ * stored under, so a tombstone and the grant it withdraws always compare equal.
+ */
+export function normalizeRevokedGrantIds(
+  values: readonly unknown[],
+): readonly string[] {
+  const ids = new Set<string>();
+  for (const value of values) {
+    const id = normalizeIdentifier(value);
+    if (id.length > 0) ids.add(id);
+  }
+  return [...ids].sort((left, right) => left.localeCompare(right));
+}
+
+/**
+ * The union of two revoked-id sets.
+ *
+ * Union rather than replacement is the whole mechanism: adopting a file that
+ * omits an id this device already holds must not drop it, or a stale save
+ * would undo a revocation exactly as it did before these existed.
+ */
+export function mergeRevokedGrantIds(
+  left: readonly string[],
+  right: readonly string[],
+): readonly string[] {
+  return normalizeRevokedGrantIds([...left, ...right]);
 }
 
 export function normalizeAgentGrants(

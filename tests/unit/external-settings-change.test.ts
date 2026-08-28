@@ -5,7 +5,11 @@ import { localAgentEndpoint } from '../../src/adapters/desktop/agent-endpoint';
 import { ReadOnlyAgentGateway } from '../../src/application/read-only-agent-gateway';
 import { ProjectWeaveQueryApi } from '../../src/application/query-api';
 import { IndexBuilder } from '../../src/indexing/index-builder';
-import { createStubApp } from '../helpers/obsidian-stub';
+import {
+  clearNotices,
+  createStubApp,
+  recordedNotices,
+} from '../helpers/obsidian-stub';
 import { sourceNote } from '../helpers/source-note';
 
 const GRANT = {
@@ -26,8 +30,12 @@ const GRANT = {
 const STORED_GRANT = { ...GRANT, secretDigest: 'a'.repeat(64) };
 
 /** The shape `data.json` holds, as another device would have rewritten it. */
-function storedSettings(grants: readonly unknown[]): Record<string, unknown> {
+function storedSettings(
+  grants: readonly unknown[],
+  revokedAgentGrantIds: readonly string[] = [],
+): Record<string, unknown> {
   return {
+    revokedAgentGrantIds,
     settingsVersion: 2,
     projectRoots: ['Projects'],
     templateScaffoldFolder: '',
@@ -193,6 +201,28 @@ describe('onExternalSettingsChange', () => {
     expect(plugin.settings.diagnosticsLogFolder).toBe('');
   });
 
+  it('refuses a write it can no longer make rather than resolving as if it had', async () => {
+    // The writing side of the same boundary, from the caller's view. Grant
+    // creation rolls back by removing the grant it just wrote; a removal that
+    // resolves without removing anything would report the grant as not kept
+    // while it is still stored, still authorized, and its secret never
+    // delivered.
+    const plugin = createPlugin([GRANT]);
+    let file: Record<string, unknown> = storedSettings([STORED_GRANT]);
+    plugin.loadData = async () => {
+      plugin.onunload();
+      return file;
+    };
+    plugin.saveData = async (data: unknown) => {
+      file = data as Record<string, unknown>;
+    };
+
+    await expect(plugin.removeAgentGrant(GRANT.id)).rejects.toThrow(
+      /unloaded/u,
+    );
+    expect(file['agentGrants']).toEqual([STORED_GRANT]);
+  });
+
   it('recomputes the client endpoint when the vault id changes', async () => {
     // The endpoint is derived from the vault id — through a digest, so it is
     // compared against the deriving function rather than searched for the id —
@@ -244,9 +274,10 @@ describe('onExternalSettingsChange', () => {
     expect(plugin.settings.agentGrants).toHaveLength(1);
   });
 
-  it('never writes on a path that only reads', async () => {
-    // The hook exists to adopt a file, not to edit it. A write here races the
-    // sync that triggered the notification.
+  it('writes nothing when the adopted file is not behind this device', async () => {
+    // The hook exists to adopt a file, not to edit it: a write here races the
+    // sync that triggered the notification. Propagating a revocation is the one
+    // exception, and it is not this case — nothing is held that the file lacks.
     const plugin = createPlugin([GRANT]);
     const saved: unknown[] = [];
     plugin.saveData = async (data: unknown) => {
@@ -260,11 +291,162 @@ describe('onExternalSettingsChange', () => {
     expect(plugin.settings.agentGrants).toEqual([]);
   });
 
+  it('keeps a grant unauthorized after a stale save restores it', async () => {
+    // The interleaving no queue can order. Sync writes the revocation, a local
+    // save that read the file first lands on top of it and restores the grant,
+    // and the notification for that revocation then reads back what the save
+    // restored. Recording the revocation is what survives it: the id is held
+    // here, so the restored entry is dropped on adoption and never reaches the
+    // list the gateway serves from.
+    const plugin = createPlugin([GRANT]);
+    const gateway = new ReadOnlyAgentGateway({
+      enabled: () => true,
+      vaultId: () => plugin.settings.agentVaultId,
+      grants: () => plugin.settings.agentGrants,
+      pluginVersion: () => '0.7.0-beta.1',
+      queryApi: () =>
+        new ProjectWeaveQueryApi(() =>
+          new IndexBuilder().build(
+            [sourceNote('Projects/Game/Project.md', 'type: project')],
+            { revision: 1 },
+          ),
+        ),
+      digestSecret: async (secret) => `digest:${secret}`,
+    });
+    const call = async (): Promise<boolean> =>
+      (
+        await gateway.handle({
+          requestId: 'r1',
+          companionVersion: '0.7.0-beta.1',
+          grantId: GRANT.id,
+          secret: 'correct',
+          operation: 'projects_list',
+        })
+      ).ok;
+    let file: Record<string, unknown> = storedSettings([STORED_GRANT]);
+    plugin.loadData = async () => file;
+    plugin.saveData = async (data: unknown) => {
+      file = data as Record<string, unknown>;
+    };
+    expect(await call()).toBe(true);
+
+    await plugin.removeAgentGrant(GRANT.id);
+    expect(await call()).toBe(false);
+
+    // Another device overwrites the file from a snapshot taken before the
+    // revocation: the grant is back and the tombstone is gone.
+    file = storedSettings([STORED_GRANT]);
+    await plugin.onExternalSettingsChange();
+
+    expect(plugin.settings.agentGrants).toEqual([]);
+    expect(await call()).toBe(false);
+  });
+
+  it('writes the union back when the adopted file forgot a revocation', async () => {
+    // Holding the id protects this device and no other. The device that
+    // revoked is the one whose write was lost, so a set that is never written
+    // back never reaches the device that restored the grant.
+    const plugin = createPlugin([]);
+    plugin.settings = {
+      ...plugin.settings,
+      revokedAgentGrantIds: [GRANT.id],
+    };
+    const saved: Record<string, unknown>[] = [];
+    plugin.loadData = async () => storedSettings([STORED_GRANT]);
+    plugin.saveData = async (data: unknown) => {
+      saved.push(data as Record<string, unknown>);
+    };
+
+    await plugin.onExternalSettingsChange();
+
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.['revokedAgentGrantIds']).toEqual([GRANT.id]);
+    expect(saved[0]?.['agentGrants']).toEqual([]);
+  });
+
+  it('says so when the revocation cannot be written back, and keeps serving without it', async () => {
+    // Not raised: raising rejects a notification Obsidian does not handle, and
+    // this device is already refusing the grant. Not silent either — what
+    // failed is the revocation's durability, and the guarantee the
+    // specification makes is only that the failure is reported.
+    clearNotices();
+    const plugin = createPlugin([]);
+    plugin.settings = {
+      ...plugin.settings,
+      revokedAgentGrantIds: [GRANT.id],
+    };
+    plugin.loadData = async () => storedSettings([STORED_GRANT]);
+    plugin.saveData = async () => {
+      throw new Error('disk full');
+    };
+
+    await expect(plugin.onExternalSettingsChange()).resolves.toBeUndefined();
+    expect(plugin.settings.agentGrants).toEqual([]);
+    expect(plugin.settings.revokedAgentGrantIds).toEqual([GRANT.id]);
+    expect(
+      recordedNotices.some(
+        (notice) =>
+          notice.includes(GRANT.id) && notice.includes('could not record'),
+      ),
+    ).toBe(true);
+  });
+
+  it('repairs a file that carries both a grant and the record withdrawing it', async () => {
+    // A build that predates recorded revocations serves that entry, so leaving
+    // it in the file leaves the grant usable on any device still running one.
+    // The loader drops it here, which is why the comparison that decides
+    // whether to write is made against what the file itself holds.
+    const plugin = createPlugin([]);
+    const saved: Record<string, unknown>[] = [];
+    plugin.loadData = async () => storedSettings([STORED_GRANT], [GRANT.id]);
+    plugin.saveData = async (data: unknown) => {
+      saved.push(data as Record<string, unknown>);
+    };
+
+    await plugin.onExternalSettingsChange();
+
+    expect(plugin.settings.agentGrants).toEqual([]);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.['agentGrants']).toEqual([]);
+    expect(saved[0]?.['revokedAgentGrantIds']).toEqual([GRANT.id]);
+  });
+
+  it('reports an unwritable revocation once rather than on every notification', async () => {
+    // Adoption repeats whenever another device saves anything at all, and the
+    // retry is simply the next one. A notice per attempt would bury the first.
+    clearNotices();
+    const plugin = createPlugin([]);
+    plugin.settings = {
+      ...plugin.settings,
+      revokedAgentGrantIds: [GRANT.id],
+    };
+    plugin.loadData = async () => storedSettings([STORED_GRANT]);
+    plugin.saveData = async () => {
+      throw new Error('disk full');
+    };
+
+    await plugin.onExternalSettingsChange();
+    await plugin.onExternalSettingsChange();
+
+    expect(
+      recordedNotices.filter((notice) => notice.includes('could not record')),
+    ).toHaveLength(1);
+  });
+
   it.each([
     ['absent', null],
     ['malformed', 'not-a-settings-record'],
     ['from an unsupported build', { settingsVersion: 99, agentGrants: [] }],
     ['a bare version claim', { settingsVersion: 2 }],
+    [
+      'carrying a revocation record it cannot read',
+      {
+        settingsVersion: 2,
+        agentVaultId: 'vault-1',
+        agentGrants: [],
+        revokedAgentGrantIds: 'grant-one',
+      },
+    ],
     ['missing its grant list', { settingsVersion: 2, agentVaultId: 'vault-9' }],
   ])(
     'adopts nothing and saves nothing when the file is %s',
@@ -289,6 +471,84 @@ describe('onExternalSettingsChange', () => {
       expect(plugin.settings.agentVaultId).toBe('vault-1');
     },
   );
+});
+
+describe('onload', () => {
+  it('registers nothing once the vault closed during its first write', async () => {
+    // A vault with no identity yet writes one during load, and that write can
+    // straddle onunload. Continuing afterwards would register a view, a
+    // settings tab, a ribbon icon, and commands onto a plugin Obsidian has
+    // finished tearing down, and nothing would ever dispose them.
+    const plugin = new ProjectWeavePlugin(
+      createStubApp() as never,
+      { version: '0.7.0-beta.1' } as never,
+    );
+    const registered: string[] = [];
+    // Block bodies rather than expressions: the real `addRibbonIcon` and
+    // `addCommand` return values these stand in for.
+    plugin.registerView = () => {
+      registered.push('view');
+    };
+    plugin.registerEvent = () => {
+      registered.push('event');
+    };
+    plugin.addSettingTab = () => {
+      registered.push('settings-tab');
+    };
+    plugin.addRibbonIcon = (() => {
+      registered.push('ribbon');
+    }) as never;
+    plugin.addCommand = (() => {
+      registered.push('command');
+    }) as never;
+    plugin.loadData = async () => null;
+    plugin.saveData = async () => {
+      plugin.onunload();
+    };
+
+    await plugin.onload();
+
+    expect(registered).toEqual([]);
+    // What the first guard uniquely prevents: the work between it and the
+    // second one. Without it, loading continues to build a runtime and derive
+    // the client endpoint for a plugin that is already gone.
+    expect(plugin.agentClientEndpoint).toBeNull();
+  });
+
+  it('registers nothing when the vault closes during a later await', async () => {
+    // The identity is already established here, so the write that carries the
+    // first guard never runs. Only the guard after the endpoint and bridge
+    // awaits can stop this one, which is what makes the two independent: the
+    // case above passes with either guard alone.
+    const plugin = new ProjectWeavePlugin(
+      createStubApp() as never,
+      { version: '0.7.0-beta.1' } as never,
+    );
+    const registered: string[] = [];
+    plugin.registerView = () => {
+      registered.push('view');
+    };
+    plugin.registerEvent = () => {
+      registered.push('event');
+    };
+    plugin.addSettingTab = () => {
+      registered.push('settings-tab');
+    };
+    plugin.addRibbonIcon = (() => {
+      registered.push('ribbon');
+    }) as never;
+    plugin.addCommand = (() => {
+      registered.push('command');
+    }) as never;
+    plugin.loadData = async () => {
+      plugin.onunload();
+      return storedSettings([]);
+    };
+
+    await plugin.onload();
+
+    expect(registered).toEqual([]);
+  });
 });
 
 describe('agentBridgeNeedsRefresh', () => {

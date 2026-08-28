@@ -37,6 +37,16 @@ export interface StubWorkspace {
   getActiveFile(): StubTFile | null;
   requestSaveLayout(): void;
   getLeaf(kind: string): StubLeaf;
+  /**
+   * Enough of the event and layout surface for `onload` to run to completion.
+   * No leaf is ever open and no listener is ever fired, so a test that drives
+   * `onload` observes what loading decided, not what the workspace then does —
+   * the workspace harness in "Lift a testable workspace out of the plugin entry
+   * point" is still what layout-dependent tests want.
+   */
+  on(name: string, callback: () => void): { name: string };
+  getLeavesOfType(kind: string): readonly never[];
+  onLayoutReady(callback: () => void): void;
 }
 
 export interface StubVault {
@@ -404,12 +414,15 @@ export class Setting {
 }
 
 /**
- * Enough of `Plugin` to construct the real plugin class and drive one method.
+ * Enough of `Plugin` to construct the real plugin class and drive its methods,
+ * `onload` included — the registration calls are no-ops and the stub workspace
+ * answers the event and layout calls, so loading completes in a DOM
+ * environment.
  *
- * Deliberately not enough to run `onload`, which registers views, commands,
- * ribbon icons, and workspace listeners. Tests that need a loaded plugin want
- * the harness from "Lift a testable workspace out of the plugin entry point";
- * this covers methods reachable on a constructed instance.
+ * What it does not model is anything loading then goes on to do: no leaf is
+ * ever open, no listener ever fires, and no view is ever constructed. A test
+ * about layout, or about what a registered handler does, still wants the
+ * harness from "Lift a testable workspace out of the plugin entry point".
  */
 export class Plugin {
   public readonly app: unknown;
@@ -522,6 +535,16 @@ export function createStubApp(
     getLeaf(kind) {
       requestedLeafKinds.push(kind);
       return createStubLeaf(app);
+    },
+    on(name) {
+      return { name };
+    },
+    getLeavesOfType() {
+      return [];
+    },
+    onLayoutReady() {
+      // Never fires: nothing here indexes, and a test that wants the
+      // layout-ready path drives it itself.
     },
   };
 

@@ -31,8 +31,11 @@ import { IndexCoordinator } from './indexing/index-coordinator';
 import {
   classifyScopeTransition,
   createDefaultProjectWeaveSettings,
+  hasUnreadableRevocationRecord,
   isAdoptableSettingsPayload,
   loadProjectWeaveSettings,
+  mergeRevokedGrantIds,
+  normalizeAgentGrants,
   normalizeOptionalVaultFolderPath,
   normalizeProjectRoots,
   normalizeTaskCategories,
@@ -103,16 +106,46 @@ export default class ProjectWeavePlugin extends Plugin {
   #agentBridge: AgentBridgeLifecycle | null = null;
   #agentClientEndpoint: string | null = null;
   #settingsWork: Promise<void> = Promise.resolve();
+  /** Revoked ids this session holds but has not managed to write to the file. */
+  readonly #unwrittenRevocations = new Set<string>();
   #agentBridgeWork: Promise<void> = Promise.resolve();
   #unloaded = false;
 
   public override async onload(): Promise<void> {
-    this.settings = loadProjectWeaveSettings(await this.loadData());
-    if (this.settings.agentVaultId.length === 0) {
-      await this.#commitSettings((current) => ({
-        ...current,
-        agentVaultId: randomIdentifier(),
-      }));
+    const stored: unknown = await this.loadData();
+    this.settings = loadProjectWeaveSettings(stored);
+    const hasUnreadableRevocations = hasUnreadableRevocationRecord(stored);
+    if (hasUnreadableRevocations) {
+      // Failing closed is silent otherwise: the grants simply stop working,
+      // which reads as a broken gateway rather than as a damaged record the
+      // user can repair.
+      new Notice(
+        'Project Weave could not read which agent grants had been revoked, so it is serving none of them and the gateway stays off. Repair or remove revokedAgentGrantIds in the plugin data file.',
+      );
+    }
+    // Do not turn a fail-closed read into a destructive repair. A malformed
+    // revocation record can coexist with a missing or invalid old identity;
+    // generating a new identity would immediately save the defaults and erase
+    // the record (and any grants it accompanies) before the user could repair
+    // it. A later deliberate settings change is a user-authorized write, but
+    // load itself must leave this damaged security record intact.
+    if (this.settings.agentVaultId.length === 0 && !hasUnreadableRevocations) {
+      try {
+        await this.#commitSettings((current) => ({
+          ...current,
+          agentVaultId: randomIdentifier(),
+        }));
+      } catch (error) {
+        // Only reachable when the vault closed during load. There is nothing
+        // to persist for a plugin that no longer has a runtime, and failing
+        // onload over it would report a load failure that did not happen.
+        if (!this.#unloaded) throw error;
+      }
+      // Loading stops there rather than continuing without the write. onunload
+      // has already run, so the rest of this method would register a view,
+      // commands, events, and a banner controller onto a plugin Obsidian has
+      // finished tearing down, and nothing would ever dispose them.
+      if (this.#unloaded) return;
     }
     this.#installRuntime(this.#createRuntime(this.settings.projectRoots));
     await this.#resolveAgentClientEndpoint();
@@ -124,6 +157,9 @@ export default class ProjectWeavePlugin extends Plugin {
         'Project Weave loaded, but its agent gateway could not start.',
       );
     }
+    // The same boundary for the two awaits above, which can straddle onunload
+    // just as the settings write can. Everything below registers something.
+    if (this.#unloaded) return;
     const diagnosticsLogService = new DiagnosticsLogService(
       new ObsidianDiagnosticsLogWriter(this.app.vault),
       () => this.settings.diagnosticsLogFolder,
@@ -356,10 +392,21 @@ export default class ProjectWeavePlugin extends Plugin {
     return result.ok ? result.items : [];
   }
 
+  /**
+   * Withdraws a grant, and records that it was withdrawn.
+   *
+   * The tombstone is the part that survives sync (ADR 0035). Removing the entry
+   * alone left revocation expressed as an absence, and an absence is undone by
+   * any device that writes a settings file it read before the revocation
+   * arrived.
+   */
   public async removeAgentGrant(id: string): Promise<void> {
     await this.#commitSettings((current) => ({
       ...current,
       agentGrants: current.agentGrants.filter((grant) => grant.id !== id),
+      revokedAgentGrantIds: mergeRevokedGrantIds(current.revokedAgentGrantIds, [
+        id,
+      ]),
     }));
   }
 
@@ -406,15 +453,38 @@ export default class ProjectWeavePlugin extends Plugin {
    * The queue alone orders this device's writers; it cannot order them against
    * the sync that rewrites `data.json` underneath all of them. Reading the file
    * first — through the same reconciler the change notification uses, so a
-   * divergence is acted on and not merely absorbed — means a save can no longer
-   * carry a revoked grant back into a list this instance is still serving from.
+   * divergence is acted on and not merely absorbed — narrows the window in
+   * which a save can carry a revoked grant back into the list this instance is
+   * still serving from to the write itself.
+   *
+   * It does not close it. `loadData`/`saveData` offer no compare-and-swap, so a
+   * sync landing between this read and the end of that write is overwritten by
+   * it, and the notification for it then reads back the settings this save
+   * restored — leaving a revoked credential authorized here. Closing it needs
+   * revocations recorded rather than inferred from a grant's absence, which is
+   * what `revokedAgentGrantIds` does (ADR 0035): the entry a stale write
+   * restores is dropped against the recorded id, so what this window can still
+   * cost is a revocation's durability rather than its effect.
    */
   #commitSettings(
     mutate: (current: ProjectWeaveSettings) => ProjectWeaveSettings,
   ): Promise<void> {
     return this.#queueSettingsWork(async () => {
       await this.#adoptExternalSettings();
-      if (this.#unloaded) return;
+      // Adoption abandons its read once the plugin is unloaded, so `settings`
+      // is no longer known to describe the file and a mutation derived from it
+      // could write a stale payload over a change that synced meanwhile.
+      //
+      // Refusing loudly rather than quietly. A caller that cannot persist has
+      // to be able to tell: grant creation rolls back by removing the grant it
+      // just wrote, and a rollback that resolves without deleting anything
+      // would report that the grant was not kept while it is still stored and
+      // still authorized, with its secret never delivered.
+      if (this.#unloaded) {
+        throw new Error(
+          'Project Weave was unloaded before the change could be saved.',
+        );
+      }
       await this.#persistSettings(mutate(this.settings));
     });
   }
@@ -468,7 +538,37 @@ export default class ProjectWeavePlugin extends Plugin {
       // keeping a credential alive.
       return;
     }
-    this.settings = loadProjectWeaveSettings(stored);
+    const loaded = loadProjectWeaveSettings(stored);
+    // Revocations this device knows about outlive any file that forgets them.
+    const revokedAgentGrantIds = mergeRevokedGrantIds(
+      previous.revokedAgentGrantIds,
+      loaded.revokedAgentGrantIds,
+    );
+    const revoked = new Set(revokedAgentGrantIds);
+    const agentGrants = loaded.agentGrants.filter(
+      (grant) => !revoked.has(grant.id),
+    );
+    // What the file itself holds, before the loader dropped anything: comparing
+    // against `loaded` would compare the merge with its own result, since the
+    // loader has already applied the ids the file carries.
+    const storedGrants = Array.isArray(stored.agentGrants)
+      ? normalizeAgentGrants(stored.agentGrants)
+      : [];
+    // The file is behind this device when it is missing an id held here, or
+    // still carrying an entry for a grant any recorded id withdrew — including
+    // one it records itself, which a build that predates these ids would serve.
+    const fileIsBehind =
+      revokedAgentGrantIds.length !== loaded.revokedAgentGrantIds.length ||
+      storedGrants.length !== agentGrants.length;
+    this.settings = { ...loaded, agentGrants, revokedAgentGrantIds };
+    if (fileIsBehind) {
+      await this.#propagateRevocations(
+        this.settings,
+        revokedAgentGrantIds.filter(
+          (id) => !loaded.revokedAgentGrantIds.includes(id),
+        ),
+      );
+    }
     const differs = (key: keyof ProjectWeaveSettings): boolean =>
       JSON.stringify(previous[key]) !== JSON.stringify(this.settings[key]);
 
@@ -507,6 +607,46 @@ export default class ProjectWeavePlugin extends Plugin {
       })
     ) {
       await this.#refreshAgentBridge();
+    }
+  }
+
+  /**
+   * Writes the merged settings back when the adopted file was missing a
+   * revocation this device holds.
+   *
+   * The one write on a path that otherwise only reads, and taken deliberately
+   * (ADR 0035): a device that revoked and lost the race is the only one holding
+   * the record, so a set that is never written back never reaches the device
+   * that restored the grant.
+   *
+   * Not raised, because raising rejects a notification Obsidian does not
+   * handle, and because this device is already refusing the grant. But not
+   * silent either: what fails here is the durability of a revocation, and until
+   * it is written the record lives only in this session. Closing the vault
+   * loses it, and another device can still be serving the grant. The user is
+   * told, once per id per session, since adoption can repeat often and the
+   * retry is simply the next one.
+   */
+  async #propagateRevocations(
+    next: ProjectWeaveSettings,
+    missingFromFile: readonly string[],
+  ): Promise<void> {
+    try {
+      await this.#persistSettings(next);
+      for (const id of missingFromFile) this.#unwrittenRevocations.delete(id);
+    } catch (error) {
+      console.error(
+        'Project Weave could not write back a revoked grant id',
+        error,
+      );
+      const unreported = missingFromFile.filter(
+        (id) => !this.#unwrittenRevocations.has(id),
+      );
+      if (unreported.length === 0) return;
+      for (const id of unreported) this.#unwrittenRevocations.add(id);
+      new Notice(
+        `Project Weave could not record the revocation of ${unreported.join(', ')} permanently. It is refused on this device, but another device may still accept it until the vault can be written again.`,
+      );
     }
   }
 

@@ -310,6 +310,25 @@ every existing grant with its label, grant id, project, and scope — metadata
 only, or which content roots additionally expose Markdown bodies — so a
 grant's scope is always readable without opening anything.
 
+Revoking is recorded rather than expressed by the grant simply disappearing.
+In a synced vault two devices write the same settings file, and a device saving
+a copy it read before the revocation arrived would otherwise put the grant
+back. The revoked id is kept instead, and a device that has it refuses the
+grant even if an entry for it reappears — on restart as much as while running.
+A device reading a file that has forgotten the revocation writes it back, and
+if it cannot, it says so: until that write succeeds the revocation is held only
+for that session. If the record itself is damaged — present in the plugin data
+file but no longer a list of ids — no grant is served and the gateway stays off
+until you repair or remove it, since a record that cannot be read is not proof
+that nothing was revoked.
+
+That record binds only versions that read it. **Every device that runs the
+gateway for a vault must use a build that records revocations**: an older build
+ignores recorded revocations, so if a stale save restores a grant, that device
+serves it until you upgrade it. Revoking still works from any device; what an
+older one cannot do is refuse a grant that reappeared. Recorded ids are never
+removed.
+
 Pressing **Create grant** both creates the grant and copies a complete,
 ready-to-paste client configuration to the clipboard in one step, once, and
 never shows or stores it again — capture it immediately, since a lost
@@ -326,7 +345,7 @@ secret already filled in:
       "command": "node",
       "args": ["<path to project-weave-mcp.cjs>"],
       "env": {
-        "PROJECT_WEAVE_ENDPOINT": "<the gateway endpoint, empty if currently disabled>",
+        "PROJECT_WEAVE_ENDPOINT": "<the local gateway endpoint>",
         "PROJECT_WEAVE_GRANT_ID": "<the new grant's id>",
         "PROJECT_WEAVE_GRANT_SECRET": "<the new grant's one-time secret>"
       }
@@ -342,6 +361,11 @@ only thing left to edit and it is obvious where. Replace it with the real
 path and merge the entry into your client's configuration file. On Windows,
 double every backslash in that path — a single backslash inside a JSON string
 is a silent failure, not an error.
+
+`PROJECT_WEAVE_ENDPOINT` is always filled in, including when the gateway is
+switched off: it is derived from the vault, not read from a running socket, so
+a grant created before the gateway is enabled still yields a configuration the
+companion can start with once it is.
 
 The companion exposes only bounded read tools. Entity metadata stays within the
 grant's project; Markdown bodies additionally require an allowed content root.
@@ -371,6 +395,15 @@ already launched stays dead until the client starts a new one. Once Obsidian
 is back, restart the Project Weave server using whatever your client offers —
 a per-server restart or reconnect control, a reload of the MCP configuration,
 or restarting the client itself.
+
+Preview configurations copied before this build carry a stale
+`PROJECT_WEAVE_ENDPOINT`. The endpoint used to be derived from the full vault
+id, which pushed the socket path past the length limit macOS enforces, so the
+gateway could not bind there at all; it is now derived from a fixed-width fold
+of the same id, which changes the address on every platform. Update
+`PROJECT_WEAVE_ENDPOINT` in the existing entry to the endpoint settings shows
+while the gateway is listening. The grant id and secret are unchanged, so
+nothing has to be revoked or created again.
 
 Every other failure is reported as a single actionable line, in the client's
 server log when it happens at startup and as the tool result when it happens

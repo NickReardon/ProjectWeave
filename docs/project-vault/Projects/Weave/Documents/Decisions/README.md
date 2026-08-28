@@ -62,6 +62,7 @@ are collected here.
 | [0013](0013-resolve-templates-from-a-vault-template-folder.md) | the project-specific mapping rung of its resolution ladder | [0020](0020-defer-project-specific-template-mappings.md) |
 | [0022](0022-separate-living-specifications-from-point-in-time-decision-records.md) | the naming bullet that kept `docs/spec/` numbered | [0025](0025-name-specifications-by-subject.md) |
 | [0030](0030-one-creation-pipeline-with-a-spec-per-note-kind.md) | the claim that only the task path implemented ADR 0013's fail-closed behavior | [0033](0033-correct-which-creation-path-skipped-the-rung-ladder.md) |
+| [0035](0035-record-grant-revocations-as-tombstones.md) | the claim that an additive field makes mixed plugin versions safe | [0036](0036-require-a-revocation-aware-build-on-every-gateway-device.md) |
 
 [ADR 0013](0013-resolve-templates-from-a-vault-template-folder.md) records that
 same relation a second time, in a `superseded_in_part_by` key of its own. The
